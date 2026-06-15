@@ -399,17 +399,17 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
           ))}
         </div>
 
-        {/* Heading (kept below the fixed opportunities strip) */}
-        <div className="absolute top-[32%] left-0 right-0 z-50 flex flex-col items-center text-center px-5 pointer-events-none">
-          <h1 className="text-white leading-[0.95]">
+        {/* Heading (bottom-left, clear of the airport markers) */}
+        <div className="absolute bottom-10 left-6 sm:left-10 md:left-14 z-50 max-w-[340px] flex flex-col items-start text-left pointer-events-none">
+          <h1 className="text-white leading-[0.95] drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
             <span
-              className="block font-playfair italic font-normal text-3xl sm:text-5xl md:text-6xl hero-anim hero-reveal"
+              className="block font-playfair italic font-normal text-3xl sm:text-4xl md:text-5xl hero-anim hero-reveal"
               style={{ letterSpacing: '-0.04em', animationDelay: '0.25s' }}
             >
               Turn dead miles
             </span>
             <span
-              className="block font-normal text-3xl sm:text-5xl md:text-6xl -mt-1 hero-anim hero-reveal"
+              className="block font-normal text-3xl sm:text-4xl md:text-5xl -mt-1 hero-anim hero-reveal"
               style={{ letterSpacing: '-0.06em', animationDelay: '0.42s' }}
             >
               into revenue
@@ -428,9 +428,9 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
           </div>
         </div>
 
-        {/* Live activity feed (bottom-left) */}
+        {/* Live activity feed (bottom-right) */}
         <div
-          className="hidden sm:block absolute bottom-10 left-10 md:left-14 w-[280px] z-50 hero-anim hero-fade"
+          className="hidden sm:block absolute bottom-10 right-10 md:right-14 w-[280px] z-50 hero-anim hero-fade"
           style={{ animationDelay: '0.7s' }}
         >
           <LiveActivity events={activity} />
