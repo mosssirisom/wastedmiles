@@ -279,8 +279,9 @@ export default function Hero({
 
   return (
     <>
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center p-4 sm:p-5">
+      {/* Fixed header: nav + stats bar + opportunities ticker */}
+      <div className="fixed top-0 left-0 right-0 z-[100]">
+      <nav className="flex items-center p-4 sm:p-5">
         {/* Left: nav links (desktop) */}
         <div className="flex-1 flex justify-start">
           <div className="hidden md:flex bg-[#111113]/80 backdrop-blur-md border border-[#27272A] rounded-full px-2 py-2 items-center gap-1">
@@ -302,12 +303,17 @@ export default function Hero({
           </div>
         </div>
 
-        {/* Center: brand */}
-        <div className="flex items-center gap-2 shrink-0">
-          <svg width="24" height="24" viewBox="0 0 256 256" fill="#FAFAFA">
-            <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z M 256 128 L 128 128 L 0 0 L 128 0 Z" />
-          </svg>
-          <span className="text-[#FAFAFA] text-2xl font-playfair italic">Wasted Miles</span>
+        {/* Center: brand + tagline */}
+        <div className="flex flex-col items-center shrink-0 leading-tight">
+          <div className="flex items-center gap-2">
+            <svg width="24" height="24" viewBox="0 0 256 256" fill="#FAFAFA">
+              <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z M 256 128 L 128 128 L 0 0 L 128 0 Z" />
+            </svg>
+            <span className="text-[#FAFAFA] text-2xl font-playfair italic">Wasted Miles</span>
+          </div>
+          <span className="mt-0.5 text-[11px] sm:text-xs text-[#A1A1AA] tracking-wide">
+            Turn dead miles into revenue
+          </span>
         </div>
 
         {/* Right: Join (desktop) */}
@@ -321,8 +327,8 @@ export default function Hero({
         </div>
       </nav>
 
-      {/* Fixed header: stats bar + live opportunities strip */}
-      <div className="fixed top-16 left-0 right-0 z-[90]">
+      {/* Stats bar */}
+      <div>
         <div className="border-b border-[#27272A] bg-[#09090B]/80 backdrop-blur-md">
           <div className="no-scrollbar flex items-center gap-4 overflow-x-auto px-4 sm:px-5 py-2">
             <Stat value={totals.opportunities} label="Active Opportunities" />
@@ -370,6 +376,7 @@ export default function Hero({
           </div>
         </div>
       </div>
+      </div>
 
       {/* Hero section */}
       <section
@@ -396,35 +403,6 @@ export default function Hero({
               </span>
             </button>
           ))}
-        </div>
-
-        {/* Heading (bottom-left, clear of the airport markers) */}
-        <div className="absolute bottom-24 md:bottom-10 left-6 sm:left-10 md:left-14 z-50 max-w-[340px] flex flex-col items-start text-left pointer-events-none">
-          <h1 className="text-[#FAFAFA] leading-[0.95] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">
-            <span
-              className="block font-playfair italic font-normal text-3xl sm:text-4xl md:text-5xl hero-anim hero-reveal"
-              style={{ letterSpacing: '-0.04em', animationDelay: '0.25s' }}
-            >
-              Turn dead miles
-            </span>
-            <span
-              className="block font-normal text-3xl sm:text-4xl md:text-5xl -mt-1 hero-anim hero-reveal"
-              style={{ letterSpacing: '-0.06em', animationDelay: '0.42s' }}
-            >
-              into revenue
-            </span>
-          </h1>
-          <div
-            className="mt-4 pointer-events-auto hero-anim hero-fade"
-            style={{ animationDelay: '0.55s' }}
-          >
-            <button
-              onClick={() => onSelectRegion(regions[0]?.id ?? 'manchester')}
-              className="bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-medium px-5 py-2.5 rounded-lg transition-colors active:scale-95"
-            >
-              Enter Marketplace
-            </button>
-          </div>
         </div>
 
         {/* Live activity feed (bottom-right) */}
