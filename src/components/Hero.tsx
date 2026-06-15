@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plane, Menu } from 'lucide-react'
+import { Plane, Menu, ArrowRight, Star } from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
-import { marketplaceTotals, formatGBP, type Region } from '../data/marketplace'
+import {
+  marketplaceTotals,
+  regionMetrics,
+  buildActivity,
+  formatGBP,
+  OPERATORS,
+  type Region,
+} from '../data/marketplace'
 import type { SectionKind } from './SectionScreen'
 
 // Display view: the UK — the marketplace covers airports nationwide.
@@ -13,6 +20,7 @@ interface PinPos {
   id: string
   code: string
   count: number
+  revenue: number
   x: number
   y: number
 }
@@ -57,6 +65,61 @@ function StatDivider() {
   return <span className="h-4 w-px shrink-0 bg-white/15" />
 }
 
+// Live marketplace activity feed — recent dispatch events that tick in.
+interface FeedItem {
+  id: number
+  text: string
+  age: number
+}
+
+function LiveActivity({ events }: { events: string[] }) {
+  const [items, setItems] = useState<FeedItem[]>([])
+  const idx = useRef(0)
+  const uid = useRef(0)
+
+  useEffect(() => {
+    if (!events.length) return
+    const seed: FeedItem[] = []
+    for (let i = 0; i < 4; i++) {
+      seed.push({ id: uid.current++, text: events[i % events.length], age: (i + 1) * 11 })
+    }
+    setItems(seed)
+    idx.current = 4
+    const t = setInterval(() => {
+      setItems((prev) => {
+        const aged = prev.map((it) => ({ ...it, age: it.age + 3 }))
+        const next = { id: uid.current++, text: events[idx.current % events.length], age: 0 }
+        idx.current++
+        return [next, ...aged].slice(0, 4)
+      })
+    }, 3000)
+    return () => clearInterval(t)
+  }, [events])
+
+  const fmt = (a: number) => (a < 60 ? `${a}s ago` : `${Math.floor(a / 60)}m ago`)
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#0e0e0e]/70 backdrop-blur-xl p-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
+      <div className="flex items-center gap-1.5 mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-white/60">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+        </span>
+        Live Activity
+      </div>
+      <div className="space-y-2">
+        {items.map((it) => (
+          <div key={it.id} className="flex items-start gap-2 text-xs leading-snug">
+            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#e8702a]" />
+            <span className="text-white/80">{it.text}</span>
+            <span className="ml-auto shrink-0 text-[10px] text-white/35">{fmt(it.age)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 interface HeroProps {
   regions: Region[]
   onSelectRegion: (id: string) => void
@@ -65,6 +128,19 @@ interface HeroProps {
 
 export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroProps) {
   const totals = marketplaceTotals(regions)
+  const activity = buildActivity(regions)
+
+  // Top available journeys, surfaced on the homepage above the fold.
+  const available = regions
+    .flatMap((r) => r.journeys)
+    .filter((j) => j.status === 'available')
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 4)
+
+  // Network operator trust indicators.
+  const ops = Object.values(OPERATORS)
+  const avgRating = (ops.reduce((s, o) => s + o.rating, 0) / ops.length).toFixed(1)
+  const avgOnTime = (ops.reduce((s, o) => s + o.onTime, 0) / ops.length).toFixed(1)
 
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
@@ -79,7 +155,14 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
     setPins(
       regionsRef.current.map((r) => {
         const p = map.latLngToContainerPoint(r.center)
-        return { id: r.id, code: r.code, count: r.journeys.length, x: p.x, y: p.y }
+        return {
+          id: r.id,
+          code: r.code,
+          count: r.journeys.length,
+          revenue: regionMetrics(r).revenue,
+          x: p.x,
+          y: p.y,
+        }
       })
     )
   }, [])
@@ -140,7 +223,7 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
         </div>
 
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md border border-white/30 rounded-full px-2 py-2 items-center gap-1">
-          <button className="text-white px-4 py-1.5 rounded-full text-sm font-medium">
+          <button className="bg-[#e8702a] text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow shadow-[#e8702a]/30">
             Marketplace
           </button>
           <button
@@ -211,10 +294,10 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
         {/* Dark Uber-style map */}
         <div ref={baseDivRef} className="absolute inset-0 z-10" />
 
-        {/* Legibility gradient */}
-        <div className="absolute inset-0 z-20 pointer-events-none bg-gradient-to-b from-black/50 via-transparent to-black/60" />
+        {/* Legibility gradient (kept light so the map stays prominent) */}
+        <div className="absolute inset-0 z-20 pointer-events-none bg-gradient-to-b from-black/30 via-transparent to-black/55" />
 
-        {/* Airport region markers */}
+        {/* Airport region markers with live revenue */}
         <div className="absolute inset-0 z-40 pointer-events-none">
           {pins.map((pin) => (
             <button
@@ -228,8 +311,11 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
                 <span className="whitespace-nowrap text-[11px] font-semibold tracking-tight text-white/90">
                   {pin.code}
                 </span>
-                <span className="text-[10px] font-semibold tabular-nums text-white/45">
+                <span className="text-[10px] font-semibold tabular-nums text-white/40">
                   {pin.count}
+                </span>
+                <span className="text-[10px] font-semibold tabular-nums text-[#e8702a]">
+                  {formatGBP(pin.revenue)}
                 </span>
               </span>
             </button>
@@ -237,49 +323,89 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
         </div>
 
         {/* Heading */}
-        <div className="absolute top-[14%] left-0 right-0 z-50 flex flex-col items-center text-center px-5 pointer-events-none">
+        <div className="absolute top-[13%] left-0 right-0 z-50 flex flex-col items-center text-center px-5 pointer-events-none">
           <h1 className="text-white leading-[0.95]">
             <span
-              className="block font-playfair italic font-normal text-5xl sm:text-7xl md:text-8xl hero-anim hero-reveal"
-              style={{ letterSpacing: '-0.05em', animationDelay: '0.25s' }}
+              className="block font-playfair italic font-normal text-3xl sm:text-5xl md:text-6xl hero-anim hero-reveal"
+              style={{ letterSpacing: '-0.04em', animationDelay: '0.25s' }}
             >
               Turn dead miles
             </span>
             <span
-              className="block font-normal text-5xl sm:text-7xl md:text-8xl -mt-1 hero-anim hero-reveal"
-              style={{ letterSpacing: '-0.08em', animationDelay: '0.42s' }}
+              className="block font-normal text-3xl sm:text-5xl md:text-6xl -mt-1 hero-anim hero-reveal"
+              style={{ letterSpacing: '-0.06em', animationDelay: '0.42s' }}
             >
               into revenue
             </span>
           </h1>
+          <div
+            className="mt-4 pointer-events-auto hero-anim hero-fade"
+            style={{ animationDelay: '0.6s' }}
+          >
+            <button
+              onClick={() => onSelectRegion(regions[0]?.id ?? 'manchester')}
+              className="bg-[#e8702a] hover:bg-[#d2611f] text-white text-xs font-semibold px-5 py-2.5 rounded-full transition-all hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-[#e8702a]/30"
+            >
+              Enter Marketplace
+            </button>
+          </div>
         </div>
 
-        {/* Bottom-left paragraph */}
+        {/* Live activity feed (bottom-left) */}
         <div
-          className="hidden sm:block absolute bottom-14 left-10 md:left-14 max-w-[260px] z-50 hero-anim hero-fade"
+          className="hidden sm:block absolute bottom-10 left-10 md:left-14 w-[280px] z-50 hero-anim hero-fade"
           style={{ animationDelay: '0.7s' }}
         >
-          <p className="text-sm text-white/80 leading-relaxed">
-            The professional operator network for UK airport transfers — trade
-            journeys, fill empty returns, and request emergency cover in real time.
-          </p>
+          <LiveActivity events={activity} />
         </div>
 
-        {/* Bottom-right block */}
+        {/* Available journeys (bottom-right, above the fold) */}
         <div
-          className="absolute bottom-10 sm:bottom-24 left-5 right-5 sm:left-auto sm:right-10 md:right-14 max-w-full sm:max-w-[260px] z-50 flex flex-col items-start gap-4 sm:gap-5 hero-anim hero-fade"
+          className="hidden sm:flex flex-col absolute bottom-10 right-10 md:right-14 w-[300px] z-50 hero-anim hero-fade"
           style={{ animationDelay: '0.85s' }}
         >
-          <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
-            Tap any airport to enter its live marketplace and claim journeys across
-            the network — before the miles go to waste.
-          </p>
-          <button
-            onClick={() => onSelectRegion(regions[0]?.id ?? 'manchester')}
-            className="bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-medium px-7 py-3 rounded-full transition-all hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-[#e8702a]/30"
-          >
-            Enter Marketplace
-          </button>
+          <div className="rounded-2xl border border-white/10 bg-[#0e0e0e]/70 backdrop-blur-xl p-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
+                Available Now
+              </span>
+              <span className="text-[11px] tabular-nums text-emerald-400">
+                {totals.opportunities} live
+              </span>
+            </div>
+            <div className="space-y-1">
+              {available.map((j) => (
+                <button
+                  key={j.id}
+                  onClick={() => onSelectRegion(j.regionId)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/10"
+                >
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-white/90 min-w-0">
+                    <span className="shrink-0">{j.fromCode}</span>
+                    <ArrowRight size={11} className="shrink-0 text-white/40" />
+                    <span className="truncate">{j.to}</span>
+                  </span>
+                  <span className="ml-auto flex items-center gap-2 shrink-0">
+                    <span className="flex items-center gap-0.5 text-[10px] text-amber-400">
+                      <Star size={9} className="fill-current" />
+                      {OPERATORS[j.operatorId].rating.toFixed(1)}
+                    </span>
+                    <span className="text-xs font-semibold tabular-nums text-[#e8702a]">
+                      {formatGBP(j.value)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center gap-2 text-[11px] text-white/45">
+              <span className="flex items-center gap-1 text-amber-400">
+                <Star size={11} className="fill-current" />
+                {avgRating}
+              </span>
+              <span>· {ops.length} verified operators</span>
+              <span className="ml-auto">{avgOnTime}% on time</span>
+            </div>
+          </div>
         </div>
       </section>
     </>
