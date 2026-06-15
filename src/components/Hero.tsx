@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Menu } from 'lucide-react'
+import { MapPin, Menu } from 'lucide-react'
 import L from 'leaflet'
 import { SATELLITE_TILES, DARK_TILES, ATTRIBUTION } from '../lib/map'
 import type { Town } from '../data/jobs'
@@ -259,14 +259,16 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
               key={pin.id}
               onClick={() => onSelectTown(pin.id)}
               style={{ left: pin.x, top: pin.y }}
-              className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto flex items-center gap-2 group"
+              className="group absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
             >
-              <span className="relative flex h-3 w-3 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e8702a] opacity-60" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-[#e8702a] border-2 border-white shadow" />
-              </span>
-              <span className="whitespace-nowrap bg-white/90 backdrop-blur text-gray-900 text-xs font-semibold px-2.5 py-1 rounded-full shadow-lg group-hover:bg-white group-hover:scale-105 transition">
-                {pin.name} · {pin.count} jobs
+              <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-neutral-900/40 pl-2 pr-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-white/40 group-hover:bg-neutral-900/70">
+                <MapPin size={12} strokeWidth={2.5} className="text-[#e8702a]" />
+                <span className="whitespace-nowrap text-[11px] font-medium tracking-tight text-white/90">
+                  {pin.name}
+                </span>
+                <span className="text-[10px] font-semibold tabular-nums text-white/45">
+                  {pin.count}
+                </span>
               </span>
             </button>
           ))}
