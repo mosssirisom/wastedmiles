@@ -15,9 +15,157 @@ export interface Town {
   jobs: Job[]
 }
 
-// Sample North West England job data. Structured so a real feed can replace
-// this array later without touching the components.
-export const TOWNS: Town[] = [
+/* ------------------------------------------------------------------ */
+/*  Live data: fetch jobs from your own backend.                       */
+/*                                                                     */
+/*  Configure the endpoint via env vars (see .env.example):            */
+/*    VITE_JOBS_API_URL  – your backend endpoint returning JSON        */
+/*    VITE_JOBS_API_KEY  – optional; sent as `Authorization: Bearer`   */
+/*                                                                     */
+/*  The adapter accepts EITHER of these JSON shapes:                   */
+/*                                                                     */
+/*  A) Grouped by town (preferred):                                    */
+/*  [                                                                  */
+/*    { "id": "barrow", "name": "Barrow-in-Furness",                   */
+/*      "center": [54.111, -3.227],                                    */
+/*      "jobs": [                                                      */
+/*        { "id": "bar-1", "title": "Site Geologist",                  */
+/*          "type": "Contract", "pay": "£280/day", "posted": "2d ago", */
+/*          "lat": 54.115, "lng": -3.22 }                              */
+/*      ] }                                                            */
+/*  ]                                                                  */
+/*                                                                     */
+/*  B) Flat list of jobs (grouped automatically by `town`/`area`):     */
+/*  [                                                                  */
+/*    { "id": "bar-1", "title": "Site Geologist", "town": "Barrow",    */
+/*      "type": "Contract", "pay": "£280/day", "posted": "2d ago",     */
+/*      "lat": 54.115, "lng": -3.22 }                                  */
+/*  ]                                                                  */
+/*                                                                     */
+/*  If your backend returns a different shape, tell me and I'll adjust */
+/*  the adapter functions below — the components never need to change. */
+/* ------------------------------------------------------------------ */
+
+export async function fetchTowns(): Promise<Town[]> {
+  const url = import.meta.env.VITE_JOBS_API_URL
+  if (!url) return MOCK_TOWNS
+
+  try {
+    const headers: Record<string, string> = { Accept: 'application/json' }
+    const key = import.meta.env.VITE_JOBS_API_KEY
+    if (key) headers.Authorization = `Bearer ${key}`
+
+    const res = await fetch(url, { headers })
+    if (!res.ok) throw new Error(`Jobs API responded ${res.status}`)
+
+    const towns = adaptTowns(await res.json())
+    return towns.length ? towns : MOCK_TOWNS
+  } catch (err) {
+    console.warn('[jobs] using sample data — live fetch failed:', err)
+    return MOCK_TOWNS
+  }
+}
+
+/* ----------------------------- adapters ---------------------------- */
+
+function adaptTowns(raw: unknown): Town[] {
+  const arr = Array.isArray(raw)
+    ? raw
+    : (raw as { towns?: unknown[]; data?: unknown[] })?.towns ??
+      (raw as { data?: unknown[] })?.data ??
+      []
+  if (!Array.isArray(arr) || arr.length === 0) return []
+
+  // Shape A: items already contain a `jobs` array.
+  if (arr[0] && Array.isArray((arr[0] as { jobs?: unknown }).jobs)) {
+    return arr
+      .map((t) => normalizeTown(t as Record<string, unknown>))
+      .filter((t): t is Town => t !== null)
+  }
+
+  // Shape B: a flat list of jobs — group by town/area.
+  return groupJobs(arr as Record<string, unknown>[])
+}
+
+function num(v: unknown): number {
+  return typeof v === 'number' ? v : Number(v)
+}
+
+function toCenter(t: Record<string, unknown>): [number, number] | null {
+  if (Array.isArray(t.center) && t.center.length === 2) {
+    const a = num(t.center[0])
+    const b = num(t.center[1])
+    if (!Number.isNaN(a) && !Number.isNaN(b)) return [a, b]
+  }
+  const lat = num(t.lat ?? t.latitude)
+  const lng = num(t.lng ?? t.lon ?? t.longitude)
+  if (!Number.isNaN(lat) && !Number.isNaN(lng)) return [lat, lng]
+  return null
+}
+
+function normalizeJob(j: Record<string, unknown>): Job | null {
+  const lat = num(j.lat ?? j.latitude)
+  const lng = num(j.lng ?? j.lon ?? j.longitude)
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+  return {
+    id: String(j.id ?? `${lat},${lng}`),
+    title: String(j.title ?? j.role ?? 'Untitled role'),
+    type: String(j.type ?? j.employmentType ?? 'Full-time'),
+    pay: String(j.pay ?? j.salary ?? ''),
+    posted: String(j.posted ?? j.postedAt ?? ''),
+    lat,
+    lng,
+  }
+}
+
+function normalizeTown(t: Record<string, unknown>): Town | null {
+  const jobs = Array.isArray(t.jobs)
+    ? (t.jobs as Record<string, unknown>[])
+        .map(normalizeJob)
+        .filter((j): j is Job => j !== null)
+    : []
+  const center = toCenter(t) ?? (jobs.length ? avgCenter(jobs) : null)
+  if (!center) return null
+  return {
+    id: String(t.id ?? t.name ?? 'area'),
+    name: String(t.name ?? t.id ?? 'Area'),
+    center,
+    jobs,
+  }
+}
+
+function groupJobs(rawJobs: Record<string, unknown>[]): Town[] {
+  const groups = new Map<string, Job[]>()
+  for (const rj of rawJobs) {
+    const job = normalizeJob(rj)
+    if (!job) continue
+    const name = String(rj.town ?? rj.area ?? rj.location ?? 'Other')
+    const list = groups.get(name) ?? []
+    list.push(job)
+    groups.set(name, list)
+  }
+  return Array.from(groups.entries()).map(([name, jobs]) => ({
+    id: slug(name),
+    name,
+    center: avgCenter(jobs),
+    jobs,
+  }))
+}
+
+function avgCenter(jobs: Job[]): [number, number] {
+  const lat = jobs.reduce((s, j) => s + j.lat, 0) / jobs.length
+  const lng = jobs.reduce((s, j) => s + j.lng, 0) / jobs.length
+  return [lat, lng]
+}
+
+function slug(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+/* --------------------------- sample data --------------------------- */
+/*  Used until VITE_JOBS_API_URL is set, and as a fallback on error.   */
+
+export const MOCK_TOWNS: Town[] = [
   {
     id: 'barrow',
     name: 'Barrow-in-Furness',

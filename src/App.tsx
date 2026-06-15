@@ -1,11 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Hero from './components/Hero'
 import AreaScreen from './components/AreaScreen'
-import { TOWNS } from './data/jobs'
+import { fetchTowns, type Town } from './data/jobs'
 
 export default function App() {
+  const [towns, setTowns] = useState<Town[]>([])
   const [activeTownId, setActiveTownId] = useState<string | null>(null)
-  const activeTown = TOWNS.find((t) => t.id === activeTownId) ?? null
+
+  useEffect(() => {
+    let alive = true
+    fetchTowns().then((t) => {
+      if (alive) setTowns(t)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const activeTown = towns.find((t) => t.id === activeTownId) ?? null
 
   return (
     <div
@@ -15,7 +27,7 @@ export default function App() {
       {activeTown ? (
         <AreaScreen town={activeTown} onBack={() => setActiveTownId(null)} />
       ) : (
-        <Hero onSelectTown={setActiveTownId} />
+        <Hero towns={towns} onSelectTown={setActiveTownId} />
       )}
     </div>
   )

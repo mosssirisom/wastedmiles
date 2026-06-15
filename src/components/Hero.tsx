@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Menu } from 'lucide-react'
 import L from 'leaflet'
 import { SATELLITE_TILES, DARK_TILES, ATTRIBUTION } from '../lib/map'
-import { TOWNS } from '../data/jobs'
+import type { Town } from '../data/jobs'
 
 const SPOTLIGHT_R = 260
 
@@ -117,10 +117,11 @@ interface PinPos {
 }
 
 interface HeroProps {
+  towns: Town[]
   onSelectTown: (id: string) => void
 }
 
-export default function Hero({ onSelectTown }: HeroProps) {
+export default function Hero({ towns, onSelectTown }: HeroProps) {
   const mouse = useRef({ x: -999, y: -999 })
   const smooth = useRef({ x: -999, y: -999 })
   const rafRef = useRef<number>(0)
@@ -128,9 +129,23 @@ export default function Hero({ onSelectTown }: HeroProps) {
 
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
+  const townsRef = useRef(towns)
+  townsRef.current = towns
   const [pins, setPins] = useState<PinPos[]>([])
 
-  // Base satellite map + projected town-pin positions.
+  // Project the current towns onto the static map's pixel coordinates.
+  const computePins = useCallback(() => {
+    const map = baseMapRef.current
+    if (!map) return
+    setPins(
+      townsRef.current.map((t) => {
+        const p = map.latLngToContainerPoint(t.center)
+        return { id: t.id, name: t.name, count: t.jobs.length, x: p.x, y: p.y }
+      })
+    )
+  }, [])
+
+  // Base satellite map.
   useEffect(() => {
     const el = baseDivRef.current
     if (!el) return
@@ -149,14 +164,6 @@ export default function Hero({ onSelectTown }: HeroProps) {
     baseMapRef.current = map
     L.tileLayer(SATELLITE_TILES, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(map)
 
-    const computePins = () => {
-      setPins(
-        TOWNS.map((t) => {
-          const p = map.latLngToContainerPoint(t.center)
-          return { id: t.id, name: t.name, count: t.jobs.length, x: p.x, y: p.y }
-        })
-      )
-    }
     const onResize = () => {
       map.invalidateSize()
       computePins()
@@ -171,7 +178,12 @@ export default function Hero({ onSelectTown }: HeroProps) {
       map.remove()
       baseMapRef.current = null
     }
-  }, [])
+  }, [computePins])
+
+  // Re-project pins whenever the town data changes (e.g. after fetch).
+  useEffect(() => {
+    computePins()
+  }, [towns, computePins])
 
   // Smoothed cursor tracking for the spotlight.
   useEffect(() => {
