@@ -348,15 +348,25 @@ export default function Hero({
           </div>
         </div>
 
-        <div className="overflow-hidden border-b border-[#27272A] bg-[#09090B]/60 backdrop-blur-md">
-          <div className="flex w-max gap-3 py-3 pl-4 sm:pl-5 animate-marquee">
-            {[...opportunities, ...opportunities].map((j, i) => (
-              <OpportunityCard
-                key={`${j.id}-${i}`}
-                journey={j}
-                onClick={() => onSelectRegion(j.regionId)}
-              />
-            ))}
+        <div className="border-b border-[#27272A] bg-[#09090B]/60 backdrop-blur-md">
+          <div
+            className="overflow-hidden"
+            style={{
+              maskImage:
+                'linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%)',
+              WebkitMaskImage:
+                'linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%)',
+            }}
+          >
+            <div className="flex w-max gap-3 py-3 animate-marquee">
+              {[...opportunities, ...opportunities].map((j, i) => (
+                <OpportunityCard
+                  key={`${j.id}-${i}`}
+                  journey={j}
+                  onClick={() => onSelectRegion(j.regionId)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
