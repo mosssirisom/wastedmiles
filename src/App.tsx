@@ -5,6 +5,7 @@ import SectionScreen, { type SectionKind } from './components/SectionScreen'
 import OperatorsScreen from './components/OperatorsScreen'
 import PricingScreen from './components/PricingScreen'
 import JoinScreen from './components/JoinScreen'
+import BottomNav, { type NavTab } from './components/BottomNav'
 import { fetchRegions, type Region } from './data/marketplace'
 
 type View =
@@ -58,12 +59,33 @@ export default function App() {
     screen = home
   }
 
+  // Bottom tab bar shows on the top-level browse screens only.
+  const showNav =
+    view.kind === 'home' || view.kind === 'section' || view.kind === 'operators'
+  const activeTab: NavTab =
+    view.kind === 'section'
+      ? view.section
+      : view.kind === 'operators'
+        ? 'operators'
+        : 'market'
+
   return (
     <div
       className="min-h-screen bg-[#09090B] tracking-[-0.02em]"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {screen}
+      {showNav && (
+        <BottomNav
+          active={activeTab}
+          onHome={goHome}
+          onEmpty={() => setView({ kind: 'section', section: 'empty' })}
+          onCover={() => setView({ kind: 'section', section: 'cover' })}
+          onOperators={() => setView({ kind: 'operators' })}
+          onPricing={() => setView({ kind: 'pricing' })}
+          onJoin={() => setView({ kind: 'join' })}
+        />
+      )}
     </div>
   )
 }

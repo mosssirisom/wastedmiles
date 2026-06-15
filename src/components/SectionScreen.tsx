@@ -166,7 +166,7 @@ export default function SectionScreen({ section, regions, onBack }: SectionScree
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 pb-24 md:pb-6 space-y-3">
           {journeys.map((journey) => (
             <JourneyCard
               key={journey.id}
@@ -178,7 +178,7 @@ export default function SectionScreen({ section, regions, onBack }: SectionScree
         </div>
       </div>
 
-      <Fab />
+      <Fab lifted />
     </div>
   )
 }

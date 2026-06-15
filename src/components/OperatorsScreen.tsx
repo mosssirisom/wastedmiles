@@ -88,7 +88,7 @@ export default function OperatorsScreen({ onBack }: OperatorsScreenProps) {
         Back
       </button>
 
-      <div className="max-w-5xl mx-auto px-5 pt-20 pb-16">
+      <div className="max-w-5xl mx-auto px-5 pt-20 pb-24 md:pb-16">
         <div className="flex items-center gap-2 text-[#A1A1AA] text-xs font-medium uppercase tracking-wider">
           <BadgeCheck size={14} />
           Operator Network

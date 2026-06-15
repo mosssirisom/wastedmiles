@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plane, Menu, X, ArrowRight, Star } from 'lucide-react'
+import { Plane, ArrowRight, Star } from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import {
@@ -210,17 +210,11 @@ export default function Hero({
     ]
   }, [regions])
 
-  const [menuOpen, setMenuOpen] = useState(false)
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
   const regionsRef = useRef(regions)
   regionsRef.current = regions
   const [pins, setPins] = useState<PinPos[]>([])
-
-  const runAndClose = (fn: () => void) => {
-    setMenuOpen(false)
-    fn()
-  }
 
   const computePins = useCallback(() => {
     const map = baseMapRef.current
@@ -314,67 +308,7 @@ export default function Hero({
           Join the Network
         </button>
 
-        <button
-          onClick={() => setMenuOpen((o) => !o)}
-          className="md:hidden text-[#FAFAFA]"
-          aria-label="Menu"
-          aria-expanded={menuOpen}
-        >
-          {menuOpen ? <X size={26} /> : <Menu size={26} />}
-        </button>
       </nav>
-
-      {/* Mobile menu — bottom sheet (Uber-style) */}
-      {menuOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-[110] flex flex-col justify-end"
-          onClick={() => setMenuOpen(false)}
-        >
-          <div className="absolute inset-0 bg-black/50" />
-          <div
-            className="relative animate-sheet rounded-t-2xl border-t border-[#27272A] bg-[#111113] px-3 pt-2 pb-7 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#27272A]" />
-            <button
-              onClick={() => setMenuOpen(false)}
-              className="w-full text-left px-4 py-3 rounded-xl text-base font-medium bg-[#18181B] text-[#FAFAFA]"
-            >
-              Marketplace
-            </button>
-            <button
-              onClick={() => runAndClose(() => onOpenSection('empty'))}
-              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
-            >
-              Empty Miles
-            </button>
-            <button
-              onClick={() => runAndClose(() => onOpenSection('cover'))}
-              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
-            >
-              Cover
-            </button>
-            <button
-              onClick={() => runAndClose(onOpenOperators)}
-              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
-            >
-              Operators
-            </button>
-            <button
-              onClick={() => runAndClose(onOpenPricing)}
-              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
-            >
-              Pricing
-            </button>
-            <button
-              onClick={() => runAndClose(onOpenJoin)}
-              className="mt-2 w-full text-center px-4 py-3 rounded-xl text-base font-medium bg-[#F97316] hover:bg-[#EA580C] text-white transition-colors"
-            >
-              Join the Network
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Fixed header: stats bar + live opportunities strip */}
       <div className="fixed top-16 left-0 right-0 z-[90]">
@@ -445,7 +379,7 @@ export default function Hero({
         </div>
 
         {/* Heading (bottom-left, clear of the airport markers) */}
-        <div className="absolute bottom-10 left-6 sm:left-10 md:left-14 z-50 max-w-[340px] flex flex-col items-start text-left pointer-events-none">
+        <div className="absolute bottom-24 md:bottom-10 left-6 sm:left-10 md:left-14 z-50 max-w-[340px] flex flex-col items-start text-left pointer-events-none">
           <h1 className="text-[#FAFAFA] leading-[0.95] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">
             <span
               className="block font-playfair italic font-normal text-3xl sm:text-4xl md:text-5xl hero-anim hero-reveal"
@@ -475,7 +409,7 @@ export default function Hero({
 
         {/* Live activity feed (bottom-right) */}
         <div
-          className="hidden sm:block absolute bottom-10 right-10 md:right-14 w-[280px] z-50 hero-anim hero-fade"
+          className="hidden sm:block absolute bottom-24 md:bottom-10 right-10 md:right-14 w-[280px] z-50 hero-anim hero-fade"
           style={{ animationDelay: '0.7s' }}
         >
           <LiveActivity events={activity} />

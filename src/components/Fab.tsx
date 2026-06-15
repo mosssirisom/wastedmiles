@@ -8,9 +8,9 @@ const ACTIONS = [
   { label: 'Broadcast Driver Availability', icon: Radio },
 ]
 
-// Expandable operator action button. Mobile: anchored top-right, opens
-// downward. Desktop: anchored bottom-right, opens upward.
-export default function Fab() {
+// Expandable operator action button, bottom-right, opens upward.
+// `lifted` raises it above the mobile bottom nav bar.
+export default function Fab({ lifted = false }: { lifted?: boolean }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -18,7 +18,11 @@ export default function Fab() {
       {open && (
         <div className="fixed inset-0 z-[65]" onClick={() => setOpen(false)} />
       )}
-      <div className="absolute z-[70] bottom-6 right-6 flex flex-col-reverse items-end gap-3">
+      <div
+        className={`absolute z-[70] right-6 flex flex-col-reverse items-end gap-3 ${
+          lifted ? 'bottom-[88px] md:bottom-6' : 'bottom-6'
+        }`}
+      >
         <button
           onClick={() => setOpen((o) => !o)}
           aria-label="Operator actions"
