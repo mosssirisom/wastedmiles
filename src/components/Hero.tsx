@@ -4,7 +4,6 @@ import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import {
   marketplaceTotals,
-  regionMetrics,
   buildActivity,
   formatGBP,
   OPERATORS,
@@ -23,8 +22,6 @@ const MAP_ZOOM = 6
 interface PinPos {
   id: string
   code: string
-  count: number
-  revenue: number
   x: number
   y: number
 }
@@ -232,14 +229,7 @@ export default function Hero({
     setPins(
       regionsRef.current.map((r) => {
         const p = map.latLngToContainerPoint(r.center)
-        return {
-          id: r.id,
-          code: r.code,
-          count: r.journeys.length,
-          revenue: regionMetrics(r).revenue,
-          x: p.x,
-          y: p.y,
-        }
+        return { id: r.id, code: r.code, x: p.x, y: p.y }
       })
     )
   }, [])
@@ -463,12 +453,6 @@ export default function Hero({
                 <Plane size={12} strokeWidth={2.5} className="-rotate-45 text-[#e8702a]" />
                 <span className="whitespace-nowrap text-[11px] font-semibold tracking-tight text-white/90">
                   {pin.code}
-                </span>
-                <span className="text-[10px] font-semibold tabular-nums text-white/40">
-                  {pin.count}
-                </span>
-                <span className="text-[10px] font-semibold tabular-nums text-[#e8702a]">
-                  {formatGBP(pin.revenue)}
                 </span>
               </span>
             </button>
