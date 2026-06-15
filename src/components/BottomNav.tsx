@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Map, Repeat, LifeBuoy, BadgeCheck, Menu as MenuIcon } from 'lucide-react'
+import { Home, Repeat, LifeBuoy, BadgeCheck, Menu as MenuIcon } from 'lucide-react'
 
 export type NavTab = 'market' | 'empty' | 'cover' | 'operators' | 'menu'
 
@@ -24,8 +24,8 @@ export default function BottomNav({
 }: BottomNavProps) {
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const tabs: { id: NavTab; label: string; icon: typeof Map; onClick: () => void }[] = [
-    { id: 'market', label: 'Market', icon: Map, onClick: onHome },
+  const tabs: { id: NavTab; label: string; icon: typeof Home; onClick: () => void }[] = [
+    { id: 'market', label: 'Home', icon: Home, onClick: onHome },
     { id: 'empty', label: 'Empty Miles', icon: Repeat, onClick: onEmpty },
     { id: 'cover', label: 'Cover', icon: LifeBuoy, onClick: onCover },
     { id: 'operators', label: 'Operators', icon: BadgeCheck, onClick: onOperators },
