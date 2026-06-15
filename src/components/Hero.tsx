@@ -348,11 +348,11 @@ export default function Hero({
           </div>
         </div>
 
-        <div className="border-b border-[#27272A] bg-[#09090B]/60 backdrop-blur-md">
-          <div className="no-scrollbar flex gap-3 overflow-x-auto px-4 sm:px-5 py-3 snap-x">
-            {opportunities.map((j) => (
+        <div className="overflow-hidden border-b border-[#27272A] bg-[#09090B]/60 backdrop-blur-md">
+          <div className="flex w-max gap-3 py-3 pl-4 sm:pl-5 animate-marquee">
+            {[...opportunities, ...opportunities].map((j, i) => (
               <OpportunityCard
-                key={j.id}
+                key={`${j.id}-${i}`}
                 journey={j}
                 onClick={() => onSelectRegion(j.regionId)}
               />
