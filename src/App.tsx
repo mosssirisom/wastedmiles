@@ -1,23 +1,84 @@
 import { useEffect, useRef, useState } from 'react'
 import { Menu } from 'lucide-react'
-
-const BG_IMAGE_1 =
-  'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260609_195923_b0ba8ace-1d1d-4f2c-9a28-1ab84b330680.png&w=1280&q=85'
-const BG_IMAGE_2 =
-  'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260609_201152_bba90a12-bf12-459f-91f0-51f237dbaf3b.png&w=1280&q=85'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const SPOTLIGHT_R = 260
 
+// Display view: the Grand Canyon — dramatic rock strata for a geology brand.
+const MAP_CENTER: [number, number] = [36.107, -112.113]
+const MAP_ZOOM = 13
+
+// Free, no-key tile sources (attribution rendered by Leaflet).
+const SATELLITE_TILES =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+const ATTRIBUTION =
+  'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics | &copy; ' +
+  '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; ' +
+  '<a href="https://carto.com/attributions">CARTO</a>'
+
+// Build a non-interactive Leaflet display map inside `container`.
+function createDisplayMap(
+  container: HTMLElement,
+  tileUrl: string,
+  opts: { subdomains?: string; attribution?: string; showAttribution: boolean }
+) {
+  const map = L.map(container, {
+    center: MAP_CENTER,
+    zoom: MAP_ZOOM,
+    zoomControl: false,
+    attributionControl: opts.showAttribution,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    touchZoom: false,
+  })
+  L.tileLayer(tileUrl, {
+    subdomains: opts.subdomains ?? 'abc',
+    attribution: opts.attribution,
+    maxZoom: 19,
+  }).addTo(map)
+  return map
+}
+
+// Base layer: satellite imagery, full-screen behind everything.
+function BaseMap() {
+  const mapDivRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = mapDivRef.current
+    if (!el) return
+    const map = createDisplayMap(el, SATELLITE_TILES, {
+      attribution: ATTRIBUTION,
+      showAttribution: true,
+    })
+    const onResize = () => map.invalidateSize()
+    setTimeout(() => map.invalidateSize(), 0)
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      map.remove()
+    }
+  }, [])
+
+  return <div ref={mapDivRef} className="absolute inset-0 z-10" />
+}
+
 interface RevealLayerProps {
-  image: string
   cursorX: number
   cursorY: number
 }
 
-function RevealLayer({ image, cursorX, cursorY }: RevealLayerProps) {
+// Reveal layer: the dark map, visible only inside the cursor spotlight.
+function RevealLayer({ cursorX, cursorY }: RevealLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const revealRef = useRef<HTMLDivElement>(null)
+  const mapDivRef = useRef<HTMLDivElement>(null)
 
+  // Size the mask canvas to the viewport.
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -30,6 +91,24 @@ function RevealLayer({ image, cursorX, cursorY }: RevealLayerProps) {
     return () => window.removeEventListener('resize', resize)
   }, [])
 
+  // Initialise the dark display map inside the masked wrapper.
+  useEffect(() => {
+    const el = mapDivRef.current
+    if (!el) return
+    const map = createDisplayMap(el, DARK_TILES, {
+      subdomains: 'abcd',
+      showAttribution: false,
+    })
+    const onResize = () => map.invalidateSize()
+    setTimeout(() => map.invalidateSize(), 0)
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      map.remove()
+    }
+  }, [])
+
+  // Redraw the soft spotlight mask on every render.
   useEffect(() => {
     const canvas = canvasRef.current
     const reveal = revealRef.current
@@ -75,9 +154,10 @@ function RevealLayer({ image, cursorX, cursorY }: RevealLayerProps) {
       />
       <div
         ref={revealRef}
-        className="absolute inset-0 bg-center bg-cover bg-no-repeat z-30 pointer-events-none"
-        style={{ backgroundImage: `url(${image})` }}
-      />
+        className="absolute inset-0 z-30 pointer-events-none"
+      >
+        <div ref={mapDivRef} className="absolute inset-0" />
+      </div>
     </>
   )
 }
@@ -155,14 +235,11 @@ export default function App() {
         className="relative w-full overflow-hidden h-screen bg-black"
         style={{ height: '100dvh' }}
       >
-        {/* Base image */}
-        <div
-          className="absolute inset-0 bg-center bg-cover bg-no-repeat z-10 hero-zoom"
-          style={{ backgroundImage: `url(${BG_IMAGE_1})` }}
-        />
+        {/* Base layer: satellite map */}
+        <BaseMap />
 
-        {/* Reveal layer */}
-        <RevealLayer image={BG_IMAGE_2} cursorX={cursorPos.x} cursorY={cursorPos.y} />
+        {/* Reveal layer: dark map under the spotlight */}
+        <RevealLayer cursorX={cursorPos.x} cursorY={cursorPos.y} />
 
         {/* Heading */}
         <div className="absolute top-[14%] left-0 right-0 z-50 flex flex-col items-center text-center px-5 pointer-events-none">
