@@ -5,9 +5,9 @@ import 'leaflet/dist/leaflet.css'
 
 const SPOTLIGHT_R = 260
 
-// Display view: the Grand Canyon — dramatic rock strata for a geology brand.
-const MAP_CENTER: [number, number] = [36.107, -112.113]
-const MAP_ZOOM = 13
+// Display view: North West England — the service area.
+const MAP_CENTER: [number, number] = [54.0, -2.7]
+const MAP_ZOOM = 8
 
 // Free, no-key tile sources (attribution rendered by Leaflet).
 const SATELLITE_TILES =
