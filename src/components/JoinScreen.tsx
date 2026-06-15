@@ -11,9 +11,41 @@ interface JoinScreenProps {
 
 export default function JoinScreen({ onBack }: JoinScreenProps) {
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', email: '', fleet: '1-5 vehicles' })
 
   const set = (key: keyof typeof form, value: string) => setForm((f) => ({ ...f, [key]: value }))
+
+  // Submit the signup to a configurable endpoint (VITE_SIGNUP_API_URL).
+  // With no endpoint set it succeeds locally so the flow still works.
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    const url = import.meta.env.VITE_SIGNUP_API_URL
+    if (!url) {
+      setSubmitted(true)
+      return
+    }
+    setSubmitting(true)
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      const key = import.meta.env.VITE_SIGNUP_API_KEY
+      if (key) headers.Authorization = `Bearer ${key}`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...form, source: 'wasted-miles-web' }),
+      })
+      if (!res.ok) throw new Error(`Signup failed (${res.status})`)
+      setSubmitted(true)
+    } catch (err) {
+      console.warn('[join] signup failed:', err)
+      setError('Something went wrong — please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="relative w-full min-h-screen bg-black text-white" style={{ minHeight: '100dvh' }}>
@@ -53,13 +85,7 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
               Join verified operators trading airport transfers across the UK. Free for 14 days.
             </p>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                setSubmitted(true)
-              }}
-              className="mt-7 space-y-4"
-            >
+            <form onSubmit={submit} className="mt-7 space-y-4">
               <div>
                 <label className={labelClass}>Operator / Company name</label>
                 <input
@@ -95,11 +121,15 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
                 </select>
               </div>
 
+              {error && (
+                <p className="text-center text-xs text-red-400">{error}</p>
+              )}
               <button
                 type="submit"
-                className="w-full bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-semibold py-3 rounded-full transition-all hover:shadow-lg hover:shadow-[#e8702a]/30 active:scale-[0.99]"
+                disabled={submitting}
+                className="w-full bg-[#e8702a] hover:bg-[#d2611f] disabled:opacity-60 disabled:hover:bg-[#e8702a] text-white text-sm font-semibold py-3 rounded-full transition-all hover:shadow-lg hover:shadow-[#e8702a]/30 active:scale-[0.99]"
               >
-                Create operator account
+                {submitting ? 'Creating account…' : 'Create operator account'}
               </button>
               <p className="text-center text-[11px] text-white/40">
                 No card required · Cancel anytime
