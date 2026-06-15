@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plane, Menu, ArrowRight, Star } from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
@@ -163,10 +163,10 @@ function LiveActivity({ events }: { events: string[] }) {
       </div>
       <div className="space-y-2">
         {items.map((it) => (
-          <div key={it.id} className="flex items-start gap-2 text-xs leading-snug">
-            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#e8702a]" />
-            <span className="text-white/80">{it.text}</span>
-            <span className="ml-auto shrink-0 text-[10px] text-white/35">{fmt(it.age)}</span>
+          <div key={it.id} className="flex items-center gap-2 text-xs">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e8702a]" />
+            <span className="min-w-0 flex-1 truncate text-white/80">{it.text}</span>
+            <span className="shrink-0 text-[10px] text-white/35">{fmt(it.age)}</span>
           </div>
         ))}
       </div>
@@ -180,25 +180,26 @@ interface HeroProps {
   onOpenSection: (section: SectionKind) => void
 }
 
-const STATUS_PRIORITY: Record<Journey['status'], number> = {
-  urgent: 0,
-  'cover-needed': 1,
-  'empty-return': 2,
-  available: 3,
-}
-
 export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroProps) {
   const totals = marketplaceTotals(regions)
-  const activity = buildActivity(regions)
+  const activity = useMemo(() => buildActivity(regions), [regions])
 
-  // Live opportunities surfaced above the fold (urgency first, then value).
-  const opportunities = regions
-    .flatMap((r) => r.journeys)
-    .sort(
-      (a, b) =>
-        STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status] || b.value - a.value
-    )
-    .slice(0, 8)
+  // Live opportunities surfaced above the fold — a varied mix of statuses
+  // (not a wall of identical cards), drawn from across the network.
+  const opportunities = useMemo(() => {
+    const all = regions.flatMap((r) => r.journeys)
+    const pick = (status: Journey['status'], n: number) =>
+      all
+        .filter((j) => j.status === status)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, n)
+    return [
+      ...pick('urgent', 2),
+      ...pick('cover-needed', 2),
+      ...pick('empty-return', 2),
+      ...pick('available', 3),
+    ]
+  }, [regions])
 
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)

@@ -215,11 +215,12 @@ function offset(center: [number, number], i: number): [number, number] {
 function buildRegion(seed: RegionSeed): Region {
   const journeys: Journey[] = seed.dests.map((dest, i) => {
     const status = STATUS_CYCLE[i % STATUS_CYCLE.length]
-    const value = 70 + ((i * 37 + seed.code.length * 13 + dest.length * 7) % 22) * 10
+    const seedChar = seed.code.charCodeAt(0)
+    const value = 60 + ((i * 37 + seedChar * 3 + dest.length * 7 + dest.charCodeAt(0)) % 26) * 10
     const passengers = 1 + ((i * 3 + dest.length) % 6)
     const luggage = (i * 2 + 1 + dest.length) % 7
-    const vehicle = VEHICLES[(i + seed.code.length) % VEHICLES.length]
-    const operatorId = OPERATOR_IDS[(i * 2 + seed.code.length) % OPERATOR_IDS.length]
+    const vehicle = VEHICLES[(i + seedChar) % VEHICLES.length]
+    const operatorId = OPERATOR_IDS[(i * 2 + seedChar) % OPERATOR_IDS.length]
     const hour = 6 + ((i * 5 + seed.code.length) % 16)
     const minute = (i * 17) % 60
     const [lat, lng] = offset(seed.center, i)
