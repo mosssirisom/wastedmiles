@@ -11,7 +11,7 @@ const MAP_ZOOM = 6
 
 interface PinPos {
   id: string
-  name: string
+  code: string
   count: number
   x: number
   y: number
@@ -79,7 +79,7 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
     setPins(
       regionsRef.current.map((r) => {
         const p = map.latLngToContainerPoint(r.center)
-        return { id: r.id, name: r.name, count: r.journeys.length, x: p.x, y: p.y }
+        return { id: r.id, code: r.code, count: r.journeys.length, x: p.x, y: p.y }
       })
     )
   }, [])
@@ -225,8 +225,8 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
             >
               <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-neutral-900/60 pl-2 pr-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-white/40 group-hover:bg-neutral-900/80">
                 <Plane size={12} strokeWidth={2.5} className="-rotate-45 text-[#e8702a]" />
-                <span className="whitespace-nowrap text-[11px] font-medium tracking-tight text-white/90">
-                  {pin.name}
+                <span className="whitespace-nowrap text-[11px] font-semibold tracking-tight text-white/90">
+                  {pin.code}
                 </span>
                 <span className="text-[10px] font-semibold tabular-nums text-white/45">
                   {pin.count}
