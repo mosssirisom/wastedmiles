@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plane, Menu } from 'lucide-react'
 import L from 'leaflet'
 import { SATELLITE_TILES, DARK_TILES, ATTRIBUTION } from '../lib/map'
-import type { Region } from '../data/marketplace'
+import { marketplaceTotals, formatGBP, type Region } from '../data/marketplace'
 
 const SPOTLIGHT_R = 260
 
@@ -116,12 +116,40 @@ interface PinPos {
   y: number
 }
 
+function Stat({
+  value,
+  label,
+  accent,
+}: {
+  value: string | number
+  label: string
+  accent?: boolean
+}) {
+  return (
+    <span className="flex shrink-0 items-baseline gap-1.5">
+      <span
+        className={`text-sm font-semibold tabular-nums ${
+          accent ? 'text-[#e8702a]' : 'text-white'
+        }`}
+      >
+        {value}
+      </span>
+      <span className="whitespace-nowrap text-[11px] text-white/50">{label}</span>
+    </span>
+  )
+}
+
+function StatDivider() {
+  return <span className="h-4 w-px shrink-0 bg-white/15" />
+}
+
 interface HeroProps {
   regions: Region[]
   onSelectRegion: (id: string) => void
 }
 
 export default function Hero({ regions, onSelectRegion }: HeroProps) {
+  const totals = marketplaceTotals(regions)
   const mouse = useRef({ x: -999, y: -999 })
   const smooth = useRef({ x: -999, y: -999 })
   const rafRef = useRef<number>(0)
@@ -240,6 +268,27 @@ export default function Hero({ regions, onSelectRegion }: HeroProps) {
           <Menu size={26} />
         </button>
       </nav>
+
+      {/* Sticky marketplace stats bar */}
+      <div className="fixed top-16 left-0 right-0 z-[90] border-b border-white/10 bg-black/40 backdrop-blur-md">
+        <div className="no-scrollbar flex items-center gap-4 overflow-x-auto px-4 sm:px-5 py-2">
+          <Stat value={totals.opportunities} label="Active Opportunities" />
+          <StatDivider />
+          <Stat value={formatGBP(totals.revenue)} label="Revenue Available" accent />
+          <StatDivider />
+          <Stat value={totals.emptyReturns} label="Empty Returns" />
+          <StatDivider />
+          <Stat value={totals.coverRequests} label="Cover Requests" />
+          <StatDivider />
+          <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-white/60">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+            </span>
+            Live Updating
+          </span>
+        </div>
+      </div>
 
       {/* Hero section */}
       <section

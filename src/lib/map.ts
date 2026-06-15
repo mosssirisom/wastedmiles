@@ -1,4 +1,5 @@
 import L from 'leaflet'
+import type { JourneyStatus } from '../data/marketplace'
 
 // Free, no-key tile sources (attribution rendered by Leaflet).
 export const SATELLITE_TILES =
@@ -11,12 +12,12 @@ export const ATTRIBUTION =
   '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; ' +
   '<a href="https://carto.com/attributions">CARTO</a>'
 
-// Brand-orange teardrop pin for a job, with an active (selected) variant.
-export function makeJobIcon(active: boolean) {
+// Status-coloured journey marker, with an active (selected) variant.
+export function makeJourneyIcon(status: JourneyStatus, active = false) {
   return L.divIcon({
     className: '',
-    html: `<div class="job-pin${active ? ' job-pin--active' : ''}"></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    html: `<div class="journey-pin journey-pin--${status}${active ? ' journey-pin--active' : ''}"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
   })
 }

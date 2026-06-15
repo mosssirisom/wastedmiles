@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Plane, ArrowRight, Users, Briefcase, Clock, Star } from 'lucide-react'
 import L from 'leaflet'
-import { DARK_TILES, ATTRIBUTION, makeJobIcon } from '../lib/map'
+import Fab from './Fab'
+import { DARK_TILES, ATTRIBUTION, makeJourneyIcon } from '../lib/map'
 import {
   OPERATORS,
   STATUS_META,
@@ -59,7 +60,9 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
 
     const markers: Record<string, L.Marker> = {}
     region.journeys.forEach((journey) => {
-      const marker = L.marker([journey.lat, journey.lng], { icon: makeJobIcon(false) }).addTo(map)
+      const marker = L.marker([journey.lat, journey.lng], {
+        icon: makeJourneyIcon(journey.status, false),
+      }).addTo(map)
       marker.on('click', () => selectJourney(journey.id))
       markers[journey.id] = marker
     })
@@ -79,10 +82,11 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
 
   // Keep marker icons in sync with the selection.
   useEffect(() => {
-    Object.entries(markersRef.current).forEach(([id, marker]) => {
-      marker.setIcon(makeJobIcon(id === selectedId))
+    region.journeys.forEach((journey) => {
+      const marker = markersRef.current[journey.id]
+      if (marker) marker.setIcon(makeJourneyIcon(journey.status, journey.id === selectedId))
     })
-  }, [selectedId])
+  }, [selectedId, region])
 
   const selectJourney = (id: string) => {
     setSelectedId(id)
@@ -229,6 +233,9 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
           })}
         </div>
       </div>
+
+      {/* Expandable operator actions */}
+      <Fab />
     </div>
   )
 }
