@@ -15,7 +15,9 @@ import {
 import type { SectionKind } from './SectionScreen'
 
 // Display view: the UK — the marketplace covers airports nationwide.
-const MAP_CENTER: [number, number] = [54.2, -2.8]
+// Centred slightly north so the whole UK sits below the fixed header and
+// all airport markers clear the headline.
+const MAP_CENTER: [number, number] = [54.9, -3.2]
 const MAP_ZOOM = 6
 
 interface PinPos {
@@ -94,7 +96,7 @@ function OpportunityCard({ journey, onClick }: { journey: Journey; onClick: () =
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-2 text-sm font-medium">
+      <div className="flex items-center gap-1.5 mt-2 text-sm font-medium text-white/90">
         <Plane size={13} className="-rotate-45 text-white/50 shrink-0" />
         <span className="shrink-0">{journey.fromCode}</span>
         <ArrowRight size={12} className="text-white/40 shrink-0" />
