@@ -12,6 +12,10 @@ export const ATTRIBUTION =
   '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; ' +
   '<a href="https://carto.com/attributions">CARTO</a>'
 
+export const DARK_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; ' +
+  '<a href="https://carto.com/attributions">CARTO</a>'
+
 // Status-coloured journey marker, with an active (selected) variant.
 export function makeJourneyIcon(status: JourneyStatus, active = false) {
   return L.divIcon({

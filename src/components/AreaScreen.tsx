@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Plane, ArrowRight, Users, Briefcase, Clock, Star } from 'lucide-react'
 import L from 'leaflet'
 import Fab from './Fab'
-import { DARK_TILES, ATTRIBUTION, makeJourneyIcon } from '../lib/map'
+import { DARK_TILES, DARK_ATTRIBUTION, makeJourneyIcon } from '../lib/map'
 import {
   OPERATORS,
   STATUS_META,
@@ -56,7 +56,7 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
       attributionControl: true,
     })
     mapRef.current = map
-    L.tileLayer(DARK_TILES, { subdomains: 'abcd', attribution: ATTRIBUTION, maxZoom: 20 }).addTo(map)
+    L.tileLayer(DARK_TILES, { subdomains: 'abcd', attribution: DARK_ATTRIBUTION, maxZoom: 20 }).addTo(map)
 
     const markers: Record<string, L.Marker> = {}
     region.journeys.forEach((journey) => {

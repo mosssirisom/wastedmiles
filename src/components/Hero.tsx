@@ -1,112 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plane, Menu } from 'lucide-react'
 import L from 'leaflet'
-import { SATELLITE_TILES, DARK_TILES, ATTRIBUTION } from '../lib/map'
+import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import { marketplaceTotals, formatGBP, type Region } from '../data/marketplace'
-
-const SPOTLIGHT_R = 260
 
 // Display view: the UK — the marketplace covers airports nationwide.
 const MAP_CENTER: [number, number] = [54.2, -2.8]
 const MAP_ZOOM = 6
-
-interface RevealLayerProps {
-  cursorX: number
-  cursorY: number
-}
-
-// Reveal layer: the dark map, visible only inside the cursor spotlight.
-function RevealLayer({ cursorX, cursorY }: RevealLayerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const revealRef = useRef<HTMLDivElement>(null)
-  const mapDivRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-    return () => window.removeEventListener('resize', resize)
-  }, [])
-
-  useEffect(() => {
-    const el = mapDivRef.current
-    if (!el) return
-    const map = L.map(el, {
-      center: MAP_CENTER,
-      zoom: MAP_ZOOM,
-      zoomControl: false,
-      attributionControl: false,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      boxZoom: false,
-      keyboard: false,
-      touchZoom: false,
-    })
-    L.tileLayer(DARK_TILES, { subdomains: 'abcd', maxZoom: 19 }).addTo(map)
-    const onResize = () => map.invalidateSize()
-    setTimeout(() => map.invalidateSize(), 0)
-    window.addEventListener('resize', onResize)
-    return () => {
-      window.removeEventListener('resize', onResize)
-      map.remove()
-    }
-  }, [])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const reveal = revealRef.current
-    if (!canvas || !reveal) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    const gradient = ctx.createRadialGradient(
-      cursorX,
-      cursorY,
-      0,
-      cursorX,
-      cursorY,
-      SPOTLIGHT_R
-    )
-    gradient.addColorStop(0, 'rgba(255,255,255,1)')
-    gradient.addColorStop(0.4, 'rgba(255,255,255,1)')
-    gradient.addColorStop(0.6, 'rgba(255,255,255,0.75)')
-    gradient.addColorStop(0.75, 'rgba(255,255,255,0.4)')
-    gradient.addColorStop(0.88, 'rgba(255,255,255,0.12)')
-    gradient.addColorStop(1, 'rgba(255,255,255,0)')
-
-    ctx.fillStyle = gradient
-    ctx.beginPath()
-    ctx.arc(cursorX, cursorY, SPOTLIGHT_R, 0, Math.PI * 2)
-    ctx.fill()
-
-    const dataUrl = canvas.toDataURL()
-    reveal.style.maskImage = `url(${dataUrl})`
-    reveal.style.webkitMaskImage = `url(${dataUrl})`
-    reveal.style.maskSize = '100% 100%'
-    reveal.style.webkitMaskSize = '100% 100%'
-  })
-
-  return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 pointer-events-none"
-        style={{ display: 'none' }}
-      />
-      <div ref={revealRef} className="absolute inset-0 z-30 pointer-events-none">
-        <div ref={mapDivRef} className="absolute inset-0" />
-      </div>
-    </>
-  )
-}
 
 interface PinPos {
   id: string
@@ -150,10 +50,6 @@ interface HeroProps {
 
 export default function Hero({ regions, onSelectRegion }: HeroProps) {
   const totals = marketplaceTotals(regions)
-  const mouse = useRef({ x: -999, y: -999 })
-  const smooth = useRef({ x: -999, y: -999 })
-  const rafRef = useRef<number>(0)
-  const [cursorPos, setCursorPos] = useState({ x: -999, y: -999 })
 
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
@@ -173,7 +69,7 @@ export default function Hero({ regions, onSelectRegion }: HeroProps) {
     )
   }, [])
 
-  // Base satellite map.
+  // Single dark (Uber-style) map.
   useEffect(() => {
     const el = baseDivRef.current
     if (!el) return
@@ -190,7 +86,11 @@ export default function Hero({ regions, onSelectRegion }: HeroProps) {
       touchZoom: false,
     })
     baseMapRef.current = map
-    L.tileLayer(SATELLITE_TILES, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(map)
+    L.tileLayer(DARK_TILES, {
+      subdomains: 'abcd',
+      attribution: DARK_ATTRIBUTION,
+      maxZoom: 19,
+    }).addTo(map)
 
     const onResize = () => {
       map.invalidateSize()
@@ -212,28 +112,6 @@ export default function Hero({ regions, onSelectRegion }: HeroProps) {
   useEffect(() => {
     computePins()
   }, [regions, computePins])
-
-  // Smoothed cursor tracking for the spotlight.
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      mouse.current.x = e.clientX
-      mouse.current.y = e.clientY
-    }
-    window.addEventListener('mousemove', handleMove)
-
-    const loop = () => {
-      smooth.current.x += (mouse.current.x - smooth.current.x) * 0.1
-      smooth.current.y += (mouse.current.y - smooth.current.y) * 0.1
-      setCursorPos({ x: smooth.current.x, y: smooth.current.y })
-      rafRef.current = requestAnimationFrame(loop)
-    }
-    rafRef.current = requestAnimationFrame(loop)
-
-    return () => {
-      window.removeEventListener('mousemove', handleMove)
-      cancelAnimationFrame(rafRef.current)
-    }
-  }, [])
 
   return (
     <>
@@ -295,11 +173,11 @@ export default function Hero({ regions, onSelectRegion }: HeroProps) {
         className="relative w-full overflow-hidden h-screen bg-black"
         style={{ height: '100dvh' }}
       >
-        {/* Base layer: satellite map */}
+        {/* Dark Uber-style map */}
         <div ref={baseDivRef} className="absolute inset-0 z-10" />
 
-        {/* Reveal layer: dark map under the spotlight */}
-        <RevealLayer cursorX={cursorPos.x} cursorY={cursorPos.y} />
+        {/* Legibility gradient */}
+        <div className="absolute inset-0 z-20 pointer-events-none bg-gradient-to-b from-black/50 via-transparent to-black/60" />
 
         {/* Airport region markers */}
         <div className="absolute inset-0 z-40 pointer-events-none">
@@ -310,7 +188,7 @@ export default function Hero({ regions, onSelectRegion }: HeroProps) {
               style={{ left: pin.x, top: pin.y }}
               className="group absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
             >
-              <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-neutral-900/40 pl-2 pr-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-white/40 group-hover:bg-neutral-900/70">
+              <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-neutral-900/60 pl-2 pr-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-white/40 group-hover:bg-neutral-900/80">
                 <Plane size={12} strokeWidth={2.5} className="-rotate-45 text-[#e8702a]" />
                 <span className="whitespace-nowrap text-[11px] font-medium tracking-tight text-white/90">
                   {pin.name}
