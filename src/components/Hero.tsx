@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MapPin, Menu } from 'lucide-react'
+import { Plane, Menu } from 'lucide-react'
 import L from 'leaflet'
 import { SATELLITE_TILES, DARK_TILES, ATTRIBUTION } from '../lib/map'
-import type { Town } from '../data/jobs'
+import type { Region } from '../data/marketplace'
 
 const SPOTLIGHT_R = 260
 
-// Display view: North West England — the service area.
-const MAP_CENTER: [number, number] = [54.0, -2.7]
-const MAP_ZOOM = 8
+// Display view: the UK — the marketplace covers airports nationwide.
+const MAP_CENTER: [number, number] = [54.2, -2.8]
+const MAP_ZOOM = 6
 
 interface RevealLayerProps {
   cursorX: number
@@ -117,11 +117,11 @@ interface PinPos {
 }
 
 interface HeroProps {
-  towns: Town[]
-  onSelectTown: (id: string) => void
+  regions: Region[]
+  onSelectRegion: (id: string) => void
 }
 
-export default function Hero({ towns, onSelectTown }: HeroProps) {
+export default function Hero({ regions, onSelectRegion }: HeroProps) {
   const mouse = useRef({ x: -999, y: -999 })
   const smooth = useRef({ x: -999, y: -999 })
   const rafRef = useRef<number>(0)
@@ -129,18 +129,18 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
 
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
-  const townsRef = useRef(towns)
-  townsRef.current = towns
+  const regionsRef = useRef(regions)
+  regionsRef.current = regions
   const [pins, setPins] = useState<PinPos[]>([])
 
-  // Project the current towns onto the static map's pixel coordinates.
+  // Project the airport regions onto the static map's pixel coordinates.
   const computePins = useCallback(() => {
     const map = baseMapRef.current
     if (!map) return
     setPins(
-      townsRef.current.map((t) => {
-        const p = map.latLngToContainerPoint(t.center)
-        return { id: t.id, name: t.name, count: t.jobs.length, x: p.x, y: p.y }
+      regionsRef.current.map((r) => {
+        const p = map.latLngToContainerPoint(r.center)
+        return { id: r.id, name: r.name, count: r.journeys.length, x: p.x, y: p.y }
       })
     )
   }, [])
@@ -180,10 +180,10 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
     }
   }, [computePins])
 
-  // Re-project pins whenever the town data changes (e.g. after fetch).
+  // Re-project pins whenever the region data changes (e.g. after fetch).
   useEffect(() => {
     computePins()
-  }, [towns, computePins])
+  }, [regions, computePins])
 
   // Smoothed cursor tracking for the spotlight.
   useEffect(() => {
@@ -215,14 +215,14 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
           <svg width="26" height="26" viewBox="0 0 256 256" fill="#ffffff">
             <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z M 256 128 L 128 128 L 0 0 L 128 0 Z" />
           </svg>
-          <span className="text-white text-2xl font-playfair italic">Lithos</span>
+          <span className="text-white text-2xl font-playfair italic">Wasted Miles</span>
         </div>
 
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md border border-white/30 rounded-full px-2 py-2 items-center gap-1">
           <button className="text-white px-4 py-1.5 rounded-full text-sm font-medium">
-            Course
+            Marketplace
           </button>
-          {['Field Guides', 'Geology', 'Plans', 'Live Tour'].map((item) => (
+          {['Empty Miles', 'Cover', 'Operators', 'Pricing'].map((item) => (
             <button
               key={item}
               className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors"
@@ -233,7 +233,7 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
         </div>
 
         <button className="hidden md:block bg-white text-gray-900 text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-gray-100">
-          Sign Up
+          Join the Network
         </button>
 
         <button className="md:hidden text-white" aria-label="Menu">
@@ -252,17 +252,17 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
         {/* Reveal layer: dark map under the spotlight */}
         <RevealLayer cursorX={cursorPos.x} cursorY={cursorPos.y} />
 
-        {/* Clickable town pins */}
+        {/* Airport region markers */}
         <div className="absolute inset-0 z-40 pointer-events-none">
           {pins.map((pin) => (
             <button
               key={pin.id}
-              onClick={() => onSelectTown(pin.id)}
+              onClick={() => onSelectRegion(pin.id)}
               style={{ left: pin.x, top: pin.y }}
               className="group absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
             >
               <span className="flex items-center gap-1.5 rounded-full border border-white/15 bg-neutral-900/40 pl-2 pr-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 group-hover:-translate-y-0.5 group-hover:border-white/40 group-hover:bg-neutral-900/70">
-                <MapPin size={12} strokeWidth={2.5} className="text-[#e8702a]" />
+                <Plane size={12} strokeWidth={2.5} className="-rotate-45 text-[#e8702a]" />
                 <span className="whitespace-nowrap text-[11px] font-medium tracking-tight text-white/90">
                   {pin.name}
                 </span>
@@ -281,13 +281,13 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
               className="block font-playfair italic font-normal text-5xl sm:text-7xl md:text-8xl hero-anim hero-reveal"
               style={{ letterSpacing: '-0.05em', animationDelay: '0.25s' }}
             >
-              Layers hold
+              Turn dead miles
             </span>
             <span
               className="block font-normal text-5xl sm:text-7xl md:text-8xl -mt-1 hero-anim hero-reveal"
               style={{ letterSpacing: '-0.08em', animationDelay: '0.42s' }}
             >
-              tales of time
+              into revenue
             </span>
           </h1>
         </div>
@@ -298,8 +298,8 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
           style={{ animationDelay: '0.7s' }}
         >
           <p className="text-sm text-white/80 leading-relaxed">
-            Every layer of sediment records a chapter of our planet, from ancient
-            seabeds to drifting ash, layered across millions of years beneath us.
+            The professional operator network for UK airport transfers — trade
+            journeys, fill empty returns, and request emergency cover in real time.
           </p>
         </div>
 
@@ -309,11 +309,14 @@ export default function Hero({ towns, onSelectTown }: HeroProps) {
           style={{ animationDelay: '0.85s' }}
         >
           <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
-            Tap any town to peel back the crust and trace the roles we cover across
-            the North West — from the coast to the fells.
+            Tap any airport to enter its live marketplace and claim journeys across
+            the network — before the miles go to waste.
           </p>
-          <button className="bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-medium px-7 py-3 rounded-full transition-all hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-[#e8702a]/30">
-            Start Digging
+          <button
+            onClick={() => onSelectRegion(regions[0]?.id ?? 'manchester')}
+            className="bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-medium px-7 py-3 rounded-full transition-all hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-[#e8702a]/30"
+          >
+            Enter Marketplace
           </button>
         </div>
       </section>

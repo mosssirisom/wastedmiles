@@ -1,33 +1,33 @@
 import { useEffect, useState } from 'react'
 import Hero from './components/Hero'
 import AreaScreen from './components/AreaScreen'
-import { fetchTowns, type Town } from './data/jobs'
+import { fetchRegions, type Region } from './data/marketplace'
 
 export default function App() {
-  const [towns, setTowns] = useState<Town[]>([])
-  const [activeTownId, setActiveTownId] = useState<string | null>(null)
+  const [regions, setRegions] = useState<Region[]>([])
+  const [activeRegionId, setActiveRegionId] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
-    fetchTowns().then((t) => {
-      if (alive) setTowns(t)
+    fetchRegions().then((r) => {
+      if (alive) setRegions(r)
     })
     return () => {
       alive = false
     }
   }, [])
 
-  const activeTown = towns.find((t) => t.id === activeTownId) ?? null
+  const activeRegion = regions.find((r) => r.id === activeRegionId) ?? null
 
   return (
     <div
       className="min-h-screen bg-white tracking-[-0.02em]"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      {activeTown ? (
-        <AreaScreen town={activeTown} onBack={() => setActiveTownId(null)} />
+      {activeRegion ? (
+        <AreaScreen region={activeRegion} onBack={() => setActiveRegionId(null)} />
       ) : (
-        <Hero towns={towns} onSelectTown={setActiveTownId} />
+        <Hero regions={regions} onSelectRegion={setActiveRegionId} />
       )}
     </div>
   )
