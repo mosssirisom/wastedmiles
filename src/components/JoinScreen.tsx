@@ -22,11 +22,8 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    const url = import.meta.env.VITE_SIGNUP_API_URL
-    if (!url) {
-      setSubmitted(true)
-      return
-    }
+    // Defaults to the Vercel serverless function at /api/signup.
+    const url = import.meta.env.VITE_SIGNUP_API_URL || '/api/signup'
     setSubmitting(true)
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
