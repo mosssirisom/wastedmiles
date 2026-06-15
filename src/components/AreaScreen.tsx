@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Plane, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, Plane, SlidersHorizontal, Map, List } from 'lucide-react'
 import L from 'leaflet'
 import Fab from './Fab'
 import JourneyCard from './JourneyCard'
@@ -20,6 +20,8 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  // Mobile: jobs list is full-screen by default; toggle to peek the map.
+  const [mapView, setMapView] = useState(false)
 
   const metrics = regionMetrics(region)
 
@@ -100,6 +102,10 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
 
   const filterCount = activeFilterCount(filters)
 
+  const panelClass = `absolute z-50 bg-[#0e0e0e]/90 backdrop-blur-xl border-white/10 text-white flex flex-col ${
+    mapView ? 'bottom-0 left-0 right-0 max-h-[55%] rounded-t-3xl border-t' : 'inset-0'
+  } md:inset-auto md:top-0 md:bottom-0 md:left-0 md:right-auto md:w-[400px] md:max-h-none md:rounded-none md:border-t-0 md:border-r`
+
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden" style={{ height: '100dvh' }}>
       {/* Dark interactive map */}
@@ -115,11 +121,9 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
       </button>
 
       {/* Marketplace panel */}
-      <div className="absolute z-50 bg-[#0e0e0e]/90 backdrop-blur-xl border-white/10 text-white flex flex-col
-        bottom-0 left-0 right-0 max-h-[60%] rounded-t-3xl border-t
-        md:top-0 md:bottom-0 md:right-auto md:w-[400px] md:max-h-none md:rounded-none md:border-t-0 md:border-r">
+      <div className={panelClass}>
         {/* Regional header */}
-        <div className="px-6 pt-6 pb-4 md:pt-20 shrink-0">
+        <div className={`px-6 pb-4 shrink-0 ${mapView ? 'pt-6' : 'pt-16'} md:pt-20`}>
           <div className="flex items-start justify-between gap-2">
             <div>
               <div className="flex items-center gap-2 text-[#e8702a] text-xs font-semibold uppercase tracking-wider">
@@ -128,18 +132,27 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
               </div>
               <h2 className="font-playfair italic text-3xl mt-1">{region.name}</h2>
             </div>
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="relative flex items-center gap-1.5 shrink-0 bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium px-3 py-2 rounded-full transition-colors"
-            >
-              <SlidersHorizontal size={14} />
-              Filters
-              {filterCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-[#e8702a] text-[10px] font-bold flex items-center justify-center">
-                  {filterCount}
-                </span>
-              )}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setMapView((v) => !v)}
+                className="md:hidden flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium px-3 py-2 rounded-full transition-colors"
+              >
+                {mapView ? <List size={14} /> : <Map size={14} />}
+                {mapView ? 'List' : 'Map'}
+              </button>
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="relative flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium px-3 py-2 rounded-full transition-colors"
+              >
+                <SlidersHorizontal size={14} />
+                Filters
+                {filterCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-[#e8702a] text-[10px] font-bold flex items-center justify-center">
+                    {filterCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 mt-4">

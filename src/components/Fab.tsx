@@ -18,7 +18,7 @@ export default function Fab() {
       {open && (
         <div className="fixed inset-0 z-[65]" onClick={() => setOpen(false)} />
       )}
-      <div className="absolute z-[70] top-4 right-4 md:top-auto md:bottom-6 md:right-6 flex flex-col md:flex-col-reverse items-end gap-3">
+      <div className="absolute z-[70] bottom-6 right-6 flex flex-col-reverse items-end gap-3">
         <button
           onClick={() => setOpen((o) => !o)}
           aria-label="Operator actions"

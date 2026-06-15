@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Repeat, LifeBuoy } from 'lucide-react'
+import { ArrowLeft, Repeat, LifeBuoy, Map, List } from 'lucide-react'
 import L from 'leaflet'
 import Fab from './Fab'
 import JourneyCard from './JourneyCard'
@@ -42,6 +42,8 @@ export default function SectionScreen({ section, regions, onBack }: SectionScree
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Record<string, L.Marker>>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Mobile: jobs list is full-screen by default; toggle to peek the map.
+  const [mapView, setMapView] = useState(false)
 
   const journeys = useMemo(
     () => regions.flatMap((r) => r.journeys).filter(config.filter),
@@ -118,17 +120,30 @@ export default function SectionScreen({ section, regions, onBack }: SectionScree
       </button>
 
       {/* Section panel */}
-      <div className="absolute z-50 bg-[#0e0e0e]/90 backdrop-blur-xl border-white/10 text-white flex flex-col
-        bottom-0 left-0 right-0 max-h-[60%] rounded-t-3xl border-t
-        md:top-0 md:bottom-0 md:right-auto md:w-[400px] md:max-h-none md:rounded-none md:border-t-0 md:border-r">
+      <div
+        className={`absolute z-50 bg-[#0e0e0e]/90 backdrop-blur-xl border-white/10 text-white flex flex-col ${
+          mapView ? 'bottom-0 left-0 right-0 max-h-[55%] rounded-t-3xl border-t' : 'inset-0'
+        } md:inset-auto md:top-0 md:bottom-0 md:left-0 md:right-auto md:w-[400px] md:max-h-none md:rounded-none md:border-t-0 md:border-r`}
+      >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 md:pt-20 shrink-0">
-          <div className="flex items-center gap-2 text-[#e8702a] text-xs font-semibold uppercase tracking-wider">
-            {section === 'empty' ? <Repeat size={14} /> : <LifeBuoy size={14} />}
-            {config.tag}
+        <div className={`px-6 pb-4 shrink-0 ${mapView ? 'pt-6' : 'pt-16'} md:pt-20`}>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2 text-[#e8702a] text-xs font-semibold uppercase tracking-wider">
+                {section === 'empty' ? <Repeat size={14} /> : <LifeBuoy size={14} />}
+                {config.tag}
+              </div>
+              <h2 className="font-playfair italic text-3xl mt-1">{config.title}</h2>
+              <p className="text-white/60 text-sm mt-1">{config.description}</p>
+            </div>
+            <button
+              onClick={() => setMapView((v) => !v)}
+              className="md:hidden flex items-center gap-1.5 shrink-0 bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium px-3 py-2 rounded-full transition-colors"
+            >
+              {mapView ? <List size={14} /> : <Map size={14} />}
+              {mapView ? 'List' : 'Map'}
+            </button>
           </div>
-          <h2 className="font-playfair italic text-3xl mt-1">{config.title}</h2>
-          <p className="text-white/60 text-sm mt-1">{config.description}</p>
 
           <div className="grid grid-cols-3 gap-2 mt-4">
             <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
