@@ -368,8 +368,7 @@ export default function Hero({
               style={{ left: pin.x, top: pin.y }}
               className="group absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
             >
-              <span className="flex items-center gap-1.5 rounded-full border border-[#27272A] bg-[#111113]/85 pl-2 pr-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-md transition-colors duration-200 group-hover:border-[#3F3F46]">
-                <Plane size={12} strokeWidth={2.5} className="-rotate-45 text-[#A1A1AA]" />
+              <span className="flex items-center rounded-full border border-[#27272A] bg-[#111113]/85 px-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-md transition-colors duration-200 group-hover:border-[#3F3F46]">
                 <span className="whitespace-nowrap text-[11px] font-semibold tracking-[-0.02em] text-[#FAFAFA]">
                   {pin.code}
                 </span>
