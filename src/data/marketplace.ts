@@ -306,21 +306,34 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
   { label: 'Dead Miles Eliminated', value: '1,142 mi', sub: 'last 30 days' },
   { label: 'Journeys Completed', value: '318', sub: 'all time' },
   { label: 'Cover Requests Fulfilled', value: '47', sub: 'this quarter' },
-  { label: 'Operator Rating', value: '4.9 ★', sub: 'top 5% network' },
+  { label: 'Operator Rating', value: '4.9', sub: 'top 5% network' },
   { label: 'Marketplace Earnings', value: '£12,880', sub: 'this year' },
 ]
 
 /* ----------------------- live marketplace activity ------------------ */
 /*  Pre-built feed of recent dispatch events for the live ticker.      */
 
-export function buildActivity(regions: Region[]): string[] {
+export interface ActivityEvent {
+  operator: string
+  verb: string
+  code: string
+  to: string
+  value: string
+}
+
+export function buildActivity(regions: Region[]): ActivityEvent[] {
   const verbs = ['claimed', 'covered', 'matched', 'broadcast', 'posted']
-  const events: string[] = []
+  const events: ActivityEvent[] = []
   regions.forEach((region, ri) => {
     region.journeys.slice(0, 3).forEach((j, i) => {
       const op = OPERATORS[j.operatorId]
-      const verb = verbs[(ri + i) % verbs.length]
-      events.push(`${op.name} ${verb} ${region.code} → ${j.to} · ${formatGBP(j.value)}`)
+      events.push({
+        operator: op.name,
+        verb: verbs[(ri + i) % verbs.length],
+        code: region.code,
+        to: j.to,
+        value: formatGBP(j.value),
+      })
     })
   })
   return events

@@ -10,6 +10,7 @@ import {
   STATUS_META,
   type Region,
   type Journey,
+  type ActivityEvent,
 } from '../data/marketplace'
 import type { SectionKind } from './SectionScreen'
 
@@ -126,11 +127,11 @@ function OpportunityCard({ journey, onClick }: { journey: Journey; onClick: () =
 
 interface FeedItem {
   id: number
-  text: string
+  event: ActivityEvent
   age: number
 }
 
-function LiveActivity({ events }: { events: string[] }) {
+function LiveActivity({ events }: { events: ActivityEvent[] }) {
   const [items, setItems] = useState<FeedItem[]>([])
   const idx = useRef(0)
   const uid = useRef(0)
@@ -139,14 +140,14 @@ function LiveActivity({ events }: { events: string[] }) {
     if (!events.length) return
     const seed: FeedItem[] = []
     for (let i = 0; i < 4; i++) {
-      seed.push({ id: uid.current++, text: events[i % events.length], age: (i + 1) * 11 })
+      seed.push({ id: uid.current++, event: events[i % events.length], age: (i + 1) * 11 })
     }
     setItems(seed)
     idx.current = 4
     const t = setInterval(() => {
       setItems((prev) => {
         const aged = prev.map((it) => ({ ...it, age: it.age + 3 }))
-        const next = { id: uid.current++, text: events[idx.current % events.length], age: 0 }
+        const next = { id: uid.current++, event: events[idx.current % events.length], age: 0 }
         idx.current++
         return [next, ...aged].slice(0, 4)
       })
@@ -166,7 +167,11 @@ function LiveActivity({ events }: { events: string[] }) {
         {items.map((it) => (
           <div key={it.id} className="flex items-center gap-2 text-xs">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#52525B]" />
-            <span className="min-w-0 flex-1 truncate text-[#A1A1AA]">{it.text}</span>
+            <span className="min-w-0 flex-1 truncate text-[#A1A1AA]">
+              {it.event.operator} {it.event.verb} {it.event.code}{' '}
+              <ArrowRight size={11} className="inline-block align-middle text-[#52525B]" />{' '}
+              {it.event.to} · {it.event.value}
+            </span>
             <span className="shrink-0 text-[10px] text-[#52525B]">{fmt(it.age)}</span>
           </div>
         ))}
