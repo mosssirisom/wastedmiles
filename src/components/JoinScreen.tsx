@@ -60,7 +60,7 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
             <div className="mx-auto h-14 w-14 rounded-full bg-[#F97316]/15 border border-[#F97316]/40 flex items-center justify-center">
               <Check size={26} className="text-[#F97316]" />
             </div>
-            <h1 className="font-bold tracking-[-0.03em] text-3xl mt-4">You're on the network</h1>
+            <h1 className="font-playfair italic text-3xl mt-4">You're on the network</h1>
             <p className="text-[#A1A1AA] text-sm mt-2 leading-relaxed">
               Thanks, {form.name || 'operator'}. We'll email {form.email || 'you'} to verify your
               account and get you claiming journeys.
@@ -77,7 +77,7 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
             <div className="text-[#A1A1AA] text-xs font-medium uppercase tracking-wider">
               Join the Network
             </div>
-            <h1 className="font-bold tracking-[-0.03em] text-4xl mt-1">Start recovering revenue</h1>
+            <h1 className="font-playfair italic text-4xl mt-1">Start recovering revenue</h1>
             <p className="text-[#A1A1AA] text-sm mt-2 leading-relaxed">
               Join verified operators trading airport transfers across the UK. Free for 14 days.
             </p>

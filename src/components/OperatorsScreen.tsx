@@ -93,7 +93,7 @@ export default function OperatorsScreen({ onBack }: OperatorsScreenProps) {
           <BadgeCheck size={14} />
           Operator Network
         </div>
-        <h1 className="font-bold tracking-[-0.03em] text-4xl mt-1">Trusted Operators</h1>
+        <h1 className="font-playfair italic text-4xl mt-1">Trusted Operators</h1>
         <p className="text-[#A1A1AA] text-sm mt-2 max-w-lg leading-relaxed">
           Every transfer on Wasted Miles is handled by a verified operator. Reputation is
           earned through completed journeys, acceptance rate and on-time performance.

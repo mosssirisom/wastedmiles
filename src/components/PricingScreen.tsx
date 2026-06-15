@@ -72,7 +72,7 @@ export default function PricingScreen({ onBack, onJoin }: PricingScreenProps) {
       <div className="max-w-5xl mx-auto px-5 pt-20 pb-16">
         <div className="text-center max-w-xl mx-auto">
           <div className="text-[#A1A1AA] text-xs font-medium uppercase tracking-wider">Pricing</div>
-          <h1 className="font-bold tracking-[-0.03em] text-4xl mt-1">Plans that pay for themselves</h1>
+          <h1 className="font-playfair italic text-4xl mt-1">Plans that pay for themselves</h1>
           <p className="text-[#A1A1AA] text-sm mt-2 leading-relaxed">
             One recovered empty return covers your month. Cancel anytime — billed monthly,
             no setup fees.

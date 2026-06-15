@@ -286,9 +286,7 @@ export default function Hero({
           <svg width="24" height="24" viewBox="0 0 256 256" fill="#FAFAFA">
             <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z M 256 128 L 128 128 L 0 0 L 128 0 Z" />
           </svg>
-          <span className="text-[#FAFAFA] text-xl font-semibold tracking-[-0.02em]">
-            Wasted Miles
-          </span>
+          <span className="text-[#FAFAFA] text-2xl font-playfair italic">Wasted Miles</span>
         </div>
 
         <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 bg-[#111113]/80 backdrop-blur-md border border-[#27272A] rounded-full px-2 py-2 items-center gap-1">
@@ -444,8 +442,19 @@ export default function Hero({
 
         {/* Heading (bottom-left, clear of the airport markers) */}
         <div className="absolute bottom-10 left-6 sm:left-10 md:left-14 z-50 max-w-[340px] flex flex-col items-start text-left pointer-events-none">
-          <h1 className="text-[#FAFAFA] font-bold tracking-[-0.03em] leading-[1.02] text-3xl sm:text-4xl md:text-5xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)] hero-anim hero-reveal" style={{ animationDelay: '0.25s' }}>
-            Turn dead miles into revenue
+          <h1 className="text-[#FAFAFA] leading-[0.95] drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">
+            <span
+              className="block font-playfair italic font-normal text-3xl sm:text-4xl md:text-5xl hero-anim hero-reveal"
+              style={{ letterSpacing: '-0.04em', animationDelay: '0.25s' }}
+            >
+              Turn dead miles
+            </span>
+            <span
+              className="block font-normal text-3xl sm:text-4xl md:text-5xl -mt-1 hero-anim hero-reveal"
+              style={{ letterSpacing: '-0.06em', animationDelay: '0.42s' }}
+            >
+              into revenue
+            </span>
           </h1>
           <div
             className="mt-4 pointer-events-auto hero-anim hero-fade"

@@ -124,9 +124,7 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
                 <Plane size={14} className="-rotate-45" />
                 {region.code} · Airport Region
               </div>
-              <h2 className="font-bold tracking-[-0.03em] text-3xl mt-1 text-[#FAFAFA]">
-                {region.name}
-              </h2>
+              <h2 className="font-playfair italic text-3xl mt-1 text-[#FAFAFA]">{region.name}</h2>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button

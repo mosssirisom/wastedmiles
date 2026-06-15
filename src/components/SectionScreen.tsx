@@ -125,9 +125,7 @@ export default function SectionScreen({ section, regions, onBack }: SectionScree
                 {section === 'empty' ? <Repeat size={14} /> : <LifeBuoy size={14} />}
                 {config.tag}
               </div>
-              <h2 className="font-bold tracking-[-0.03em] text-3xl mt-1 text-[#FAFAFA]">
-                {config.title}
-              </h2>
+              <h2 className="font-playfair italic text-3xl mt-1 text-[#FAFAFA]">{config.title}</h2>
               <p className="text-[#A1A1AA] text-sm mt-1">{config.description}</p>
             </div>
             <button
