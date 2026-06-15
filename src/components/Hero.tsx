@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plane, Menu, ArrowRight, Star } from 'lucide-react'
+import { Plane, Menu, X, ArrowRight, Star } from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import {
@@ -209,11 +209,17 @@ export default function Hero({
     ]
   }, [regions])
 
+  const [menuOpen, setMenuOpen] = useState(false)
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
   const regionsRef = useRef(regions)
   regionsRef.current = regions
   const [pins, setPins] = useState<PinPos[]>([])
+
+  const runAndClose = (fn: () => void) => {
+    setMenuOpen(false)
+    fn()
+  }
 
   // Project the airport regions onto the static map's pixel coordinates.
   const computePins = useCallback(() => {
@@ -320,10 +326,63 @@ export default function Hero({
           Join the Network
         </button>
 
-        <button className="md:hidden text-white" aria-label="Menu">
-          <Menu size={26} />
+        <button
+          onClick={() => setMenuOpen((o) => !o)}
+          className="md:hidden text-white"
+          aria-label="Menu"
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? <X size={26} /> : <Menu size={26} />}
         </button>
       </nav>
+
+      {/* Mobile menu dropdown */}
+      {menuOpen && (
+        <div className="md:hidden fixed inset-0 z-[110]" onClick={() => setMenuOpen(false)}>
+          <div
+            className="absolute right-3 top-[60px] w-56 rounded-2xl border border-white/10 bg-[#0e0e0e]/95 backdrop-blur-xl shadow-2xl p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium bg-white/10 text-white"
+            >
+              Marketplace
+            </button>
+            <button
+              onClick={() => runAndClose(() => onOpenSection('empty'))}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/85 hover:bg-white/10 transition-colors"
+            >
+              Empty Miles
+            </button>
+            <button
+              onClick={() => runAndClose(() => onOpenSection('cover'))}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/85 hover:bg-white/10 transition-colors"
+            >
+              Cover
+            </button>
+            <button
+              onClick={() => runAndClose(onOpenOperators)}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/85 hover:bg-white/10 transition-colors"
+            >
+              Operators
+            </button>
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/85 hover:bg-white/10 transition-colors"
+            >
+              Pricing
+            </button>
+            <div className="my-1.5 border-t border-white/10" />
+            <button
+              onClick={() => setMenuOpen(false)}
+              className="w-full text-center px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#e8702a] hover:bg-[#d2611f] text-white transition-colors"
+            >
+              Join the Network
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Fixed header: stats bar + live opportunities strip */}
       <div className="fixed top-16 left-0 right-0 z-[90]">
