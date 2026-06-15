@@ -180,9 +180,15 @@ interface HeroProps {
   regions: Region[]
   onSelectRegion: (id: string) => void
   onOpenSection: (section: SectionKind) => void
+  onOpenOperators: () => void
 }
 
-export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroProps) {
+export default function Hero({
+  regions,
+  onSelectRegion,
+  onOpenSection,
+  onOpenOperators,
+}: HeroProps) {
   const totals = marketplaceTotals(regions)
   const activity = useMemo(() => buildActivity(regions), [regions])
 
@@ -299,14 +305,15 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
           >
             Cover
           </button>
-          {['Operators', 'Pricing'].map((item) => (
-            <button
-              key={item}
-              className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors"
-            >
-              {item}
-            </button>
-          ))}
+          <button
+            onClick={onOpenOperators}
+            className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors"
+          >
+            Operators
+          </button>
+          <button className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors">
+            Pricing
+          </button>
         </div>
 
         <button className="hidden md:block bg-white text-gray-900 text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-gray-100">

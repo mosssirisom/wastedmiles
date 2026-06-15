@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react'
 import Hero from './components/Hero'
 import AreaScreen from './components/AreaScreen'
 import SectionScreen, { type SectionKind } from './components/SectionScreen'
+import OperatorsScreen from './components/OperatorsScreen'
 import { fetchRegions, type Region } from './data/marketplace'
+
+type View =
+  | { kind: 'home' }
+  | { kind: 'region'; id: string }
+  | { kind: 'section'; section: SectionKind }
+  | { kind: 'operators' }
 
 export default function App() {
   const [regions, setRegions] = useState<Region[]>([])
-  const [activeRegionId, setActiveRegionId] = useState<string | null>(null)
-  const [activeSection, setActiveSection] = useState<SectionKind | null>(null)
+  const [view, setView] = useState<View>({ kind: 'home' })
 
   useEffect(() => {
     let alive = true
@@ -19,19 +25,34 @@ export default function App() {
     }
   }, [])
 
-  const activeRegion = regions.find((r) => r.id === activeRegionId) ?? null
+  const goHome = () => setView({ kind: 'home' })
 
-  const openRegion = (id: string) => {
-    setActiveSection(null)
-    setActiveRegionId(id)
-  }
-  const openSection = (s: SectionKind) => {
-    setActiveRegionId(null)
-    setActiveSection(s)
-  }
-  const goHome = () => {
-    setActiveRegionId(null)
-    setActiveSection(null)
+  let screen
+  if (view.kind === 'region') {
+    const region = regions.find((r) => r.id === view.id)
+    screen = region ? (
+      <AreaScreen region={region} onBack={goHome} />
+    ) : (
+      <Hero
+        regions={regions}
+        onSelectRegion={(id) => setView({ kind: 'region', id })}
+        onOpenSection={(section) => setView({ kind: 'section', section })}
+        onOpenOperators={() => setView({ kind: 'operators' })}
+      />
+    )
+  } else if (view.kind === 'section') {
+    screen = <SectionScreen section={view.section} regions={regions} onBack={goHome} />
+  } else if (view.kind === 'operators') {
+    screen = <OperatorsScreen onBack={goHome} />
+  } else {
+    screen = (
+      <Hero
+        regions={regions}
+        onSelectRegion={(id) => setView({ kind: 'region', id })}
+        onOpenSection={(section) => setView({ kind: 'section', section })}
+        onOpenOperators={() => setView({ kind: 'operators' })}
+      />
+    )
   }
 
   return (
@@ -39,13 +60,7 @@ export default function App() {
       className="min-h-screen bg-white tracking-[-0.02em]"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      {activeRegion ? (
-        <AreaScreen region={activeRegion} onBack={goHome} />
-      ) : activeSection ? (
-        <SectionScreen section={activeSection} regions={regions} onBack={goHome} />
-      ) : (
-        <Hero regions={regions} onSelectRegion={openRegion} onOpenSection={openSection} />
-      )}
+      {screen}
     </div>
   )
 }
