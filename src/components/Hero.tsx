@@ -324,47 +324,51 @@ export default function Hero({
         </button>
       </nav>
 
-      {/* Mobile menu dropdown */}
+      {/* Mobile menu — bottom sheet (Uber-style) */}
       {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-[110]" onClick={() => setMenuOpen(false)}>
+        <div
+          className="md:hidden fixed inset-0 z-[110] flex flex-col justify-end"
+          onClick={() => setMenuOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/50" />
           <div
-            className="absolute right-3 top-[60px] w-56 rounded-2xl border border-[#27272A] bg-[#111113] shadow-2xl p-2"
+            className="relative animate-sheet rounded-t-2xl border-t border-[#27272A] bg-[#111113] px-3 pt-2 pb-7 shadow-[0_-8px_30px_rgba(0,0,0,0.5)]"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#27272A]" />
             <button
               onClick={() => setMenuOpen(false)}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium bg-[#27272A] text-[#FAFAFA]"
+              className="w-full text-left px-4 py-3 rounded-xl text-base font-medium bg-[#18181B] text-[#FAFAFA]"
             >
               Marketplace
             </button>
             <button
               onClick={() => runAndClose(() => onOpenSection('empty'))}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
             >
               Empty Miles
             </button>
             <button
               onClick={() => runAndClose(() => onOpenSection('cover'))}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
             >
               Cover
             </button>
             <button
               onClick={() => runAndClose(onOpenOperators)}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
             >
               Operators
             </button>
             <button
               onClick={() => runAndClose(onOpenPricing)}
-              className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
             >
               Pricing
             </button>
-            <div className="my-1.5 border-t border-[#27272A]" />
             <button
               onClick={() => runAndClose(onOpenJoin)}
-              className="w-full text-center px-3 py-2.5 rounded-lg text-sm font-medium bg-[#F97316] hover:bg-[#EA580C] text-white transition-colors"
+              className="mt-2 w-full text-center px-4 py-3 rounded-xl text-base font-medium bg-[#F97316] hover:bg-[#EA580C] text-white transition-colors"
             >
               Join the Network
             </button>

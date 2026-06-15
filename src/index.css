@@ -50,3 +50,7 @@
 /* Hide scrollbar for horizontal stat bars */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Bottom sheet slide-up */
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.animate-sheet { animation: sheetUp 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
