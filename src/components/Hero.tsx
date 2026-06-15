@@ -8,7 +8,9 @@ import {
   buildActivity,
   formatGBP,
   OPERATORS,
+  STATUS_META,
   type Region,
+  type Journey,
 } from '../data/marketplace'
 import type { SectionKind } from './SectionScreen'
 
@@ -63,6 +65,58 @@ function Stat({
 
 function StatDivider() {
   return <span className="h-4 w-px shrink-0 bg-white/15" />
+}
+
+// Sub-label for an opportunity card based on its status.
+function subLabel(j: Journey): string {
+  if (j.status === 'empty-return' && j.seats != null) return `${j.seats} seats available`
+  if ((j.status === 'cover-needed' || j.status === 'urgent') && j.responseMins != null)
+    return `${j.responseMins} mins remaining`
+  return j.posted
+}
+
+// Compact opportunity card for the live strip.
+function OpportunityCard({ journey, onClick }: { journey: Journey; onClick: () => void }) {
+  const op = OPERATORS[journey.operatorId]
+  const st = STATUS_META[journey.status]
+  const urgent = journey.status === 'urgent' || journey.status === 'cover-needed'
+  return (
+    <button
+      onClick={onClick}
+      className="snap-start shrink-0 w-[250px] rounded-xl border border-white/10 bg-[#0e0e0e]/70 backdrop-blur-md p-3 text-left transition hover:bg-white/10 hover:border-white/25"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${st.badge}`}>
+          {journey.status === 'urgent' ? 'URGENT' : st.label}
+        </span>
+        <span className="text-[#e8702a] text-base font-semibold tabular-nums">
+          {formatGBP(journey.value)}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1.5 mt-2 text-sm font-medium">
+        <Plane size={13} className="-rotate-45 text-white/50 shrink-0" />
+        <span className="shrink-0">{journey.fromCode}</span>
+        <ArrowRight size={12} className="text-white/40 shrink-0" />
+        <span className="truncate">{journey.to}</span>
+      </div>
+
+      <div className="flex items-center justify-between mt-2 text-[11px]">
+        <span className="flex items-center gap-1 text-white/60 min-w-0">
+          <span className="truncate">{op.name}</span>
+          <span className="flex items-center gap-0.5 text-amber-400 shrink-0">
+            <Star size={9} className="fill-current" />
+            {op.rating.toFixed(1)}
+          </span>
+        </span>
+        <span className="text-white/35 shrink-0">{op.completed} jobs</span>
+      </div>
+
+      <div className={`mt-1 text-[11px] ${urgent ? 'text-amber-400' : 'text-white/45'}`}>
+        {subLabel(journey)}
+      </div>
+    </button>
+  )
 }
 
 // Live marketplace activity feed — recent dispatch events that tick in.
@@ -126,21 +180,25 @@ interface HeroProps {
   onOpenSection: (section: SectionKind) => void
 }
 
+const STATUS_PRIORITY: Record<Journey['status'], number> = {
+  urgent: 0,
+  'cover-needed': 1,
+  'empty-return': 2,
+  available: 3,
+}
+
 export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroProps) {
   const totals = marketplaceTotals(regions)
   const activity = buildActivity(regions)
 
-  // Top available journeys, surfaced on the homepage above the fold.
-  const available = regions
+  // Live opportunities surfaced above the fold (urgency first, then value).
+  const opportunities = regions
     .flatMap((r) => r.journeys)
-    .filter((j) => j.status === 'available')
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 4)
-
-  // Network operator trust indicators.
-  const ops = Object.values(OPERATORS)
-  const avgRating = (ops.reduce((s, o) => s + o.rating, 0) / ops.length).toFixed(1)
-  const avgOnTime = (ops.reduce((s, o) => s + o.onTime, 0) / ops.length).toFixed(1)
+    .sort(
+      (a, b) =>
+        STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status] || b.value - a.value
+    )
+    .slice(0, 8)
 
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
@@ -257,32 +315,48 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
         </button>
       </nav>
 
-      {/* Sticky marketplace stats bar */}
-      <div className="fixed top-16 left-0 right-0 z-[90] border-b border-white/10 bg-black/40 backdrop-blur-md">
-        <div className="no-scrollbar flex items-center gap-4 overflow-x-auto px-4 sm:px-5 py-2">
-          <Stat value={totals.opportunities} label="Active Opportunities" />
-          <StatDivider />
-          <Stat value={formatGBP(totals.revenue)} label="Revenue Available" accent />
-          <StatDivider />
-          <Stat
-            value={totals.emptyReturns}
-            label="Empty Returns"
-            onClick={() => onOpenSection('empty')}
-          />
-          <StatDivider />
-          <Stat
-            value={totals.coverRequests}
-            label="Cover Requests"
-            onClick={() => onOpenSection('cover')}
-          />
-          <StatDivider />
-          <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-white/60">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+      {/* Fixed header: stats bar + live opportunities strip */}
+      <div className="fixed top-16 left-0 right-0 z-[90]">
+        {/* Sticky marketplace stats bar */}
+        <div className="border-b border-white/10 bg-black/40 backdrop-blur-md">
+          <div className="no-scrollbar flex items-center gap-4 overflow-x-auto px-4 sm:px-5 py-2">
+            <Stat value={totals.opportunities} label="Active Opportunities" />
+            <StatDivider />
+            <Stat value={formatGBP(totals.revenue)} label="Revenue Available" accent />
+            <StatDivider />
+            <Stat
+              value={totals.emptyReturns}
+              label="Empty Returns"
+              onClick={() => onOpenSection('empty')}
+            />
+            <StatDivider />
+            <Stat
+              value={totals.coverRequests}
+              label="Cover Requests"
+              onClick={() => onOpenSection('cover')}
+            />
+            <StatDivider />
+            <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-white/60">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              </span>
+              Live Updating
             </span>
-            Live Updating
-          </span>
+          </div>
+        </div>
+
+        {/* Live opportunities strip */}
+        <div className="border-b border-white/10 bg-black/30 backdrop-blur-md">
+          <div className="no-scrollbar flex gap-3 overflow-x-auto px-4 sm:px-5 py-3 snap-x">
+            {opportunities.map((j) => (
+              <OpportunityCard
+                key={j.id}
+                journey={j}
+                onClick={() => onSelectRegion(j.regionId)}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -322,8 +396,8 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
           ))}
         </div>
 
-        {/* Heading */}
-        <div className="absolute top-[13%] left-0 right-0 z-50 flex flex-col items-center text-center px-5 pointer-events-none">
+        {/* Heading (kept below the fixed opportunities strip) */}
+        <div className="absolute top-[32%] left-0 right-0 z-50 flex flex-col items-center text-center px-5 pointer-events-none">
           <h1 className="text-white leading-[0.95]">
             <span
               className="block font-playfair italic font-normal text-3xl sm:text-5xl md:text-6xl hero-anim hero-reveal"
@@ -357,55 +431,6 @@ export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroPro
           style={{ animationDelay: '0.7s' }}
         >
           <LiveActivity events={activity} />
-        </div>
-
-        {/* Available journeys (bottom-right, above the fold) */}
-        <div
-          className="hidden sm:flex flex-col absolute bottom-10 right-10 md:right-14 w-[300px] z-50 hero-anim hero-fade"
-          style={{ animationDelay: '0.85s' }}
-        >
-          <div className="rounded-2xl border border-white/10 bg-[#0e0e0e]/70 backdrop-blur-xl p-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.4)]">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
-                Available Now
-              </span>
-              <span className="text-[11px] tabular-nums text-emerald-400">
-                {totals.opportunities} live
-              </span>
-            </div>
-            <div className="space-y-1">
-              {available.map((j) => (
-                <button
-                  key={j.id}
-                  onClick={() => onSelectRegion(j.regionId)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/10"
-                >
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-white/90 min-w-0">
-                    <span className="shrink-0">{j.fromCode}</span>
-                    <ArrowRight size={11} className="shrink-0 text-white/40" />
-                    <span className="truncate">{j.to}</span>
-                  </span>
-                  <span className="ml-auto flex items-center gap-2 shrink-0">
-                    <span className="flex items-center gap-0.5 text-[10px] text-amber-400">
-                      <Star size={9} className="fill-current" />
-                      {OPERATORS[j.operatorId].rating.toFixed(1)}
-                    </span>
-                    <span className="text-xs font-semibold tabular-nums text-[#e8702a]">
-                      {formatGBP(j.value)}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
-            <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center gap-2 text-[11px] text-white/45">
-              <span className="flex items-center gap-1 text-amber-400">
-                <Star size={11} className="fill-current" />
-                {avgRating}
-              </span>
-              <span>· {ops.length} verified operators</span>
-              <span className="ml-auto">{avgOnTime}% on time</span>
-            </div>
-          </div>
         </div>
       </section>
     </>
