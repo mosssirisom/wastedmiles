@@ -60,10 +60,10 @@ interface PricingScreenProps {
 
 export default function PricingScreen({ onBack, onJoin }: PricingScreenProps) {
   return (
-    <div className="relative w-full min-h-screen bg-black text-white" style={{ minHeight: '100dvh' }}>
+    <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>
       <button
         onClick={onBack}
-        className="fixed top-4 left-4 z-[60] flex items-center gap-2 bg-white/90 backdrop-blur text-gray-900 text-sm font-semibold pl-3 pr-4 py-2 rounded-full shadow-lg hover:bg-white transition"
+        className="fixed top-4 left-4 z-[60] flex items-center gap-2 bg-[#18181B] border border-[#27272A] text-[#FAFAFA] text-sm font-medium pl-3 pr-4 py-2 rounded-full shadow-lg hover:bg-[#27272A] transition-colors"
       >
         <ArrowLeft size={18} />
         Back
@@ -71,9 +71,9 @@ export default function PricingScreen({ onBack, onJoin }: PricingScreenProps) {
 
       <div className="max-w-5xl mx-auto px-5 pt-20 pb-16">
         <div className="text-center max-w-xl mx-auto">
-          <div className="text-[#e8702a] text-xs font-semibold uppercase tracking-wider">Pricing</div>
-          <h1 className="font-playfair italic text-4xl mt-1">Plans that pay for themselves</h1>
-          <p className="text-white/60 text-sm mt-2">
+          <div className="text-[#A1A1AA] text-xs font-medium uppercase tracking-wider">Pricing</div>
+          <h1 className="font-bold tracking-[-0.03em] text-4xl mt-1">Plans that pay for themselves</h1>
+          <p className="text-[#A1A1AA] text-sm mt-2 leading-relaxed">
             One recovered empty return covers your month. Cancel anytime — billed monthly,
             no setup fees.
           </p>
@@ -85,26 +85,26 @@ export default function PricingScreen({ onBack, onJoin }: PricingScreenProps) {
               key={tier.name}
               className={`relative rounded-2xl border p-6 flex flex-col ${
                 tier.popular
-                  ? 'border-[#e8702a]/60 bg-[#e8702a]/[0.06]'
-                  : 'border-white/10 bg-white/5'
+                  ? 'border-[#F97316]/50 bg-[#F97316]/[0.06]'
+                  : 'border-[#27272A] bg-[#111113]'
               }`}
             >
               {tier.popular && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#e8702a] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#F97316] text-white text-[10px] font-medium uppercase tracking-wider px-3 py-1 rounded-full">
                   Most popular
                 </span>
               )}
-              <h3 className="text-lg font-medium">{tier.name}</h3>
+              <h3 className="text-lg font-semibold tracking-[-0.02em]">{tier.name}</h3>
               <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-3xl font-semibold tabular-nums">£{tier.price}</span>
-                <span className="text-sm text-white/50">/mo</span>
+                <span className="text-3xl font-bold tabular-nums tracking-[-0.03em]">£{tier.price}</span>
+                <span className="text-sm text-[#71717A]">/mo</span>
               </div>
-              <p className="text-xs text-white/50 mt-1">{tier.tagline}</p>
+              <p className="text-xs text-[#71717A] mt-1">{tier.tagline}</p>
 
               <ul className="mt-5 space-y-2.5 flex-1">
                 {tier.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-white/80">
-                    <Check size={15} className="mt-0.5 shrink-0 text-[#e8702a]" />
+                  <li key={f} className="flex items-start gap-2 text-sm text-[#A1A1AA]">
+                    <Check size={15} className="mt-0.5 shrink-0 text-[#F97316]" />
                     {f}
                   </li>
                 ))}
@@ -112,10 +112,10 @@ export default function PricingScreen({ onBack, onJoin }: PricingScreenProps) {
 
               <button
                 onClick={onJoin}
-                className={`mt-6 w-full py-2.5 rounded-full text-sm font-semibold transition-all active:scale-[0.99] ${
+                className={`mt-6 w-full py-2.5 rounded-lg text-sm font-medium transition-colors active:scale-[0.99] ${
                   tier.popular
-                    ? 'bg-[#e8702a] hover:bg-[#d2611f] text-white hover:shadow-lg hover:shadow-[#e8702a]/30'
-                    : 'bg-white/10 hover:bg-white/15 border border-white/15 text-white'
+                    ? 'bg-[#F97316] hover:bg-[#EA580C] text-white'
+                    : 'bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#FAFAFA]'
                 }`}
               >
                 {tier.cta}
@@ -124,7 +124,7 @@ export default function PricingScreen({ onBack, onJoin }: PricingScreenProps) {
           ))}
         </div>
 
-        <p className="text-center text-xs text-white/40 mt-8">
+        <p className="text-center text-xs text-[#71717A] mt-8">
           All plans include verified operator status, secure payments and 24/7 marketplace access.
         </p>
       </div>

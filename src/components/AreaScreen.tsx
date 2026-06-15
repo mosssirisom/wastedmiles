@@ -20,7 +20,6 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  // Mobile: jobs list is full-screen by default; toggle to peek the map.
   const [mapView, setMapView] = useState(false)
 
   const metrics = regionMetrics(region)
@@ -48,7 +47,6 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
     }
   }
 
-  // Create the map + a marker layer group, once per region.
   useEffect(() => {
     const el = mapDivRef.current
     if (!el) return
@@ -74,7 +72,6 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
     }
   }, [region])
 
-  // Rebuild markers whenever the filtered set changes.
   useEffect(() => {
     const layer = layerRef.current
     if (!layer) return
@@ -92,7 +89,6 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered])
 
-  // Keep marker icons in sync with the selection.
   useEffect(() => {
     filtered.forEach((journey) => {
       const marker = markersRef.current[journey.id]
@@ -102,19 +98,18 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
 
   const filterCount = activeFilterCount(filters)
 
-  const panelClass = `absolute z-50 bg-[#0e0e0e]/90 backdrop-blur-xl border-white/10 text-white flex flex-col ${
+  const panelClass = `absolute z-50 bg-[#111113]/95 backdrop-blur-xl border-[#27272A] text-[#FAFAFA] flex flex-col ${
     mapView ? 'bottom-0 left-0 right-0 max-h-[55%] rounded-t-3xl border-t' : 'inset-0'
   } md:inset-auto md:top-0 md:bottom-0 md:left-0 md:right-auto md:w-[400px] md:max-h-none md:rounded-none md:border-t-0 md:border-r`
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden" style={{ height: '100dvh' }}>
-      {/* Dark interactive map */}
+    <div className="relative w-full h-screen bg-[#09090B] overflow-hidden" style={{ height: '100dvh' }}>
       <div ref={mapDivRef} className="absolute inset-0 z-10" />
 
       {/* Back button */}
       <button
         onClick={onBack}
-        className="absolute top-4 left-4 z-[60] flex items-center gap-2 bg-white/90 backdrop-blur text-gray-900 text-sm font-semibold pl-3 pr-4 py-2 rounded-full shadow-lg hover:bg-white transition"
+        className="absolute top-4 left-4 z-[60] flex items-center gap-2 bg-[#18181B] border border-[#27272A] text-[#FAFAFA] text-sm font-medium pl-3 pr-4 py-2 rounded-full shadow-lg hover:bg-[#27272A] transition-colors"
       >
         <ArrowLeft size={18} />
         Back
@@ -122,32 +117,33 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
 
       {/* Marketplace panel */}
       <div className={panelClass}>
-        {/* Regional header */}
         <div className={`px-6 pb-4 shrink-0 ${mapView ? 'pt-6' : 'pt-16'} md:pt-20`}>
           <div className="flex items-start justify-between gap-2">
             <div>
-              <div className="flex items-center gap-2 text-[#e8702a] text-xs font-semibold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-[#A1A1AA] text-xs font-medium uppercase tracking-wider">
                 <Plane size={14} className="-rotate-45" />
                 {region.code} · Airport Region
               </div>
-              <h2 className="font-playfair italic text-3xl mt-1">{region.name}</h2>
+              <h2 className="font-bold tracking-[-0.03em] text-3xl mt-1 text-[#FAFAFA]">
+                {region.name}
+              </h2>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setMapView((v) => !v)}
-                className="md:hidden flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium px-3 py-2 rounded-full transition-colors"
+                className="md:hidden flex items-center gap-1.5 bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#FAFAFA] text-xs font-medium px-3 py-2 rounded-full transition-colors"
               >
                 {mapView ? <List size={14} /> : <Map size={14} />}
                 {mapView ? 'List' : 'Map'}
               </button>
               <button
                 onClick={() => setDrawerOpen(true)}
-                className="relative flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium px-3 py-2 rounded-full transition-colors"
+                className="relative flex items-center gap-1.5 bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#FAFAFA] text-xs font-medium px-3 py-2 rounded-full transition-colors"
               >
                 <SlidersHorizontal size={14} />
                 Filters
                 {filterCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-[#e8702a] text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 px-1 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center">
                     {filterCount}
                   </span>
                 )}
@@ -156,35 +152,36 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-2 mt-4">
-            <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-              <div className="text-lg font-semibold tabular-nums">{metrics.opportunities}</div>
-              <div className="text-[11px] text-white/50">Active Opportunities</div>
+            <div className="rounded-xl bg-[#18181B] border border-[#27272A] px-3 py-2">
+              <div className="text-lg font-bold tabular-nums tracking-[-0.02em]">
+                {metrics.opportunities}
+              </div>
+              <div className="text-[11px] text-[#71717A]">Active Opportunities</div>
             </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-              <div className="text-lg font-semibold tabular-nums text-[#e8702a]">
+            <div className="rounded-xl bg-[#18181B] border border-[#27272A] px-3 py-2">
+              <div className="text-lg font-bold tabular-nums tracking-[-0.02em] text-[#F97316]">
                 {formatGBP(metrics.revenue)}
               </div>
-              <div className="text-[11px] text-white/50">Available Revenue</div>
+              <div className="text-[11px] text-[#71717A]">Available Revenue</div>
             </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-              <div className="text-lg font-semibold tabular-nums text-blue-400">
+            <div className="rounded-xl bg-[#18181B] border border-[#27272A] px-3 py-2">
+              <div className="text-lg font-bold tabular-nums tracking-[-0.02em]">
                 {metrics.emptyReturns}
               </div>
-              <div className="text-[11px] text-white/50">Empty Returns</div>
+              <div className="text-[11px] text-[#71717A]">Empty Returns</div>
             </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-              <div className="text-lg font-semibold tabular-nums text-amber-400">
+            <div className="rounded-xl bg-[#18181B] border border-[#27272A] px-3 py-2">
+              <div className="text-lg font-bold tabular-nums tracking-[-0.02em]">
                 {metrics.coverRequests}
               </div>
-              <div className="text-[11px] text-white/50">Cover Requests</div>
+              <div className="text-[11px] text-[#71717A]">Cover Requests</div>
             </div>
           </div>
         </div>
 
-        {/* Journey cards */}
         <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
           {filtered.length === 0 ? (
-            <div className="text-center text-sm text-white/40 py-10">
+            <div className="text-center text-sm text-[#71717A] py-10">
               No journeys match your filters.
             </div>
           ) : (
@@ -200,10 +197,8 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
         </div>
       </div>
 
-      {/* Expandable operator actions */}
       <Fab />
 
-      {/* Filters */}
       <FilterDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}

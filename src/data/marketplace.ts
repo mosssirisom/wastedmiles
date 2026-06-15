@@ -63,23 +63,23 @@ export const STATUS_META: Record<
 > = {
   available: {
     label: 'Available',
-    dot: '#22c55e',
-    badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    dot: '#D4D4D8',
+    badge: 'bg-[#18181B] text-[#D4D4D8] border-[#27272A]',
   },
   'empty-return': {
     label: 'Empty Return',
-    dot: '#3b82f6',
-    badge: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    dot: '#D4D4D8',
+    badge: 'bg-[#18181B] text-[#D4D4D8] border-[#27272A]',
   },
   'cover-needed': {
     label: 'Cover Needed',
-    dot: '#f59e0b',
-    badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    dot: '#D4D4D8',
+    badge: 'bg-[#18181B] text-[#D4D4D8] border-[#27272A]',
   },
   urgent: {
     label: 'Urgent',
-    dot: '#ef4444',
-    badge: 'bg-red-500/15 text-red-400 border-red-500/30',
+    dot: '#F97316',
+    badge: 'bg-[#F97316]/15 text-[#F97316] border-[#F97316]/40',
   },
 }
 

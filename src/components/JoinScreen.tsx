@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { ArrowLeft, Check } from 'lucide-react'
 
 const inputClass =
-  'w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#e8702a]/60'
-const labelClass = 'block text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-1.5'
+  'w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-2.5 text-sm text-[#FAFAFA] placeholder:text-[#52525B] focus:outline-none focus:border-[#F97316]/60'
+const labelClass = 'block text-[11px] font-medium uppercase tracking-wider text-[#A1A1AA] mb-1.5'
 
 interface JoinScreenProps {
   onBack: () => void
@@ -45,10 +45,10 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
   }
 
   return (
-    <div className="relative w-full min-h-screen bg-black text-white" style={{ minHeight: '100dvh' }}>
+    <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>
       <button
         onClick={onBack}
-        className="fixed top-4 left-4 z-[60] flex items-center gap-2 bg-white/90 backdrop-blur text-gray-900 text-sm font-semibold pl-3 pr-4 py-2 rounded-full shadow-lg hover:bg-white transition"
+        className="fixed top-4 left-4 z-[60] flex items-center gap-2 bg-[#18181B] border border-[#27272A] text-[#FAFAFA] text-sm font-medium pl-3 pr-4 py-2 rounded-full shadow-lg hover:bg-[#27272A] transition-colors"
       >
         <ArrowLeft size={18} />
         Back
@@ -57,28 +57,28 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
       <div className="max-w-md mx-auto px-5 pt-24 pb-16">
         {submitted ? (
           <div className="text-center">
-            <div className="mx-auto h-14 w-14 rounded-full bg-[#e8702a]/15 border border-[#e8702a]/40 flex items-center justify-center">
-              <Check size={26} className="text-[#e8702a]" />
+            <div className="mx-auto h-14 w-14 rounded-full bg-[#F97316]/15 border border-[#F97316]/40 flex items-center justify-center">
+              <Check size={26} className="text-[#F97316]" />
             </div>
-            <h1 className="font-playfair italic text-3xl mt-4">You're on the network</h1>
-            <p className="text-white/60 text-sm mt-2">
+            <h1 className="font-bold tracking-[-0.03em] text-3xl mt-4">You're on the network</h1>
+            <p className="text-[#A1A1AA] text-sm mt-2 leading-relaxed">
               Thanks, {form.name || 'operator'}. We'll email {form.email || 'you'} to verify your
               account and get you claiming journeys.
             </p>
             <button
               onClick={onBack}
-              className="mt-6 bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-semibold px-6 py-2.5 rounded-full transition-colors"
+              className="mt-6 bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
             >
               Back to marketplace
             </button>
           </div>
         ) : (
           <>
-            <div className="text-[#e8702a] text-xs font-semibold uppercase tracking-wider">
+            <div className="text-[#A1A1AA] text-xs font-medium uppercase tracking-wider">
               Join the Network
             </div>
-            <h1 className="font-playfair italic text-4xl mt-1">Start recovering revenue</h1>
-            <p className="text-white/60 text-sm mt-2">
+            <h1 className="font-bold tracking-[-0.03em] text-4xl mt-1">Start recovering revenue</h1>
+            <p className="text-[#A1A1AA] text-sm mt-2 leading-relaxed">
               Join verified operators trading airport transfers across the UK. Free for 14 days.
             </p>
 
@@ -118,17 +118,15 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
                 </select>
               </div>
 
-              {error && (
-                <p className="text-center text-xs text-red-400">{error}</p>
-              )}
+              {error && <p className="text-center text-xs text-[#F87171]">{error}</p>}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-[#e8702a] hover:bg-[#d2611f] disabled:opacity-60 disabled:hover:bg-[#e8702a] text-white text-sm font-semibold py-3 rounded-full transition-all hover:shadow-lg hover:shadow-[#e8702a]/30 active:scale-[0.99]"
+                className="w-full bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-60 disabled:hover:bg-[#F97316] text-white text-sm font-medium py-3 rounded-lg transition-colors active:scale-[0.99]"
               >
                 {submitting ? 'Creating account…' : 'Create operator account'}
               </button>
-              <p className="text-center text-[11px] text-white/40">
+              <p className="text-center text-[11px] text-[#71717A]">
                 No card required · Cancel anytime
               </p>
             </form>

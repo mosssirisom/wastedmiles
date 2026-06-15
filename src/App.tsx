@@ -60,8 +60,8 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen bg-white tracking-[-0.02em]"
-      style={{ fontFamily: "'Inter', sans-serif" }}
+      className="min-h-screen bg-[#09090B] tracking-[-0.01em]"
+      style={{ fontFamily: "'Geist', sans-serif" }}
     >
       {screen}
     </div>

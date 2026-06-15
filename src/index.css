@@ -1,11 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@1,400;1,500;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* { font-family: 'Inter', sans-serif; }
-.font-playfair { font-family: 'Playfair Display', serif; }
+* { font-family: 'Geist', sans-serif; }
 
 @keyframes heroReveal { 0%{opacity:0;transform:translateY(28px);filter:blur(12px)} 100%{opacity:1;transform:translateY(0);filter:blur(0)} }
 @keyframes heroFadeUp { 0%{opacity:0;transform:translateY(20px)} 100%{opacity:1;transform:translateY(0)} }
@@ -17,31 +16,31 @@
 @media (prefers-reduced-motion: reduce){ .hero-anim,.hero-zoom{ animation:none; opacity:1; } }
 
 /* Dark backdrop while map tiles load */
-.leaflet-container { background: #0a0a0a; }
+.leaflet-container { background: #09090B; }
 
-/* Status-coloured journey markers */
+/* Status journey markers — monochrome except urgent (accent orange) */
 .journey-pin {
   width: 16px;
   height: 16px;
   border-radius: 9999px;
-  border: 2px solid rgba(255,255,255,0.9);
-  box-shadow: 0 0 0 4px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.5);
+  border: 2px solid #09090B;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25), 0 2px 6px rgba(0,0,0,0.5);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
-.journey-pin--available { background: #22c55e; }
-.journey-pin--empty-return { background: #3b82f6; }
-.journey-pin--cover-needed { background: #f59e0b; }
-.journey-pin--urgent { background: #ef4444; animation: pinPulse 1.6s infinite; }
+.journey-pin--available,
+.journey-pin--empty-return,
+.journey-pin--cover-needed { background: #D4D4D8; }
+.journey-pin--urgent { background: #F97316; animation: pinPulse 1.6s infinite; }
 .journey-pin:hover { transform: scale(1.2); }
 .journey-pin--active {
   transform: scale(1.4);
-  box-shadow: 0 0 0 6px rgba(255,255,255,0.15), 0 2px 10px rgba(0,0,0,0.6);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.4), 0 0 0 5px rgba(249,115,22,0.25), 0 2px 10px rgba(0,0,0,0.6);
 }
 @keyframes pinPulse {
-  0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
-  70% { box-shadow: 0 0 0 9px rgba(239,68,68,0); }
-  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  0% { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); }
+  70% { box-shadow: 0 0 0 9px rgba(249,115,22,0); }
+  100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .journey-pin--urgent { animation: none; }

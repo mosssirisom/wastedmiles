@@ -37,8 +37,8 @@ export function activeFilterCount(f: Filters): number {
 }
 
 const inputClass =
-  'w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#e8702a]/60'
-const labelClass = 'block text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-1.5'
+  'w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-2 text-sm text-[#FAFAFA] placeholder:text-[#52525B] focus:outline-none focus:border-[#F97316]/60'
+const labelClass = 'block text-[11px] font-medium uppercase tracking-wider text-[#A1A1AA] mb-1.5'
 
 interface FilterDrawerProps {
   open: boolean
@@ -65,23 +65,23 @@ export default function FilterDrawer({
       {/* Scrim */}
       <div
         onClick={onClose}
-        className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
+        className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${
           open ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
       {/* Drawer */}
       <div
-        className={`absolute right-0 top-0 bottom-0 w-[360px] max-w-[88vw] bg-[#0e0e0e]/95 backdrop-blur-xl border-l border-white/10 text-white flex flex-col transition-transform duration-300 ${
+        className={`absolute right-0 top-0 bottom-0 w-[360px] max-w-[88vw] bg-[#111113] border-l border-[#27272A] text-[#FAFAFA] flex flex-col transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#27272A] shrink-0">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal size={16} className="text-[#e8702a]" />
-            <span className="font-semibold">Filters</span>
+            <SlidersHorizontal size={16} className="text-[#A1A1AA]" />
+            <span className="font-semibold tracking-[-0.02em]">Filters</span>
           </div>
-          <button onClick={onClose} aria-label="Close filters" className="text-white/60 hover:text-white">
+          <button onClick={onClose} aria-label="Close filters" className="text-[#A1A1AA] hover:text-[#FAFAFA]">
             <X size={20} />
           </button>
         </div>
@@ -108,7 +108,7 @@ export default function FilterDrawer({
               step={10}
               value={filters.minValue}
               onChange={(e) => set('minValue', Number(e.target.value))}
-              className="w-full accent-[#e8702a]"
+              className="w-full accent-[#F97316]"
             />
           </div>
 
@@ -175,36 +175,36 @@ export default function FilterDrawer({
 
           <div className="space-y-3 pt-1">
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-white/80">Cover Requests Only</span>
+              <span className="text-sm text-[#A1A1AA]">Cover Requests Only</span>
               <input
                 type="checkbox"
                 checked={filters.coverOnly}
                 onChange={(e) => set('coverOnly', e.target.checked)}
-                className="h-4 w-4 accent-[#e8702a]"
+                className="h-4 w-4 accent-[#F97316]"
               />
             </label>
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-sm text-white/80">Empty Return Journeys Only</span>
+              <span className="text-sm text-[#A1A1AA]">Empty Return Journeys Only</span>
               <input
                 type="checkbox"
                 checked={filters.emptyOnly}
                 onChange={(e) => set('emptyOnly', e.target.checked)}
-                className="h-4 w-4 accent-[#e8702a]"
+                className="h-4 w-4 accent-[#F97316]"
               />
             </label>
           </div>
         </div>
 
-        <div className="px-5 py-4 border-t border-white/10 shrink-0 flex items-center gap-3">
+        <div className="px-5 py-4 border-t border-[#27272A] shrink-0 flex items-center gap-3">
           <button
             onClick={() => onChange(DEFAULT_FILTERS)}
-            className="text-sm text-white/60 hover:text-white"
+            className="text-sm text-[#A1A1AA] hover:text-[#FAFAFA]"
           >
             Reset
           </button>
           <button
             onClick={onClose}
-            className="ml-auto bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-semibold px-5 py-2.5 rounded-full transition-colors"
+            className="ml-auto bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
           >
             Show {resultCount} of {totalCount}
           </button>

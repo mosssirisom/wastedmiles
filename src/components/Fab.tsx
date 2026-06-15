@@ -23,7 +23,7 @@ export default function Fab() {
           onClick={() => setOpen((o) => !o)}
           aria-label="Operator actions"
           aria-expanded={open}
-          className="h-14 w-14 rounded-full bg-[#e8702a] hover:bg-[#d2611f] text-white shadow-lg shadow-[#e8702a]/30 flex items-center justify-center transition-all active:scale-95"
+          className="h-14 w-14 rounded-full bg-[#F97316] hover:bg-[#EA580C] text-white shadow-lg shadow-[#F97316]/30 flex items-center justify-center transition-colors active:scale-95"
         >
           <Plus
             size={24}
@@ -45,10 +45,10 @@ export default function Fab() {
                     : 'opacity-0 translate-y-2 pointer-events-none'
                 }`}
               >
-                <span className="whitespace-nowrap rounded-full bg-[#0e0e0e]/90 backdrop-blur border border-white/10 text-white text-sm font-medium px-3.5 py-2 shadow-lg">
+                <span className="whitespace-nowrap rounded-full bg-[#111113] backdrop-blur border border-[#27272A] text-[#FAFAFA] text-sm font-medium px-3.5 py-2 shadow-lg">
                   {action.label}
                 </span>
-                <span className="h-10 w-10 shrink-0 rounded-full bg-white/10 backdrop-blur border border-white/15 flex items-center justify-center text-white">
+                <span className="h-10 w-10 shrink-0 rounded-full bg-[#18181B] backdrop-blur border border-[#27272A] flex items-center justify-center text-[#FAFAFA]">
                   <Icon size={17} />
                 </span>
               </button>

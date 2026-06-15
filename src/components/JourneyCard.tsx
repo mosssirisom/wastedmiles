@@ -3,12 +3,12 @@ import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketp
 
 function Stars({ rating }: { rating: number }) {
   return (
-    <span className="flex items-center gap-0.5 text-amber-400">
+    <span className="flex items-center gap-0.5">
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}
           size={11}
-          className={i < Math.round(rating) ? 'fill-current' : 'text-white/20'}
+          className={i < Math.round(rating) ? 'fill-current text-[#FAFAFA]' : 'text-[#3F3F46]'}
         />
       ))}
     </span>
@@ -34,32 +34,32 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
   return (
     <div
       onClick={onSelect}
-      className={`cursor-pointer rounded-2xl p-4 border transition ${
+      className={`cursor-pointer rounded-2xl p-4 border transition-colors ${
         active
-          ? 'bg-[#e8702a]/15 border-[#e8702a]/60 ring-1 ring-[#e8702a]/40'
-          : 'bg-white/5 border-white/10 hover:bg-white/10'
+          ? 'bg-[#F97316]/10 border-[#F97316]/50'
+          : 'bg-[#111113] border-[#27272A] hover:border-[#3F3F46]'
       }`}
     >
       {/* Status + value */}
       <div className="flex items-center justify-between gap-3">
-        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${status.badge}`}>
+        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${status.badge}`}>
           {journey.status === 'urgent' ? 'URGENT' : status.label}
         </span>
-        <span className="text-[#e8702a] text-lg font-semibold tabular-nums">
+        <span className="text-[#F97316] text-lg font-bold tabular-nums tracking-[-0.02em]">
           {formatGBP(journey.value)}
         </span>
       </div>
 
       {/* Route */}
-      <div className="flex items-center gap-2 mt-2.5 text-[15px] font-medium">
-        <Plane size={14} className="-rotate-45 text-white/60 shrink-0" />
+      <div className="flex items-center gap-2 mt-2.5 text-[15px] font-medium text-[#FAFAFA]">
+        <Plane size={14} className="-rotate-45 text-[#A1A1AA] shrink-0" />
         <span>{journey.fromCode}</span>
-        <ArrowRight size={14} className="text-white/40 shrink-0" />
+        <ArrowRight size={14} className="text-[#71717A] shrink-0" />
         <span className="truncate">{journey.to}</span>
       </div>
 
       {/* Meta */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-white/55">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-[#A1A1AA]">
         <span>{journey.vehicle}</span>
         <span className="flex items-center gap-1">
           <Users size={12} /> {journey.passengers}
@@ -68,7 +68,7 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
           <Briefcase size={12} /> {journey.luggage}
         </span>
         {journey.seats != null && (
-          <span className="flex items-center gap-1 text-blue-400">
+          <span className="flex items-center gap-1">
             <Armchair size={12} /> {journey.seats} seats
           </span>
         )}
@@ -76,26 +76,24 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
 
       {/* Pickup + posted / response time */}
       <div className="flex items-center justify-between mt-2 text-xs">
-        <span className="flex items-center gap-1 text-white/70">
+        <span className="flex items-center gap-1 text-[#A1A1AA]">
           <Clock size={12} /> {journey.pickup}
         </span>
         {journey.responseMins != null ? (
-          <span className="text-amber-400 font-medium">
-            {journey.responseMins} mins remaining
-          </span>
+          <span className="text-[#F97316] font-medium">{journey.responseMins} mins remaining</span>
         ) : (
-          <span className="text-white/40">{journey.posted}</span>
+          <span className="text-[#71717A]">{journey.posted}</span>
         )}
       </div>
 
       {/* Operator trust footer */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#27272A]">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-sm font-medium truncate">{operator.name}</span>
+            <span className="text-sm font-medium text-[#FAFAFA] truncate">{operator.name}</span>
             <Stars rating={operator.rating} />
           </div>
-          <div className="text-[11px] text-white/45">
+          <div className="text-[11px] text-[#71717A]">
             {operator.completed} journeys · {operator.acceptance}% accept · {operator.onTime}% on time
           </div>
         </div>
@@ -104,7 +102,7 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
       {/* CTA */}
       <button
         onClick={(e) => e.stopPropagation()}
-        className="mt-3 w-full bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-semibold py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#e8702a]/30 active:scale-[0.99]"
+        className="mt-3 w-full bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium py-2.5 rounded-lg transition-colors active:scale-[0.99]"
       >
         {ctaLabel(journey.status)}
       </button>
