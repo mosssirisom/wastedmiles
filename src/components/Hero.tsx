@@ -3,6 +3,7 @@ import { Plane, Menu } from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import { marketplaceTotals, formatGBP, type Region } from '../data/marketplace'
+import type { SectionKind } from './SectionScreen'
 
 // Display view: the UK — the marketplace covers airports nationwide.
 const MAP_CENTER: [number, number] = [54.2, -2.8]
@@ -20,13 +21,15 @@ function Stat({
   value,
   label,
   accent,
+  onClick,
 }: {
   value: string | number
   label: string
   accent?: boolean
+  onClick?: () => void
 }) {
-  return (
-    <span className="flex shrink-0 items-baseline gap-1.5">
+  const content = (
+    <>
       <span
         className={`text-sm font-semibold tabular-nums ${
           accent ? 'text-[#e8702a]' : 'text-white'
@@ -35,8 +38,19 @@ function Stat({
         {value}
       </span>
       <span className="whitespace-nowrap text-[11px] text-white/50">{label}</span>
-    </span>
+    </>
   )
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        className="flex shrink-0 items-baseline gap-1.5 rounded-md px-1 -mx-1 transition-colors hover:bg-white/10"
+      >
+        {content}
+      </button>
+    )
+  }
+  return <span className="flex shrink-0 items-baseline gap-1.5">{content}</span>
 }
 
 function StatDivider() {
@@ -46,9 +60,10 @@ function StatDivider() {
 interface HeroProps {
   regions: Region[]
   onSelectRegion: (id: string) => void
+  onOpenSection: (section: SectionKind) => void
 }
 
-export default function Hero({ regions, onSelectRegion }: HeroProps) {
+export default function Hero({ regions, onSelectRegion, onOpenSection }: HeroProps) {
   const totals = marketplaceTotals(regions)
 
   const baseDivRef = useRef<HTMLDivElement>(null)
@@ -128,7 +143,19 @@ export default function Hero({ regions, onSelectRegion }: HeroProps) {
           <button className="text-white px-4 py-1.5 rounded-full text-sm font-medium">
             Marketplace
           </button>
-          {['Empty Miles', 'Cover', 'Operators', 'Pricing'].map((item) => (
+          <button
+            onClick={() => onOpenSection('empty')}
+            className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors"
+          >
+            Empty Miles
+          </button>
+          <button
+            onClick={() => onOpenSection('cover')}
+            className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors"
+          >
+            Cover
+          </button>
+          {['Operators', 'Pricing'].map((item) => (
             <button
               key={item}
               className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors"
@@ -154,9 +181,17 @@ export default function Hero({ regions, onSelectRegion }: HeroProps) {
           <StatDivider />
           <Stat value={formatGBP(totals.revenue)} label="Revenue Available" accent />
           <StatDivider />
-          <Stat value={totals.emptyReturns} label="Empty Returns" />
+          <Stat
+            value={totals.emptyReturns}
+            label="Empty Returns"
+            onClick={() => onOpenSection('empty')}
+          />
           <StatDivider />
-          <Stat value={totals.coverRequests} label="Cover Requests" />
+          <Stat
+            value={totals.coverRequests}
+            label="Cover Requests"
+            onClick={() => onOpenSection('cover')}
+          />
           <StatDivider />
           <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-white/60">
             <span className="relative flex h-2 w-2">

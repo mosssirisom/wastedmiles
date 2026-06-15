@@ -1,31 +1,64 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Plane } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeft, Repeat, LifeBuoy } from 'lucide-react'
 import L from 'leaflet'
 import Fab from './Fab'
 import JourneyCard from './JourneyCard'
 import { DARK_TILES, DARK_ATTRIBUTION, makeJourneyIcon } from '../lib/map'
-import { regionMetrics, formatGBP, type Region } from '../data/marketplace'
+import { formatGBP, type Region, type Journey } from '../data/marketplace'
 
-interface AreaScreenProps {
-  region: Region
+export type SectionKind = 'empty' | 'cover'
+
+// UK-wide view — these sections aggregate across every airport region.
+const MAP_CENTER: [number, number] = [54.2, -2.8]
+const MAP_ZOOM = 6
+
+const SECTION_CONFIG: Record<
+  SectionKind,
+  { title: string; description: string; tag: string; filter: (j: Journey) => boolean }
+> = {
+  empty: {
+    title: 'Empty Mile Exchange',
+    description: 'Turn empty return journeys into revenue.',
+    tag: 'Empty Mile Exchange',
+    filter: (j) => j.status === 'empty-return',
+  },
+  cover: {
+    title: 'Emergency Cover',
+    description: 'Find trusted operators when things go wrong.',
+    tag: 'Emergency Cover',
+    filter: (j) => j.status === 'cover-needed' || j.status === 'urgent',
+  },
+}
+
+interface SectionScreenProps {
+  section: SectionKind
+  regions: Region[]
   onBack: () => void
 }
 
-export default function AreaScreen({ region, onBack }: AreaScreenProps) {
+export default function SectionScreen({ section, regions, onBack }: SectionScreenProps) {
+  const config = SECTION_CONFIG[section]
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markersRef = useRef<Record<string, L.Marker>>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const metrics = regionMetrics(region)
+  const journeys = useMemo(
+    () => regions.flatMap((r) => r.journeys).filter(config.filter),
+    [regions, config]
+  )
 
-  // Interactive dark map with a marker per journey.
+  const revenue = journeys.reduce((s, j) => s + j.value, 0)
+  const seats = journeys.reduce((s, j) => s + (j.seats ?? 0), 0)
+  const urgent = journeys.filter((j) => j.status === 'urgent').length
+
+  // Interactive UK-wide dark map with a marker per journey.
   useEffect(() => {
     const el = mapDivRef.current
     if (!el) return
     const map = L.map(el, {
-      center: region.center,
-      zoom: 11,
+      center: MAP_CENTER,
+      zoom: MAP_ZOOM,
       zoomControl: false,
       attributionControl: true,
     })
@@ -33,7 +66,7 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
     L.tileLayer(DARK_TILES, { subdomains: 'abcd', attribution: DARK_ATTRIBUTION, maxZoom: 20 }).addTo(map)
 
     const markers: Record<string, L.Marker> = {}
-    region.journeys.forEach((journey) => {
+    journeys.forEach((journey) => {
       const marker = L.marker([journey.lat, journey.lng], {
         icon: makeJourneyIcon(journey.status, false),
       }).addTo(map)
@@ -52,21 +85,21 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
       markersRef.current = {}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [region])
+  }, [journeys])
 
   // Keep marker icons in sync with the selection.
   useEffect(() => {
-    region.journeys.forEach((journey) => {
+    journeys.forEach((journey) => {
       const marker = markersRef.current[journey.id]
       if (marker) marker.setIcon(makeJourneyIcon(journey.status, journey.id === selectedId))
     })
-  }, [selectedId, region])
+  }, [selectedId, journeys])
 
   const selectJourney = (id: string) => {
     setSelectedId(id)
-    const journey = region.journeys.find((j) => j.id === id)
+    const journey = journeys.find((j) => j.id === id)
     if (journey && mapRef.current) {
-      mapRef.current.flyTo([journey.lat, journey.lng], 13, { duration: 0.8 })
+      mapRef.current.flyTo([journey.lat, journey.lng], 11, { duration: 0.8 })
     }
   }
 
@@ -84,47 +117,51 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
         Back
       </button>
 
-      {/* Marketplace panel */}
+      {/* Section panel */}
       <div className="absolute z-50 bg-[#0e0e0e]/90 backdrop-blur-xl border-white/10 text-white flex flex-col
         bottom-0 left-0 right-0 max-h-[60%] rounded-t-3xl border-t
         md:top-0 md:bottom-0 md:right-auto md:w-[400px] md:max-h-none md:rounded-none md:border-t-0 md:border-r">
-        {/* Regional header */}
+        {/* Header */}
         <div className="px-6 pt-6 pb-4 md:pt-20 shrink-0">
           <div className="flex items-center gap-2 text-[#e8702a] text-xs font-semibold uppercase tracking-wider">
-            <Plane size={14} className="-rotate-45" />
-            {region.code} · Airport Region
+            {section === 'empty' ? <Repeat size={14} /> : <LifeBuoy size={14} />}
+            {config.tag}
           </div>
-          <h2 className="font-playfair italic text-3xl mt-1">{region.name}</h2>
+          <h2 className="font-playfair italic text-3xl mt-1">{config.title}</h2>
+          <p className="text-white/60 text-sm mt-1">{config.description}</p>
 
-          <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="grid grid-cols-3 gap-2 mt-4">
             <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-              <div className="text-lg font-semibold tabular-nums">{metrics.opportunities}</div>
-              <div className="text-[11px] text-white/50">Active Opportunities</div>
+              <div className="text-lg font-semibold tabular-nums">{journeys.length}</div>
+              <div className="text-[11px] text-white/50">
+                {section === 'empty' ? 'Empty Returns' : 'Cover Requests'}
+              </div>
             </div>
             <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
               <div className="text-lg font-semibold tabular-nums text-[#e8702a]">
-                {formatGBP(metrics.revenue)}
+                {formatGBP(revenue)}
               </div>
-              <div className="text-[11px] text-white/50">Available Revenue</div>
-            </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-              <div className="text-lg font-semibold tabular-nums text-blue-400">
-                {metrics.emptyReturns}
+              <div className="text-[11px] text-white/50">
+                {section === 'empty' ? 'Potential Revenue' : 'At-Risk Revenue'}
               </div>
-              <div className="text-[11px] text-white/50">Empty Returns</div>
             </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-              <div className="text-lg font-semibold tabular-nums text-amber-400">
-                {metrics.coverRequests}
+            {section === 'empty' ? (
+              <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                <div className="text-lg font-semibold tabular-nums text-blue-400">{seats}</div>
+                <div className="text-[11px] text-white/50">Seats Available</div>
               </div>
-              <div className="text-[11px] text-white/50">Cover Requests</div>
-            </div>
+            ) : (
+              <div className="rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                <div className="text-lg font-semibold tabular-nums text-red-400">{urgent}</div>
+                <div className="text-[11px] text-white/50">Urgent</div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Journey cards */}
         <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
-          {region.journeys.map((journey) => (
+          {journeys.map((journey) => (
             <JourneyCard
               key={journey.id}
               journey={journey}
