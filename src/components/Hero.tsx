@@ -280,39 +280,45 @@ export default function Hero({
   return (
     <>
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between p-4 sm:p-5">
-        <div className="flex items-center gap-2">
+      <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center p-4 sm:p-5">
+        {/* Left: nav links (desktop) */}
+        <div className="flex-1 flex justify-start">
+          <div className="hidden md:flex bg-[#111113]/80 backdrop-blur-md border border-[#27272A] rounded-full px-2 py-2 items-center gap-1">
+            <button className="bg-[#27272A] text-[#FAFAFA] px-4 py-1.5 rounded-full text-sm font-medium">
+              Marketplace
+            </button>
+            <button onClick={() => onOpenSection('empty')} className={navItemClass}>
+              Empty Miles
+            </button>
+            <button onClick={() => onOpenSection('cover')} className={navItemClass}>
+              Cover
+            </button>
+            <button onClick={onOpenOperators} className={navItemClass}>
+              Operators
+            </button>
+            <button onClick={onOpenPricing} className={navItemClass}>
+              Pricing
+            </button>
+          </div>
+        </div>
+
+        {/* Center: brand */}
+        <div className="flex items-center gap-2 shrink-0">
           <svg width="24" height="24" viewBox="0 0 256 256" fill="#FAFAFA">
             <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z M 256 128 L 128 128 L 0 0 L 128 0 Z" />
           </svg>
           <span className="text-[#FAFAFA] text-2xl font-playfair italic">Wasted Miles</span>
         </div>
 
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 bg-[#111113]/80 backdrop-blur-md border border-[#27272A] rounded-full px-2 py-2 items-center gap-1">
-          <button className="bg-[#27272A] text-[#FAFAFA] px-4 py-1.5 rounded-full text-sm font-medium">
-            Marketplace
-          </button>
-          <button onClick={() => onOpenSection('empty')} className={navItemClass}>
-            Empty Miles
-          </button>
-          <button onClick={() => onOpenSection('cover')} className={navItemClass}>
-            Cover
-          </button>
-          <button onClick={onOpenOperators} className={navItemClass}>
-            Operators
-          </button>
-          <button onClick={onOpenPricing} className={navItemClass}>
-            Pricing
+        {/* Right: Join (desktop) */}
+        <div className="flex-1 flex justify-end">
+          <button
+            onClick={onOpenJoin}
+            className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-6 py-2.5 rounded-full transition-colors"
+          >
+            Join the Network
           </button>
         </div>
-
-        <button
-          onClick={onOpenJoin}
-          className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-6 py-2.5 rounded-full transition-colors"
-        >
-          Join the Network
-        </button>
-
       </nav>
 
       {/* Fixed header: stats bar + live opportunities strip */}
