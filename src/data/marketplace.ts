@@ -73,13 +73,13 @@ export const STATUS_META: Record<
   },
   'cover-needed': {
     label: 'Cover Needed',
-    dot: '#D4D4D8',
-    badge: 'bg-[#18181B] text-[#D4D4D8] border-[#27272A]',
+    dot: '#F59E0B',
+    badge: 'bg-[#F59E0B]/15 text-[#F59E0B] border-[#F59E0B]/40',
   },
   urgent: {
     label: 'Urgent',
-    dot: '#F97316',
-    badge: 'bg-[#F97316]/15 text-[#F97316] border-[#F97316]/40',
+    dot: '#EF4444',
+    badge: 'bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/40',
   },
 }
 

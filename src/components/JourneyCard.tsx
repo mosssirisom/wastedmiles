@@ -45,7 +45,7 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
         <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${status.badge}`}>
           {journey.status === 'urgent' ? 'URGENT' : status.label}
         </span>
-        <span className="text-[#F97316] text-lg font-bold tabular-nums tracking-[-0.02em]">
+        <span className="text-[#FAFAFA] text-lg font-bold tabular-nums tracking-[-0.02em]">
           {formatGBP(journey.value)}
         </span>
       </div>
@@ -80,7 +80,7 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
           <Clock size={12} /> {journey.pickup}
         </span>
         {journey.responseMins != null ? (
-          <span className="text-[#F97316] font-medium">{journey.responseMins} mins remaining</span>
+          <span className="text-[#F59E0B] font-medium">{journey.responseMins} mins remaining</span>
         ) : (
           <span className="text-[#71717A]">{journey.posted}</span>
         )}

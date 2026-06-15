@@ -145,7 +145,7 @@ export default function SectionScreen({ section, regions, onBack }: SectionScree
               </div>
             </div>
             <div className="rounded-xl bg-[#18181B] border border-[#27272A] px-3 py-2">
-              <div className="text-lg font-bold tabular-nums tracking-[-0.02em] text-[#F97316]">
+              <div className="text-lg font-bold tabular-nums tracking-[-0.02em] text-[#FAFAFA]">
                 {formatGBP(revenue)}
               </div>
               <div className="text-[11px] text-[#71717A]">
@@ -159,7 +159,7 @@ export default function SectionScreen({ section, regions, onBack }: SectionScree
               </div>
             ) : (
               <div className="rounded-xl bg-[#18181B] border border-[#27272A] px-3 py-2">
-                <div className="text-lg font-bold tabular-nums tracking-[-0.02em] text-[#F97316]">{urgent}</div>
+                <div className="text-lg font-bold tabular-nums tracking-[-0.02em] text-[#EF4444]">{urgent}</div>
                 <div className="text-[11px] text-[#71717A]">Urgent</div>
               </div>
             )}

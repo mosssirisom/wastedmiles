@@ -94,7 +94,7 @@ function OpportunityCard({ journey, onClick }: { journey: Journey; onClick: () =
         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${st.badge}`}>
           {journey.status === 'urgent' ? 'URGENT' : st.label}
         </span>
-        <span className="text-[#F97316] text-base font-bold tabular-nums tracking-[-0.02em]">
+        <span className="text-[#FAFAFA] text-base font-bold tabular-nums tracking-[-0.02em]">
           {formatGBP(journey.value)}
         </span>
       </div>
@@ -117,7 +117,7 @@ function OpportunityCard({ journey, onClick }: { journey: Journey; onClick: () =
         <span className="text-[#71717A] shrink-0">{op.completed} jobs</span>
       </div>
 
-      <div className={`mt-1 text-[11px] ${urgent ? 'text-[#F97316]' : 'text-[#71717A]'}`}>
+      <div className={`mt-1 text-[11px] ${urgent ? 'text-[#F59E0B]' : 'text-[#71717A]'}`}>
         {subLabel(journey)}
       </div>
     </button>
@@ -378,7 +378,7 @@ export default function Hero({
           <div className="no-scrollbar flex items-center gap-4 overflow-x-auto px-4 sm:px-5 py-2">
             <Stat value={totals.opportunities} label="Active Opportunities" />
             <StatDivider />
-            <Stat value={formatGBP(totals.revenue)} label="Revenue Available" accent />
+            <Stat value={formatGBP(totals.revenue)} label="Revenue Available" />
             <StatDivider />
             <Stat
               value={totals.emptyReturns}

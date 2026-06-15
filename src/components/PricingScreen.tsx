@@ -104,7 +104,7 @@ export default function PricingScreen({ onBack, onJoin }: PricingScreenProps) {
               <ul className="mt-5 space-y-2.5 flex-1">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-[#A1A1AA]">
-                    <Check size={15} className="mt-0.5 shrink-0 text-[#F97316]" />
+                    <Check size={15} className="mt-0.5 shrink-0 text-[#A1A1AA]" />
                     {f}
                   </li>
                 ))}
