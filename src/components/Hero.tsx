@@ -181,6 +181,8 @@ interface HeroProps {
   onSelectRegion: (id: string) => void
   onOpenSection: (section: SectionKind) => void
   onOpenOperators: () => void
+  onOpenPricing: () => void
+  onOpenJoin: () => void
 }
 
 export default function Hero({
@@ -188,6 +190,8 @@ export default function Hero({
   onSelectRegion,
   onOpenSection,
   onOpenOperators,
+  onOpenPricing,
+  onOpenJoin,
 }: HeroProps) {
   const totals = marketplaceTotals(regions)
   const activity = useMemo(() => buildActivity(regions), [regions])
@@ -317,12 +321,18 @@ export default function Hero({
           >
             Operators
           </button>
-          <button className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors">
+          <button
+            onClick={onOpenPricing}
+            className="text-white/80 px-4 py-1.5 rounded-full text-sm font-medium hover:bg-white/20 hover:text-white transition-colors"
+          >
             Pricing
           </button>
         </div>
 
-        <button className="hidden md:block bg-white text-gray-900 text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-gray-100">
+        <button
+          onClick={onOpenJoin}
+          className="hidden md:block bg-white text-gray-900 text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-gray-100"
+        >
           Join the Network
         </button>
 
@@ -368,14 +378,14 @@ export default function Hero({
               Operators
             </button>
             <button
-              onClick={() => setMenuOpen(false)}
+              onClick={() => runAndClose(onOpenPricing)}
               className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/85 hover:bg-white/10 transition-colors"
             >
               Pricing
             </button>
             <div className="my-1.5 border-t border-white/10" />
             <button
-              onClick={() => setMenuOpen(false)}
+              onClick={() => runAndClose(onOpenJoin)}
               className="w-full text-center px-3 py-2.5 rounded-lg text-sm font-semibold bg-[#e8702a] hover:bg-[#d2611f] text-white transition-colors"
             >
               Join the Network
