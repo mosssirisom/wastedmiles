@@ -1,11 +1,18 @@
 import { Plane, ArrowRight, Users, Briefcase, Armchair } from 'lucide-react'
 import OperatorTrust from './OperatorTrust'
 import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketplace'
+import { toast } from '../lib/toast'
 
 function ctaLabel(status: Journey['status']): string {
   if (status === 'empty-return') return 'MATCH JOURNEY'
   if (status === 'cover-needed' || status === 'urgent') return 'OFFER COVER'
   return 'CLAIM JOURNEY'
+}
+
+function ctaToast(status: Journey['status']): string {
+  if (status === 'empty-return') return 'Empty return matched'
+  if (status === 'cover-needed' || status === 'urgent') return 'Cover offered'
+  return 'Journey claimed'
 }
 
 interface JourneyCardProps {
@@ -75,7 +82,10 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
 
       {/* CTA */}
       <button
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation()
+          toast(ctaToast(journey.status))
+        }}
         className="mt-3 w-full bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium py-2.5 rounded-lg transition-colors active:scale-[0.99]"
       >
         {ctaLabel(journey.status)}

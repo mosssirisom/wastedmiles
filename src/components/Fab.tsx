@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Plus, Send, LifeBuoy, Repeat, Radio } from 'lucide-react'
+import { toast } from '../lib/toast'
 
 const ACTIONS = [
-  { label: 'Post Journey', icon: Send },
-  { label: 'Request Cover', icon: LifeBuoy },
-  { label: 'Offer Empty Return', icon: Repeat },
-  { label: 'Broadcast Driver Availability', icon: Radio },
+  { label: 'Post Journey', icon: Send, toast: 'New journey posted' },
+  { label: 'Request Cover', icon: LifeBuoy, toast: 'Cover request sent' },
+  { label: 'Offer Empty Return', icon: Repeat, toast: 'Empty return offered' },
+  { label: 'Broadcast Driver Availability', icon: Radio, toast: 'Availability broadcast' },
 ]
 
 // Expandable operator action button, bottom-right, opens upward.
@@ -41,7 +42,10 @@ export default function Fab({ lifted = false }: { lifted?: boolean }) {
             return (
               <button
                 key={action.label}
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false)
+                  toast(action.toast)
+                }}
                 style={{ transitionDelay: open ? `${i * 40}ms` : '0ms' }}
                 className={`flex items-center gap-3 transition-all duration-300 ${
                   open

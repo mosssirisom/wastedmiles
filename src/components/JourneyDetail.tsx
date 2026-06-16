@@ -1,5 +1,13 @@
+import { useEffect } from 'react'
 import { X, ArrowRight, BadgeCheck, Star, MessageSquare } from 'lucide-react'
 import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketplace'
+import { toast } from '../lib/toast'
+
+function claimToast(status: Journey['status']): string {
+  if (status === 'empty-return') return 'Empty return matched'
+  if (status === 'cover-needed' || status === 'urgent') return 'Cover offered'
+  return 'Journey claimed'
+}
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -40,6 +48,19 @@ interface JourneyDetailProps {
 }
 
 export default function JourneyDetail({ journey, onClose, onOpenOperator }: JourneyDetailProps) {
+  useEffect(() => {
+    if (!journey) return
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [journey, onClose])
+
   if (!journey) return null
   const op = OPERATORS[journey.operatorId]
   const status = STATUS_META[journey.status]
@@ -124,11 +145,19 @@ export default function JourneyDetail({ journey, onClose, onOpenOperator }: Jour
 
         {/* CTAs */}
         <button
+          onClick={() => {
+            toast(claimToast(journey.status))
+            onClose()
+          }}
           className="mt-5 w-full bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold py-3 rounded-lg transition-colors active:scale-[0.99]"
         >
           Claim Journey
         </button>
         <button
+          onClick={() => {
+            toast(`Message sent to ${op.name}`)
+            onClose()
+          }}
           className="mt-2 w-full flex items-center justify-center gap-2 bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#FAFAFA] text-sm font-medium py-3 rounded-lg transition-colors"
         >
           <MessageSquare size={16} />

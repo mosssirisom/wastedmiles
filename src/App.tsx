@@ -9,6 +9,7 @@ import MarketplaceScreen from './components/MarketplaceScreen'
 import OperatorProfileScreen from './components/OperatorProfileScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
+import Toaster from './components/Toaster'
 import { fetchRegions, OPERATORS, type Region, type Journey } from './data/marketplace'
 
 type View =
@@ -120,6 +121,7 @@ export default function App() {
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {screen}
+      <Toaster />
       <JourneyDetail
         journey={detailJourney}
         onClose={() => setDetailJourney(null)}

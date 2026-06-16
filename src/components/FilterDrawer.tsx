@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { X, SlidersHorizontal } from 'lucide-react'
 import { VEHICLES, OPERATORS, type JourneyStatus, type Journey } from '../data/marketplace'
 
@@ -90,6 +91,19 @@ export default function FilterDrawer({
 }: FilterDrawerProps) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onChange({ ...filters, [key]: value })
+
+  useEffect(() => {
+    if (!open) return
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open, onClose])
 
   return (
     <div className={`fixed inset-0 z-[130] ${open ? '' : 'pointer-events-none'}`}>
