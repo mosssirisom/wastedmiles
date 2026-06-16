@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ArrowLeft, ArrowRight, Plane, Check, Loader } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Plane, Check, Loader, ShieldCheck } from 'lucide-react'
 import { useJobs, type PostedJob } from '../lib/jobsStore'
 import { formatGBP } from '../data/marketplace'
 import { toast } from '../lib/toast'
 import { useAuth } from '../lib/auth'
+import { useVerification } from '../lib/verification'
 
 function formatPickup(iso: string) {
   const d = new Date(iso)
@@ -120,12 +121,58 @@ function CoverCard({
 
 interface FindWorkScreenProps {
   onBack: () => void
+  onVerify: () => void
 }
 
-export default function FindWorkScreen({ onBack }: FindWorkScreenProps) {
+export default function FindWorkScreen({ onBack, onVerify }: FindWorkScreenProps) {
   const { market, buyNow, placeBid } = useJobs()
   const { user } = useAuth()
+  const { status } = useVerification()
   const driverName = user?.name ?? 'You'
+
+  const BackBtn = (
+    <button
+      onClick={onBack}
+      className="fixed top-4 left-4 z-[60] flex items-center gap-2 bg-[#18181B] border border-[#27272A] text-[#FAFAFA] text-sm font-medium pl-3 pr-4 py-2 rounded-full shadow-lg hover:bg-[#27272A] transition-colors"
+    >
+      <ArrowLeft size={18} />
+      Back
+    </button>
+  )
+
+  // Triple licensing lock — no marketplace access until verified.
+  if (status !== 'verified') {
+    return (
+      <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>
+        {BackBtn}
+        <div className="max-w-md mx-auto px-5 pt-28 text-center">
+          <div className="mx-auto h-14 w-14 rounded-full bg-[#18181B] border border-[#27272A] flex items-center justify-center">
+            {status === 'pending' ? (
+              <Loader size={24} className="text-[#A1A1AA] animate-spin" />
+            ) : (
+              <ShieldCheck size={26} className="text-[#A1A1AA]" />
+            )}
+          </div>
+          <h1 className="font-playfair italic text-3xl mt-4">
+            {status === 'pending' ? 'Verification in review' : 'Verify to cover work'}
+          </h1>
+          <p className="text-[#A1A1AA] text-sm mt-2 leading-relaxed">
+            {status === 'pending'
+              ? "We're checking your PHD badge and council plate. You'll be able to bid shortly."
+              : 'Drivers must verify their Private Hire badge and council plate before viewing and covering jobs.'}
+          </p>
+          {status !== 'pending' && (
+            <button
+              onClick={onVerify}
+              className="mt-6 bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors"
+            >
+              Get verified
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>

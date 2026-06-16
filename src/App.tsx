@@ -18,6 +18,7 @@ import PostJourneyScreen from './components/PostJourneyScreen'
 import MyPostedScreen from './components/MyPostedScreen'
 import FindWorkScreen from './components/FindWorkScreen'
 import PaymentMethodScreen from './components/PaymentMethodScreen'
+import DriverVerificationScreen from './components/DriverVerificationScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
@@ -41,6 +42,7 @@ type View =
   | { kind: 'post' }
   | { kind: 'posted' }
   | { kind: 'find-work' }
+  | { kind: 'verify' }
   | { kind: 'payment' }
   | { kind: 'pricing' }
   | { kind: 'join' }
@@ -181,6 +183,7 @@ export default function App() {
         onSignedOut={goHome}
         onOpenPosted={() => setView({ kind: 'posted' })}
         onOpenPayment={() => setView({ kind: 'payment' })}
+        onOpenVerify={() => setView({ kind: 'verify' })}
       />
     )
   } else if (view.kind === 'payment') {
@@ -202,7 +205,11 @@ export default function App() {
       />
     )
   } else if (view.kind === 'find-work') {
-    screen = <FindWorkScreen onBack={goHome} />
+    screen = <FindWorkScreen onBack={goHome} onVerify={() => setView({ kind: 'verify' })} />
+  } else if (view.kind === 'verify') {
+    screen = (
+      <DriverVerificationScreen onBack={goHome} onDone={() => setView({ kind: 'find-work' })} />
+    )
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
   } else if (view.kind === 'join') {

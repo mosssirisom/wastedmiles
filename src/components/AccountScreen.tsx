@@ -1,12 +1,14 @@
-import { ArrowLeft, LogOut, Plane, ChevronRight, CreditCard } from 'lucide-react'
+import { ArrowLeft, LogOut, Plane, ChevronRight, CreditCard, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 import { useBilling } from '../lib/billing'
+import { useVerification } from '../lib/verification'
 
 interface AccountScreenProps {
   onBack: () => void
   onSignedOut: () => void
   onOpenPosted: () => void
   onOpenPayment: () => void
+  onOpenVerify: () => void
 }
 
 export default function AccountScreen({
@@ -14,10 +16,13 @@ export default function AccountScreen({
   onSignedOut,
   onOpenPosted,
   onOpenPayment,
+  onOpenVerify,
 }: AccountScreenProps) {
   const { user, signOut } = useAuth()
   const { card } = useBilling()
+  const { status } = useVerification()
   if (!user) return null
+  const verifLabel = status === 'verified' ? 'Verified' : status === 'pending' ? 'In review' : 'Get verified'
 
   return (
     <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>
@@ -70,6 +75,18 @@ export default function AccountScreen({
           <span className="text-sm font-medium text-[#FAFAFA]">Payment method</span>
           <span className="ml-auto flex items-center gap-1.5 text-[#52525B]">
             <span className="text-xs">{card ? `•••• ${card.last4}` : 'Add'}</span>
+            <ChevronRight size={16} />
+          </span>
+        </button>
+
+        <button
+          onClick={onOpenVerify}
+          className="mt-2 w-full flex items-center gap-3 rounded-2xl border border-[#27272A] bg-[#111113] px-4 py-3.5 hover:border-[#3F3F46] transition-colors"
+        >
+          <ShieldCheck size={17} className={status === 'verified' ? 'text-[#F97316]' : 'text-[#A1A1AA]'} />
+          <span className="text-sm font-medium text-[#FAFAFA]">Driver verification</span>
+          <span className="ml-auto flex items-center gap-1.5 text-[#52525B]">
+            <span className={`text-xs ${status === 'verified' ? 'text-[#F97316]' : ''}`}>{verifLabel}</span>
             <ChevronRight size={16} />
           </span>
         </button>
