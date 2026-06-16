@@ -4,6 +4,7 @@ import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import {
   marketplaceTotals,
+  regionMetrics,
   buildActivity,
   formatGBP,
   OPERATORS,
@@ -12,6 +13,9 @@ import {
   type Journey,
   type ActivityEvent,
 } from '../data/marketplace'
+
+const compactGBP = (n: number) =>
+  n >= 1000 ? `£${(n / 1000).toFixed(1)}k` : `£${n}`
 import type { SectionKind } from './SectionScreen'
 
 // Display view: the UK — the marketplace covers airports nationwide.
@@ -22,6 +26,12 @@ const MAP_ZOOM = 6
 interface PinPos {
   id: string
   code: string
+  name: string
+  revenueK: string
+  revenue: string
+  opportunities: number
+  operators: number
+  urgent: number
   x: number
   y: number
 }
@@ -216,6 +226,7 @@ export default function Hero({
   }, [regions])
 
   const [mapMode, setMapMode] = useState(false)
+  const [activePin, setActivePin] = useState<string | null>(null)
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
   const regionsRef = useRef(regions)
@@ -228,7 +239,19 @@ export default function Hero({
     setPins(
       regionsRef.current.map((r) => {
         const p = map.latLngToContainerPoint(r.center)
-        return { id: r.id, code: r.code, x: p.x, y: p.y }
+        const m = regionMetrics(r)
+        return {
+          id: r.id,
+          code: r.code,
+          name: r.name,
+          revenueK: compactGBP(m.revenue),
+          revenue: formatGBP(m.revenue),
+          opportunities: m.opportunities,
+          operators: new Set(r.journeys.map((j) => j.operatorId)).size,
+          urgent: r.journeys.filter((j) => j.status === 'urgent').length,
+          x: p.x,
+          y: p.y,
+        }
       })
     )
   }, [])
@@ -424,20 +447,76 @@ export default function Hero({
 
         {/* Airport region markers */}
         <div className="absolute inset-0 z-40 pointer-events-none">
-          {pins.map((pin) => (
-            <button
-              key={pin.id}
-              onClick={() => onSelectRegion(pin.id)}
-              style={{ left: pin.x, top: pin.y }}
-              className="group absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
-            >
-              <span className="flex items-center rounded-full border border-[#27272A] bg-[#111113]/85 px-2.5 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-md transition-colors duration-200 group-hover:border-[#3F3F46]">
-                <span className="whitespace-nowrap text-[11px] font-semibold tracking-[-0.02em] text-[#FAFAFA]">
-                  {pin.code}
-                </span>
-              </span>
-            </button>
-          ))}
+          {activePin && (
+            <div
+              className="absolute inset-0 pointer-events-auto"
+              onClick={() => setActivePin(null)}
+            />
+          )}
+          {pins.map((pin) => {
+            const active = activePin === pin.id
+            return (
+              <div
+                key={pin.id}
+                style={{ left: pin.x, top: pin.y }}
+                className="group absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
+              >
+                {/* Compact marker: code + value */}
+                <button
+                  onClick={() => setActivePin(active ? null : pin.id)}
+                  className={`flex flex-col items-center leading-none rounded-lg border bg-[#111113]/85 px-2 py-1 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-md transition-colors duration-200 ${
+                    pin.urgent > 0 ? 'border-[#EF4444]/50 marker-urgent' : 'border-[#27272A]'
+                  } group-hover:border-[#3F3F46]`}
+                >
+                  <span className="text-[11px] font-semibold tracking-[-0.02em] text-[#FAFAFA]">
+                    {pin.code}
+                  </span>
+                  <span className="mt-0.5 text-[10px] tabular-nums text-[#A1A1AA]">
+                    {pin.revenueK}
+                  </span>
+                </button>
+
+                {/* Detail popover (hover on desktop, tap to pin) */}
+                <div
+                  className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 rounded-xl border border-[#27272A] bg-[#111113] p-3 text-left shadow-xl transition-opacity duration-150 ${
+                    active
+                      ? 'opacity-100 pointer-events-auto'
+                      : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-[#FAFAFA]">{pin.name}</div>
+                  <div className="mt-2 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-[#71717A]">Opportunities</span>
+                      <span className="font-medium tabular-nums text-[#FAFAFA]">
+                        {pin.opportunities}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-[#71717A]">Available</span>
+                      <span className="font-medium tabular-nums text-[#FAFAFA]">{pin.revenue}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-[#71717A]">Operators online</span>
+                      <span className="font-medium tabular-nums text-[#FAFAFA]">{pin.operators}</span>
+                    </div>
+                    {pin.urgent > 0 && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-[#71717A]">Urgent cover</span>
+                        <span className="font-medium tabular-nums text-[#EF4444]">{pin.urgent}</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => onSelectRegion(pin.id)}
+                    className="mt-3 w-full bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-medium py-2 rounded-lg transition-colors"
+                  >
+                    View marketplace
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         {/* Mobile map-mode controls */}
