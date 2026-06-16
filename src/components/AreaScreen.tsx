@@ -3,9 +3,14 @@ import { ArrowLeft, Plane, SlidersHorizontal, Map, List } from 'lucide-react'
 import L from 'leaflet'
 import Fab from './Fab'
 import JourneyCard from './JourneyCard'
-import FilterDrawer, { DEFAULT_FILTERS, activeFilterCount, type Filters } from './FilterDrawer'
+import FilterDrawer, {
+  DEFAULT_FILTERS,
+  activeFilterCount,
+  matchesFilters,
+  type Filters,
+} from './FilterDrawer'
 import { DARK_TILES, DARK_ATTRIBUTION, makeJourneyIcon } from '../lib/map'
-import { OPERATORS, regionMetrics, formatGBP, type Region, type Journey } from '../data/marketplace'
+import { regionMetrics, formatGBP, type Region, type Journey } from '../data/marketplace'
 
 interface AreaScreenProps {
   region: Region
@@ -25,20 +30,10 @@ export default function AreaScreen({ region, onBack, onOpenJourney }: AreaScreen
 
   const metrics = regionMetrics(region)
 
-  const filtered = useMemo(() => {
-    return region.journeys.filter((j) => {
-      if (filters.destination && !j.to.toLowerCase().includes(filters.destination.toLowerCase()))
-        return false
-      if (j.value < filters.minValue) return false
-      if (j.passengers < filters.minPassengers) return false
-      if (filters.vehicle !== 'all' && j.vehicle !== filters.vehicle) return false
-      if (filters.status !== 'all' && j.status !== filters.status) return false
-      if (filters.minRating && OPERATORS[j.operatorId].rating < filters.minRating) return false
-      if (filters.coverOnly && !(j.status === 'cover-needed' || j.status === 'urgent')) return false
-      if (filters.emptyOnly && j.status !== 'empty-return') return false
-      return true
-    })
-  }, [region, filters])
+  const filtered = useMemo(
+    () => region.journeys.filter((j) => matchesFilters(j, filters)),
+    [region, filters]
+  )
 
   const selectJourney = (id: string) => {
     setSelectedId(id)

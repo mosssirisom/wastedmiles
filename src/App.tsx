@@ -5,12 +5,14 @@ import SectionScreen, { type SectionKind } from './components/SectionScreen'
 import OperatorsScreen from './components/OperatorsScreen'
 import PricingScreen from './components/PricingScreen'
 import JoinScreen from './components/JoinScreen'
+import MarketplaceScreen from './components/MarketplaceScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import { fetchRegions, type Region, type Journey } from './data/marketplace'
 
 type View =
   | { kind: 'home' }
+  | { kind: 'marketplace' }
   | { kind: 'region'; id: string }
   | { kind: 'section'; section: SectionKind }
   | { kind: 'operators' }
@@ -42,12 +44,17 @@ export default function App() {
       onOpenOperators={() => setView({ kind: 'operators' })}
       onOpenPricing={() => setView({ kind: 'pricing' })}
       onOpenJoin={() => setView({ kind: 'join' })}
+      onOpenMarketplace={() => setView({ kind: 'marketplace' })}
       onOpenJourney={setDetailJourney}
     />
   )
 
   let screen
-  if (view.kind === 'region') {
+  if (view.kind === 'marketplace') {
+    screen = (
+      <MarketplaceScreen regions={regions} onBack={goHome} onOpenJourney={setDetailJourney} />
+    )
+  } else if (view.kind === 'region') {
     const region = regions.find((r) => r.id === view.id)
     screen = region ? (
       <AreaScreen region={region} onBack={goHome} onOpenJourney={setDetailJourney} />
@@ -75,13 +82,18 @@ export default function App() {
 
   // Bottom tab bar shows on the top-level browse screens only.
   const showNav =
-    view.kind === 'home' || view.kind === 'section' || view.kind === 'operators'
+    view.kind === 'home' ||
+    view.kind === 'marketplace' ||
+    view.kind === 'section' ||
+    view.kind === 'operators'
   const activeTab: NavTab =
-    view.kind === 'section'
-      ? view.section
-      : view.kind === 'operators'
-        ? 'operators'
-        : 'market'
+    view.kind === 'marketplace'
+      ? 'marketplace'
+      : view.kind === 'section'
+        ? view.section
+        : view.kind === 'operators'
+          ? 'menu'
+          : 'home'
 
   return (
     <div
@@ -94,6 +106,7 @@ export default function App() {
         <BottomNav
           active={activeTab}
           onHome={goHome}
+          onMarketplace={() => setView({ kind: 'marketplace' })}
           onEmpty={() => setView({ kind: 'section', section: 'empty' })}
           onCover={() => setView({ kind: 'section', section: 'cover' })}
           onOperators={() => setView({ kind: 'operators' })}

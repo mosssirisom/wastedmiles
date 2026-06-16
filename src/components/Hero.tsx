@@ -225,6 +225,7 @@ interface HeroProps {
   onOpenOperators: () => void
   onOpenPricing: () => void
   onOpenJoin: () => void
+  onOpenMarketplace: () => void
   onOpenJourney: (journey: Journey) => void
 }
 
@@ -235,6 +236,7 @@ export default function Hero({
   onOpenOperators,
   onOpenPricing,
   onOpenJoin,
+  onOpenMarketplace,
   onOpenJourney,
 }: HeroProps) {
   const totals = marketplaceTotals(regions)
@@ -377,7 +379,7 @@ export default function Hero({
         {/* Left: nav links (desktop) */}
         <div className="flex-1 flex justify-start">
           <div className="hidden md:flex bg-[#111113]/80 backdrop-blur-md border border-[#27272A] rounded-full px-2 py-2 items-center gap-1">
-            <button className="bg-[#27272A] text-[#FAFAFA] px-4 py-1.5 rounded-full text-sm font-medium">
+            <button onClick={onOpenMarketplace} className={navItemClass}>
               Marketplace
             </button>
             <button onClick={() => onOpenSection('empty')} className={navItemClass}>

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Home, Repeat, LifeBuoy, BadgeCheck, Menu as MenuIcon } from 'lucide-react'
+import { Home, List, Repeat, LifeBuoy, Menu as MenuIcon } from 'lucide-react'
 
-export type NavTab = 'market' | 'empty' | 'cover' | 'operators' | 'menu'
+export type NavTab = 'home' | 'marketplace' | 'empty' | 'cover' | 'menu'
 
 interface BottomNavProps {
   active: NavTab
   onHome: () => void
+  onMarketplace: () => void
   onEmpty: () => void
   onCover: () => void
   onOperators: () => void
@@ -16,6 +17,7 @@ interface BottomNavProps {
 export default function BottomNav({
   active,
   onHome,
+  onMarketplace,
   onEmpty,
   onCover,
   onOperators,
@@ -25,16 +27,15 @@ export default function BottomNav({
   const [menuOpen, setMenuOpen] = useState(false)
 
   const tabs: { id: NavTab; label: string; icon: typeof Home; onClick: () => void }[] = [
-    { id: 'market', label: 'Home', icon: Home, onClick: onHome },
+    { id: 'home', label: 'Home', icon: Home, onClick: onHome },
+    { id: 'marketplace', label: 'Market', icon: List, onClick: onMarketplace },
     { id: 'empty', label: 'Empty Miles', icon: Repeat, onClick: onEmpty },
     { id: 'cover', label: 'Cover', icon: LifeBuoy, onClick: onCover },
-    { id: 'operators', label: 'Operators', icon: BadgeCheck, onClick: onOperators },
     { id: 'menu', label: 'Menu', icon: MenuIcon, onClick: () => setMenuOpen(true) },
   ]
 
   return (
     <>
-      {/* Menu sheet (Pricing / Join) */}
       {menuOpen && (
         <div
           className="md:hidden fixed inset-0 z-[100] flex flex-col justify-end"
@@ -46,6 +47,15 @@ export default function BottomNav({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#27272A]" />
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                onOperators()
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+            >
+              Operators
+            </button>
             <button
               onClick={() => {
                 setMenuOpen(false)
@@ -68,7 +78,6 @@ export default function BottomNav({
         </div>
       )}
 
-      {/* Persistent bottom tab bar */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 z-[95] flex border-t border-[#27272A] bg-[#111113]/95 backdrop-blur-md"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
