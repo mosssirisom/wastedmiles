@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plane, ArrowRight, Star } from 'lucide-react'
+import { Plane, ArrowRight, Star, Map, X } from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import {
@@ -89,25 +89,25 @@ function OpportunityCard({ journey, onClick }: { journey: Journey; onClick: () =
   return (
     <button
       onClick={onClick}
-      className="snap-start shrink-0 w-[250px] rounded-xl border border-[#27272A] bg-[#111113] p-3 text-left transition-colors hover:border-[#3F3F46]"
+      className="snap-start shrink-0 w-[260px] rounded-2xl border border-[#27272A] bg-[#111113] p-4 text-left transition-colors hover:border-[#3F3F46]"
     >
       <div className="flex items-center justify-between gap-2">
         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md border ${st.badge}`}>
           {journey.status === 'urgent' ? 'URGENT' : st.label}
         </span>
-        <span className="text-[#FAFAFA] text-base font-bold tabular-nums tracking-[-0.02em]">
+        <span className="text-[#FAFAFA] text-lg font-bold tabular-nums tracking-[-0.02em]">
           {formatGBP(journey.value)}
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-2 text-sm font-medium text-[#FAFAFA]">
+      <div className="flex items-center gap-1.5 mt-3.5 text-sm font-medium text-[#FAFAFA]">
         <Plane size={13} className="-rotate-45 text-[#A1A1AA] shrink-0" />
         <span className="shrink-0">{journey.fromCode}</span>
         <ArrowRight size={12} className="text-[#71717A] shrink-0" />
         <span className="truncate">{journey.to}</span>
       </div>
 
-      <div className="flex items-center justify-between mt-2 text-[11px]">
+      <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-[#27272A] text-[11px]">
         <span className="flex items-center gap-1 text-[#A1A1AA] min-w-0">
           <span className="truncate">{op.name}</span>
           <span className="flex items-center gap-0.5 shrink-0">
@@ -115,11 +115,9 @@ function OpportunityCard({ journey, onClick }: { journey: Journey; onClick: () =
             {op.rating.toFixed(1)}
           </span>
         </span>
-        <span className="text-[#71717A] shrink-0">{op.completed} jobs</span>
-      </div>
-
-      <div className={`mt-1 text-[11px] ${urgent ? 'text-[#F59E0B]' : 'text-[#71717A]'}`}>
-        {subLabel(journey)}
+        <span className={`shrink-0 ${urgent ? 'text-[#F59E0B]' : 'text-[#71717A]'}`}>
+          {subLabel(journey)}
+        </span>
       </div>
     </button>
   )
@@ -215,6 +213,7 @@ export default function Hero({
     ]
   }, [regions])
 
+  const [mapMode, setMapMode] = useState(false)
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
   const regionsRef = useRef(regions)
@@ -281,7 +280,7 @@ export default function Hero({
     <>
       {/* Fixed header: nav + stats bar + opportunities ticker */}
       <div className="fixed top-0 left-0 right-0 z-[100]">
-      <nav className="flex items-center p-4 sm:p-5">
+      <nav className="flex items-center px-4 py-3 sm:p-5">
         {/* Left: nav links (desktop) */}
         <div className="flex-1 flex justify-start">
           <div className="hidden md:flex bg-[#111113]/80 backdrop-blur-md border border-[#27272A] rounded-full px-2 py-2 items-center gap-1">
@@ -309,9 +308,9 @@ export default function Hero({
             <svg width="24" height="24" viewBox="0 0 256 256" fill="#FAFAFA">
               <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z M 256 128 L 128 128 L 0 0 L 128 0 Z" />
             </svg>
-            <span className="text-[#FAFAFA] text-2xl font-playfair italic">Wasted Miles</span>
+            <span className="text-[#FAFAFA] text-xl md:text-2xl font-playfair italic">Wasted Miles</span>
           </div>
-          <span className="mt-0.5 text-[11px] sm:text-xs text-[#A1A1AA] tracking-wide">
+          <span className="hidden md:block mt-0.5 text-xs text-[#A1A1AA] tracking-wide">
             Turn dead miles into revenue
           </span>
         </div>
@@ -327,52 +326,81 @@ export default function Hero({
         </div>
       </nav>
 
-      {/* Stats bar */}
-      <div>
-        <div className="border-b border-[#27272A] bg-[#09090B]/80 backdrop-blur-md">
-          <div className="no-scrollbar flex items-center gap-4 overflow-x-auto px-4 sm:px-5 py-2">
-            <Stat value={totals.opportunities} label="Active Opportunities" />
-            <StatDivider />
-            <Stat value={formatGBP(totals.revenue)} label="Revenue Available" />
-            <StatDivider />
-            <Stat
-              value={totals.emptyReturns}
-              label="Empty Returns"
-              onClick={() => onOpenSection('empty')}
-            />
-            <StatDivider />
-            <Stat
-              value={totals.coverRequests}
-              label="Cover Requests"
-              onClick={() => onOpenSection('cover')}
-            />
-            <StatDivider />
-            <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-[#A1A1AA]">
-              <LiveDot />
-              Live Updating
-            </span>
+      {/* Desktop stats bar */}
+      <div className="hidden md:block border-b border-[#27272A] bg-[#09090B]/80 backdrop-blur-md">
+        <div className="no-scrollbar flex items-center gap-4 overflow-x-auto px-5 py-2">
+          <Stat value={totals.opportunities} label="Active Opportunities" />
+          <StatDivider />
+          <Stat value={formatGBP(totals.revenue)} label="Revenue Available" />
+          <StatDivider />
+          <Stat
+            value={totals.emptyReturns}
+            label="Empty Returns"
+            onClick={() => onOpenSection('empty')}
+          />
+          <StatDivider />
+          <Stat
+            value={totals.coverRequests}
+            label="Cover Requests"
+            onClick={() => onOpenSection('cover')}
+          />
+          <StatDivider />
+          <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-[#A1A1AA]">
+            <LiveDot />
+            Live Updating
+          </span>
+        </div>
+      </div>
+
+      {/* Mobile revenue hero — the single focus */}
+      {!mapMode && (
+        <div className="md:hidden border-b border-[#27272A] bg-[#09090B]/90 backdrop-blur-md px-5 pt-1 pb-4">
+          <div className="flex items-center gap-2 text-[#A1A1AA] text-[11px] font-medium uppercase tracking-wider">
+            <LiveDot />
+            Revenue Available
+          </div>
+          <div className="mt-1.5 text-[#FAFAFA] text-[44px] leading-none font-bold tabular-nums tracking-[-0.03em]">
+            {formatGBP(totals.revenue)}
+          </div>
+          <div className="mt-3 flex items-center gap-5">
+            <div>
+              <span className="text-[#FAFAFA] text-base font-bold tabular-nums">
+                {totals.opportunities}
+              </span>
+              <span className="ml-1.5 text-[11px] text-[#71717A]">Opportunities</span>
+            </div>
+            <div className="h-4 w-px bg-[#27272A]" />
+            <div>
+              <span className="text-[#FAFAFA] text-base font-bold tabular-nums">
+                {totals.coverRequests}
+              </span>
+              <span className="ml-1.5 text-[11px] text-[#71717A]">Cover Requests</span>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="border-b border-[#27272A] bg-[#09090B]/60 backdrop-blur-md">
-          <div
-            className="overflow-hidden"
-            style={{
-              maskImage:
-                'linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%)',
-              WebkitMaskImage:
-                'linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%)',
-            }}
-          >
-            <div className="flex w-max gap-3 py-3 animate-marquee">
-              {[...opportunities, ...opportunities].map((j, i) => (
-                <OpportunityCard
-                  key={`${j.id}-${i}`}
-                  journey={j}
-                  onClick={() => onSelectRegion(j.regionId)}
-                />
-              ))}
-            </div>
+      {/* Opportunities ticker (hidden on mobile in map mode) */}
+      <div
+        className={`${mapMode ? 'hidden md:block' : 'block'} border-b border-[#27272A] bg-[#09090B]/60 backdrop-blur-md`}
+      >
+        <div
+          className="overflow-hidden"
+          style={{
+            maskImage:
+              'linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%)',
+          }}
+        >
+          <div className="flex w-max gap-3 py-3 animate-marquee">
+            {[...opportunities, ...opportunities].map((j, i) => (
+              <OpportunityCard
+                key={`${j.id}-${i}`}
+                journey={j}
+                onClick={() => onSelectRegion(j.regionId)}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -386,6 +414,11 @@ export default function Hero({
         <div ref={baseDivRef} className="absolute inset-0 z-10" />
 
         <div className="absolute inset-0 z-20 pointer-events-none bg-gradient-to-b from-[#09090B]/40 via-transparent to-[#09090B]/70" />
+
+        {/* Mobile: dim the map so it reads as secondary until map mode */}
+        {!mapMode && (
+          <div className="md:hidden absolute inset-0 z-20 pointer-events-none bg-[#09090B]/70" />
+        )}
 
         {/* Airport region markers */}
         <div className="absolute inset-0 z-40 pointer-events-none">
@@ -405,7 +438,26 @@ export default function Hero({
           ))}
         </div>
 
-        {/* Live activity feed (bottom-right) */}
+        {/* Mobile map-mode controls */}
+        {!mapMode ? (
+          <button
+            onClick={() => setMapMode(true)}
+            className="md:hidden absolute bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-[#18181B] border border-[#27272A] text-[#FAFAFA] text-sm font-medium px-4 py-2.5 rounded-full shadow-lg"
+          >
+            <Map size={16} />
+            View live map
+          </button>
+        ) : (
+          <button
+            onClick={() => setMapMode(false)}
+            className="md:hidden absolute top-3 right-3 z-[60] flex items-center gap-1.5 bg-[#18181B] border border-[#27272A] text-[#FAFAFA] text-xs font-medium px-3 py-1.5 rounded-full shadow-lg"
+          >
+            <X size={14} />
+            Done
+          </button>
+        )}
+
+        {/* Live activity feed (bottom-right, desktop) */}
         <div
           className="hidden sm:block absolute bottom-24 md:bottom-10 right-10 md:right-14 w-[280px] z-50 hero-anim hero-fade"
           style={{ animationDelay: '0.7s' }}
