@@ -12,6 +12,8 @@ interface BottomNavProps {
   onOperators: () => void
   onMyJourneys: () => void
   onMessages: () => void
+  onNotifications: () => void
+  onDashboard: () => void
   onPricing: () => void
   onJoin: () => void
 }
@@ -25,6 +27,8 @@ export default function BottomNav({
   onOperators,
   onMyJourneys,
   onMessages,
+  onNotifications,
+  onDashboard,
   onPricing,
   onJoin,
 }: BottomNavProps) {
@@ -68,6 +72,24 @@ export default function BottomNav({
               className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
             >
               Messages
+            </button>
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                onNotifications()
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+            >
+              Notifications
+            </button>
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                onDashboard()
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+            >
+              Dashboard
             </button>
             <button
               onClick={() => {

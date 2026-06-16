@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plane, ArrowRight, Star, Map as MapIcon, X, CheckCircle2, MessageSquare } from 'lucide-react'
+import {
+  Plane,
+  ArrowRight,
+  Star,
+  Map as MapIcon,
+  X,
+  CheckCircle2,
+  MessageSquare,
+  Bell,
+  LayoutDashboard,
+} from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import {
@@ -47,6 +57,7 @@ interface NetArc {
   d: string
 }
 import type { SectionKind } from './SectionScreen'
+import { useNotifications } from '../lib/notifications'
 
 // Display view: the UK — the marketplace covers airports nationwide.
 // Centred slightly north so the whole UK sits below the fixed header.
@@ -228,6 +239,8 @@ interface HeroProps {
   onOpenMarketplace: () => void
   onOpenMyJourneys: () => void
   onOpenMessages: () => void
+  onOpenNotifications: () => void
+  onOpenDashboard: () => void
   onOpenJourney: (journey: Journey) => void
 }
 
@@ -241,8 +254,11 @@ export default function Hero({
   onOpenMarketplace,
   onOpenMyJourneys,
   onOpenMessages,
+  onOpenNotifications,
+  onOpenDashboard,
   onOpenJourney,
 }: HeroProps) {
+  const { unread } = useNotifications()
   const totals = marketplaceTotals(regions)
   const activity = useMemo(() => buildActivity(regions), [regions])
 
@@ -417,6 +433,25 @@ export default function Hero({
         {/* Right: quick actions + Join (desktop) */}
         <div className="flex-1 flex justify-end items-center gap-2">
           <button
+            onClick={onOpenNotifications}
+            aria-label="Notifications"
+            className="relative hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-[#111113]/80 border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:border-[#3F3F46] transition-colors"
+          >
+            <Bell size={17} />
+            {unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-[#F97316] text-white text-[9px] font-bold flex items-center justify-center">
+                {unread}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={onOpenDashboard}
+            aria-label="Dashboard"
+            className="hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-[#111113]/80 border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:border-[#3F3F46] transition-colors"
+          >
+            <LayoutDashboard size={17} />
+          </button>
+          <button
             onClick={onOpenMyJourneys}
             aria-label="My journeys"
             className="hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-[#111113]/80 border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:border-[#3F3F46] transition-colors"
@@ -432,7 +467,7 @@ export default function Hero({
           </button>
           <button
             onClick={onOpenJoin}
-            className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-6 py-2.5 rounded-full transition-colors"
+            className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors"
           >
             Join the Network
           </button>

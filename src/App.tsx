@@ -10,9 +10,12 @@ import OperatorProfileScreen from './components/OperatorProfileScreen'
 import MyJourneysScreen from './components/MyJourneysScreen'
 import MessagesScreen from './components/MessagesScreen'
 import ThreadScreen from './components/ThreadScreen'
+import NotificationsScreen from './components/NotificationsScreen'
+import DashboardScreen from './components/DashboardScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
+import { startNotificationFeed } from './lib/notifications'
 import { fetchRegions, OPERATORS, type Region, type Journey } from './data/marketplace'
 
 type View =
@@ -25,6 +28,8 @@ type View =
   | { kind: 'my-journeys' }
   | { kind: 'messages' }
   | { kind: 'thread'; operatorId: string }
+  | { kind: 'notifications' }
+  | { kind: 'dashboard' }
   | { kind: 'pricing' }
   | { kind: 'join' }
 
@@ -42,6 +47,7 @@ export default function App() {
         setLoaded(true)
       }
     })
+    startNotificationFeed()
     return () => {
       alive = false
     }
@@ -74,6 +80,8 @@ export default function App() {
       onOpenMarketplace={() => setView({ kind: 'marketplace' })}
       onOpenMyJourneys={() => setView({ kind: 'my-journeys' })}
       onOpenMessages={() => setView({ kind: 'messages' })}
+      onOpenNotifications={() => setView({ kind: 'notifications' })}
+      onOpenDashboard={() => setView({ kind: 'dashboard' })}
       onOpenJourney={setDetailJourney}
     />
   )
@@ -144,6 +152,10 @@ export default function App() {
     screen = (
       <ThreadScreen operatorId={view.operatorId} onBack={() => setView({ kind: 'messages' })} />
     )
+  } else if (view.kind === 'notifications') {
+    screen = <NotificationsScreen onBack={goHome} />
+  } else if (view.kind === 'dashboard') {
+    screen = <DashboardScreen onBack={goHome} />
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
   } else if (view.kind === 'join') {
@@ -196,6 +208,8 @@ export default function App() {
           onOperators={() => setView({ kind: 'operators' })}
           onMyJourneys={() => setView({ kind: 'my-journeys' })}
           onMessages={() => setView({ kind: 'messages' })}
+          onNotifications={() => setView({ kind: 'notifications' })}
+          onDashboard={() => setView({ kind: 'dashboard' })}
           onPricing={() => setView({ kind: 'pricing' })}
           onJoin={() => setView({ kind: 'join' })}
         />
