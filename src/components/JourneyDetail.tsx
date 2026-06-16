@@ -109,6 +109,7 @@ export default function JourneyDetail({ journey, onClose }: JourneyDetailProps) 
                 <span className="text-xs text-[#A1A1AA] ml-0.5 tabular-nums">{op.rating.toFixed(1)}</span>
               </div>
             </div>
+            <div className="mt-0.5 text-[11px] text-[#71717A]">Member since {op.memberSince}</div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
               <Metric value={op.completed.toLocaleString('en-GB')} label="Completed" />
               <Metric value={`${op.acceptance}%`} label="Acceptance" />

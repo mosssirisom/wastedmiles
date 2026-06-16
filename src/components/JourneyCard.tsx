@@ -1,19 +1,6 @@
-import { Plane, ArrowRight, Users, Briefcase, Armchair, Star } from 'lucide-react'
+import { Plane, ArrowRight, Users, Briefcase, Armchair } from 'lucide-react'
+import OperatorTrust from './OperatorTrust'
 import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketplace'
-
-function Stars({ rating }: { rating: number }) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          size={11}
-          className={i < Math.round(rating) ? 'fill-current text-[#FAFAFA]' : 'text-[#3F3F46]'}
-        />
-      ))}
-    </span>
-  )
-}
 
 function ctaLabel(status: Journey['status']): string {
   if (status === 'empty-return') return 'MATCH JOURNEY'
@@ -81,13 +68,9 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
         )}
       </div>
 
-      {/* Trust: operator, rating, completed journeys */}
-      <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-[#27272A]">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-sm font-medium text-[#FAFAFA] truncate">{operator.name}</span>
-          <Stars rating={operator.rating} />
-        </div>
-        <span className="text-[11px] text-[#71717A] shrink-0">{operator.completed} journeys</span>
+      {/* Trust: operator, rating, completed, acceptance, on-time, member since */}
+      <div className="mt-3 pt-3 border-t border-[#27272A]">
+        <OperatorTrust operator={operator} />
       </div>
 
       {/* CTA */}

@@ -64,7 +64,7 @@ export default function App() {
       />
     )
   } else if (view.kind === 'operators') {
-    screen = <OperatorsScreen onBack={goHome} />
+    screen = <OperatorsScreen onBack={goHome} regions={regions} />
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
   } else if (view.kind === 'join') {

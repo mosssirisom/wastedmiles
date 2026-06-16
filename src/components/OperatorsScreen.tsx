@@ -1,5 +1,12 @@
-import { ArrowLeft, Star, BadgeCheck } from 'lucide-react'
-import { OPERATORS, type Operator } from '../data/marketplace'
+import { ArrowLeft, ArrowRight, Star, BadgeCheck } from 'lucide-react'
+import OperatorTrust from './OperatorTrust'
+import {
+  OPERATORS,
+  buildRecentClaims,
+  formatGBP,
+  type Operator,
+  type Region,
+} from '../data/marketplace'
 
 function Stars({ rating }: { rating: number }) {
   return (
@@ -34,7 +41,9 @@ function OperatorCard({ op }: { op: Operator }) {
             </h3>
             <BadgeCheck size={16} className="text-[#A1A1AA] shrink-0" />
           </div>
-          <div className="text-xs text-[#71717A]">{op.fleet}</div>
+          <div className="text-xs text-[#71717A]">
+            {op.fleet} · Member since {op.memberSince}
+          </div>
         </div>
         <div className="flex flex-col items-end shrink-0">
           <Stars rating={op.rating} />
@@ -71,12 +80,14 @@ function OperatorCard({ op }: { op: Operator }) {
 
 interface OperatorsScreenProps {
   onBack: () => void
+  regions: Region[]
 }
 
-export default function OperatorsScreen({ onBack }: OperatorsScreenProps) {
+export default function OperatorsScreen({ onBack, regions }: OperatorsScreenProps) {
   const operators = Object.values(OPERATORS)
   const avgRating = (operators.reduce((s, o) => s + o.rating, 0) / operators.length).toFixed(1)
   const totalCompleted = operators.reduce((s, o) => s + o.completed, 0)
+  const recentClaims = buildRecentClaims(regions)
 
   return (
     <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>
@@ -118,6 +129,37 @@ export default function OperatorsScreen({ onBack }: OperatorsScreenProps) {
         <div className="grid gap-4 mt-8 sm:grid-cols-2 lg:grid-cols-3">
           {operators.map((op) => (
             <OperatorCard key={op.id} op={op} />
+          ))}
+        </div>
+
+        {/* Recently claimed journeys */}
+        <h2 className="font-playfair italic text-2xl mt-12">Recently Claimed</h2>
+        <p className="text-[#A1A1AA] text-sm mt-1">
+          See who's winning work across the network right now.
+        </p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {recentClaims.map((c) => (
+            <div
+              key={c.id}
+              className="rounded-xl border border-[#27272A] bg-[#111113] p-4 flex items-center justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-[#FAFAFA]">
+                  <span className="shrink-0">{c.fromCode}</span>
+                  <ArrowRight size={13} className="text-[#52525B] shrink-0" />
+                  <span className="truncate">{c.to}</span>
+                </div>
+                <div className="mt-1.5">
+                  <OperatorTrust operator={OPERATORS[c.operatorId]} />
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-[#FAFAFA] font-bold tabular-nums tracking-[-0.02em]">
+                  {formatGBP(c.value)}
+                </div>
+                <div className="text-[11px] text-[#71717A] mt-0.5">{c.ago}</div>
+              </div>
+            </div>
           ))}
         </div>
       </div>

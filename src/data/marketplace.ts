@@ -18,6 +18,7 @@ export interface Operator {
   acceptance: number // % acceptance rate
   onTime: number // % on-time performance
   fleet: string
+  memberSince: string // year joined
 }
 
 export interface Journey {
@@ -86,14 +87,14 @@ export const STATUS_META: Record<
 /* ----------------------------- operators ---------------------------- */
 
 export const OPERATORS: Record<string, Operator> = {
-  'ev-exec': { id: 'ev-exec', name: 'EV Exec', rating: 5.0, completed: 423, acceptance: 99.4, onTime: 98.7, fleet: 'EV Executive' },
-  pennine: { id: 'pennine', name: 'Pennine Cars', rating: 4.9, completed: 1208, acceptance: 97.1, onTime: 96.4, fleet: 'Saloon & MPV' },
-  aire: { id: 'aire', name: 'Aire Executive', rating: 4.8, completed: 765, acceptance: 95.6, onTime: 97.9, fleet: 'Executive' },
-  mersey: { id: 'mersey', name: 'Mersey Premier', rating: 4.9, completed: 540, acceptance: 98.2, onTime: 99.1, fleet: 'Premier EV' },
-  northern: { id: 'northern', name: 'Northern Transfers', rating: 4.7, completed: 312, acceptance: 94.0, onTime: 95.3, fleet: 'MPV Fleet' },
-  skyline: { id: 'skyline', name: 'Skyline Chauffeurs', rating: 5.0, completed: 689, acceptance: 99.0, onTime: 98.0, fleet: 'Luxury' },
-  capital: { id: 'capital', name: 'Capital Cars', rating: 4.8, completed: 1502, acceptance: 96.3, onTime: 97.2, fleet: 'Saloon' },
-  border: { id: 'border', name: 'Border Executive', rating: 4.9, completed: 421, acceptance: 98.8, onTime: 98.5, fleet: 'Executive EV' },
+  'ev-exec': { id: 'ev-exec', name: 'EV Exec', rating: 5.0, completed: 423, acceptance: 99.4, onTime: 98.7, fleet: 'EV Executive', memberSince: '2022' },
+  pennine: { id: 'pennine', name: 'Pennine Cars', rating: 4.9, completed: 1208, acceptance: 97.1, onTime: 96.4, fleet: 'Saloon & MPV', memberSince: '2019' },
+  aire: { id: 'aire', name: 'Aire Executive', rating: 4.8, completed: 765, acceptance: 95.6, onTime: 97.9, fleet: 'Executive', memberSince: '2020' },
+  mersey: { id: 'mersey', name: 'Mersey Premier', rating: 4.9, completed: 540, acceptance: 98.2, onTime: 99.1, fleet: 'Premier EV', memberSince: '2021' },
+  northern: { id: 'northern', name: 'Northern Transfers', rating: 4.7, completed: 312, acceptance: 94.0, onTime: 95.3, fleet: 'MPV Fleet', memberSince: '2023' },
+  skyline: { id: 'skyline', name: 'Skyline Chauffeurs', rating: 5.0, completed: 689, acceptance: 99.0, onTime: 98.0, fleet: 'Luxury', memberSince: '2018' },
+  capital: { id: 'capital', name: 'Capital Cars', rating: 4.8, completed: 1502, acceptance: 96.3, onTime: 97.2, fleet: 'Saloon', memberSince: '2017' },
+  border: { id: 'border', name: 'Border Executive', rating: 4.9, completed: 421, acceptance: 98.8, onTime: 98.5, fleet: 'Executive EV', memberSince: '2020' },
 }
 
 export const OPERATOR_IDS = Object.keys(OPERATORS)
@@ -319,6 +320,37 @@ export interface ActivityEvent {
   code: string
   to: string
   value: string
+}
+
+/* ---------------------- recently claimed journeys ------------------- */
+
+export interface RecentClaim {
+  id: string
+  fromCode: string
+  to: string
+  value: number
+  operatorId: string
+  ago: string
+}
+
+export function buildRecentClaims(regions: Region[]): RecentClaim[] {
+  const agos = ['just now', '2m ago', '5m ago', '11m ago', '18m ago', '26m ago', '38m ago', '54m ago']
+  const claims: RecentClaim[] = []
+  let i = 0
+  regions.forEach((region) => {
+    region.journeys.slice(0, 2).forEach((j) => {
+      claims.push({
+        id: `claim-${j.id}`,
+        fromCode: region.code,
+        to: j.to,
+        value: j.value,
+        operatorId: j.operatorId,
+        ago: agos[i % agos.length],
+      })
+      i++
+    })
+  })
+  return claims.slice(0, 8)
 }
 
 export function buildActivity(regions: Region[]): ActivityEvent[] {
