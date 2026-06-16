@@ -1,4 +1,4 @@
-import { Plane, ArrowRight, Users, Briefcase, Clock, Star, Armchair } from 'lucide-react'
+import { Plane, ArrowRight, Users, Briefcase, Armchair, Star } from 'lucide-react'
 import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketplace'
 
 function Stars({ rating }: { rating: number }) {
@@ -30,6 +30,8 @@ interface JourneyCardProps {
 export default function JourneyCard({ journey, active, onSelect }: JourneyCardProps) {
   const operator = OPERATORS[journey.operatorId]
   const status = STATUS_META[journey.status]
+  const timeUrgent = journey.responseMins != null
+  const timeText = timeUrgent ? `${journey.responseMins} mins remaining` : journey.posted
 
   return (
     <div
@@ -40,26 +42,31 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
           : 'bg-[#111113] border-[#27272A] hover:border-[#3F3F46]'
       }`}
     >
-      {/* Status + value */}
-      <div className="flex items-center justify-between gap-3">
+      {/* Top: status (left) + price (right) */}
+      <div className="flex items-start justify-between gap-3">
         <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${status.badge}`}>
           {journey.status === 'urgent' ? 'URGENT' : status.label}
         </span>
-        <span className="text-[#FAFAFA] text-lg font-bold tabular-nums tracking-[-0.02em]">
-          {formatGBP(journey.value)}
-        </span>
+        <div className="text-right">
+          <div className="text-[#FAFAFA] text-2xl font-bold tabular-nums tracking-[-0.03em] leading-none">
+            {formatGBP(journey.value)}
+          </div>
+          <div className={`mt-1 text-[11px] ${timeUrgent ? 'text-[#F59E0B]' : 'text-[#71717A]'}`}>
+            {timeText}
+          </div>
+        </div>
       </div>
 
-      {/* Route */}
-      <div className="flex items-center gap-2 mt-2.5 text-[15px] font-medium text-[#FAFAFA]">
-        <Plane size={14} className="-rotate-45 text-[#A1A1AA] shrink-0" />
-        <span>{journey.fromCode}</span>
-        <ArrowRight size={14} className="text-[#71717A] shrink-0" />
+      {/* Main: route */}
+      <div className="flex items-center gap-2 mt-3 text-[17px] font-semibold text-[#FAFAFA]">
+        <Plane size={15} className="-rotate-45 text-[#71717A] shrink-0" />
+        <span className="shrink-0">{journey.fromCode}</span>
+        <ArrowRight size={15} className="text-[#52525B] shrink-0" />
         <span className="truncate">{journey.to}</span>
       </div>
 
-      {/* Meta */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-[#A1A1AA]">
+      {/* Detail: vehicle, passengers, luggage, seats */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-xs text-[#71717A]">
         <span>{journey.vehicle}</span>
         <span className="flex items-center gap-1">
           <Users size={12} /> {journey.passengers}
@@ -74,29 +81,13 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
         )}
       </div>
 
-      {/* Pickup + posted / response time */}
-      <div className="flex items-center justify-between mt-2 text-xs">
-        <span className="flex items-center gap-1 text-[#A1A1AA]">
-          <Clock size={12} /> {journey.pickup}
-        </span>
-        {journey.responseMins != null ? (
-          <span className="text-[#F59E0B] font-medium">{journey.responseMins} mins remaining</span>
-        ) : (
-          <span className="text-[#71717A]">{journey.posted}</span>
-        )}
-      </div>
-
-      {/* Operator trust footer */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#27272A]">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-medium text-[#FAFAFA] truncate">{operator.name}</span>
-            <Stars rating={operator.rating} />
-          </div>
-          <div className="text-[11px] text-[#71717A]">
-            {operator.completed} journeys · {operator.acceptance}% accept · {operator.onTime}% on time
-          </div>
+      {/* Trust: operator, rating, completed journeys */}
+      <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-[#27272A]">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-sm font-medium text-[#FAFAFA] truncate">{operator.name}</span>
+          <Stars rating={operator.rating} />
         </div>
+        <span className="text-[11px] text-[#71717A] shrink-0">{operator.completed} journeys</span>
       </div>
 
       {/* CTA */}
