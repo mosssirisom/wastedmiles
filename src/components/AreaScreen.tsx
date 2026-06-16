@@ -5,14 +5,15 @@ import Fab from './Fab'
 import JourneyCard from './JourneyCard'
 import FilterDrawer, { DEFAULT_FILTERS, activeFilterCount, type Filters } from './FilterDrawer'
 import { DARK_TILES, DARK_ATTRIBUTION, makeJourneyIcon } from '../lib/map'
-import { OPERATORS, regionMetrics, formatGBP, type Region } from '../data/marketplace'
+import { OPERATORS, regionMetrics, formatGBP, type Region, type Journey } from '../data/marketplace'
 
 interface AreaScreenProps {
   region: Region
   onBack: () => void
+  onOpenJourney: (journey: Journey) => void
 }
 
-export default function AreaScreen({ region, onBack }: AreaScreenProps) {
+export default function AreaScreen({ region, onBack, onOpenJourney }: AreaScreenProps) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layerRef = useRef<L.LayerGroup | null>(null)
@@ -42,8 +43,9 @@ export default function AreaScreen({ region, onBack }: AreaScreenProps) {
   const selectJourney = (id: string) => {
     setSelectedId(id)
     const journey = region.journeys.find((j) => j.id === id)
-    if (journey && mapRef.current) {
-      mapRef.current.flyTo([journey.lat, journey.lng], 13, { duration: 0.8 })
+    if (journey) {
+      if (mapRef.current) mapRef.current.flyTo([journey.lat, journey.lng], 13, { duration: 0.8 })
+      onOpenJourney(journey)
     }
   }
 

@@ -185,6 +185,7 @@ interface HeroProps {
   onOpenOperators: () => void
   onOpenPricing: () => void
   onOpenJoin: () => void
+  onOpenJourney: (journey: Journey) => void
 }
 
 export default function Hero({
@@ -194,6 +195,7 @@ export default function Hero({
   onOpenOperators,
   onOpenPricing,
   onOpenJoin,
+  onOpenJourney,
 }: HeroProps) {
   const totals = marketplaceTotals(regions)
   const activity = useMemo(() => buildActivity(regions), [regions])
@@ -398,7 +400,7 @@ export default function Hero({
               <OpportunityCard
                 key={`${j.id}-${i}`}
                 journey={j}
-                onClick={() => onSelectRegion(j.regionId)}
+                onClick={() => onOpenJourney(j)}
               />
             ))}
           </div>

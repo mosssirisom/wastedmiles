@@ -33,9 +33,15 @@ interface SectionScreenProps {
   section: SectionKind
   regions: Region[]
   onBack: () => void
+  onOpenJourney: (journey: Journey) => void
 }
 
-export default function SectionScreen({ section, regions, onBack }: SectionScreenProps) {
+export default function SectionScreen({
+  section,
+  regions,
+  onBack,
+  onOpenJourney,
+}: SectionScreenProps) {
   const config = SECTION_CONFIG[section]
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -96,8 +102,9 @@ export default function SectionScreen({ section, regions, onBack }: SectionScree
   const selectJourney = (id: string) => {
     setSelectedId(id)
     const journey = journeys.find((j) => j.id === id)
-    if (journey && mapRef.current) {
-      mapRef.current.flyTo([journey.lat, journey.lng], 11, { duration: 0.8 })
+    if (journey) {
+      if (mapRef.current) mapRef.current.flyTo([journey.lat, journey.lng], 11, { duration: 0.8 })
+      onOpenJourney(journey)
     }
   }
 
