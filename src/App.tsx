@@ -16,6 +16,7 @@ import SignInScreen from './components/SignInScreen'
 import AccountScreen from './components/AccountScreen'
 import PostJourneyScreen from './components/PostJourneyScreen'
 import MyPostedScreen from './components/MyPostedScreen'
+import FindWorkScreen from './components/FindWorkScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
@@ -38,6 +39,7 @@ type View =
   | { kind: 'account' }
   | { kind: 'post' }
   | { kind: 'posted' }
+  | { kind: 'find-work' }
   | { kind: 'pricing' }
   | { kind: 'join' }
 
@@ -93,6 +95,7 @@ export default function App() {
       onOpenSignIn={() => setView({ kind: 'signin' })}
       onOpenAccount={() => setView({ kind: 'account' })}
       onOpenPost={() => setView({ kind: 'post' })}
+      onOpenFindWork={() => setView({ kind: 'find-work' })}
       onOpenJourney={setDetailJourney}
     />
   )
@@ -187,6 +190,8 @@ export default function App() {
     )
   } else if (view.kind === 'posted') {
     screen = <MyPostedScreen onBack={goHome} onPost={() => setView({ kind: 'post' })} />
+  } else if (view.kind === 'find-work') {
+    screen = <FindWorkScreen onBack={goHome} />
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
   } else if (view.kind === 'join') {
@@ -245,6 +250,7 @@ export default function App() {
           onAccount={() => setView({ kind: 'account' })}
           onPost={() => setView({ kind: 'post' })}
           onPosted={() => setView({ kind: 'posted' })}
+          onFindWork={() => setView({ kind: 'find-work' })}
           onPricing={() => setView({ kind: 'pricing' })}
           onJoin={() => setView({ kind: 'join' })}
         />

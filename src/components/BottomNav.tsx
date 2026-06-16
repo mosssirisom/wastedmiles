@@ -19,6 +19,7 @@ interface BottomNavProps {
   onAccount: () => void
   onPost: () => void
   onPosted: () => void
+  onFindWork: () => void
   onPricing: () => void
   onJoin: () => void
 }
@@ -38,6 +39,7 @@ export default function BottomNav({
   onAccount,
   onPost,
   onPosted,
+  onFindWork,
   onPricing,
   onJoin,
 }: BottomNavProps) {
@@ -73,6 +75,15 @@ export default function BottomNav({
               className="mb-1 w-full text-center px-4 py-3 rounded-xl text-base font-medium bg-[#F97316] hover:bg-[#EA580C] text-white transition-colors"
             >
               Post a Journey
+            </button>
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                onFindWork()
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+            >
+              Find Work
             </button>
             <button
               onClick={() => {

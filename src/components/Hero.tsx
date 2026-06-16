@@ -245,6 +245,7 @@ interface HeroProps {
   onOpenSignIn: () => void
   onOpenAccount: () => void
   onOpenPost: () => void
+  onOpenFindWork: () => void
   onOpenJourney: (journey: Journey) => void
 }
 
@@ -263,6 +264,7 @@ export default function Hero({
   onOpenSignIn,
   onOpenAccount,
   onOpenPost,
+  onOpenFindWork,
   onOpenJourney,
 }: HeroProps) {
   const { unread } = useNotifications()
@@ -475,6 +477,12 @@ export default function Hero({
           </button>
           {user ? (
             <>
+              <button
+                onClick={onOpenFindWork}
+                className="hidden md:block text-[#A1A1AA] hover:text-[#FAFAFA] text-sm font-medium px-3 py-2.5 transition-colors"
+              >
+                Find Work
+              </button>
               <button
                 onClick={onOpenPost}
                 className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors"

@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, Plane, Plus, Check, Loader } from 'lucide-react'
-import { usePostedJobs, type PostedJob } from '../lib/jobsStore'
+import { useJobs, type PostedJob } from '../lib/jobsStore'
 import { formatGBP } from '../data/marketplace'
 
 function formatPickup(iso: string) {
@@ -70,7 +70,7 @@ interface MyPostedScreenProps {
 }
 
 export default function MyPostedScreen({ onBack, onPost }: MyPostedScreenProps) {
-  const { jobs } = usePostedJobs()
+  const { posted: jobs } = useJobs()
 
   return (
     <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>
