@@ -3,6 +3,7 @@ import { X, ArrowRight, BadgeCheck, Star, MessageSquare, Check } from 'lucide-re
 import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketplace'
 import { toast } from '../lib/toast'
 import { useClaims } from '../lib/claims'
+import { postAction } from '../lib/actions'
 
 function claimToast(status: Journey['status']): string {
   if (status === 'empty-return') return 'Empty return matched'
@@ -152,6 +153,7 @@ export default function JourneyDetail({ journey, onClose, onOpenOperator }: Jour
           onClick={() => {
             claimJourney(journey.id)
             toast(claimToast(journey.status))
+            postAction('claim', { journeyId: journey.id, status: journey.status })
             onClose()
           }}
           className={`mt-5 w-full text-sm font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
@@ -171,6 +173,7 @@ export default function JourneyDetail({ journey, onClose, onOpenOperator }: Jour
         <button
           onClick={() => {
             toast(`Message sent to ${op.name}`)
+            postAction('message', { operatorId: op.id })
             onClose()
           }}
           className="mt-2 w-full flex items-center justify-center gap-2 bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#FAFAFA] text-sm font-medium py-3 rounded-lg transition-colors"

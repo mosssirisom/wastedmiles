@@ -3,6 +3,7 @@ import OperatorTrust from './OperatorTrust'
 import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketplace'
 import { toast } from '../lib/toast'
 import { useClaims } from '../lib/claims'
+import { postAction } from '../lib/actions'
 
 function ctaLabel(status: Journey['status']): string {
   if (status === 'empty-return') return 'MATCH JOURNEY'
@@ -91,6 +92,7 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
           if (claimed) return
           claimJourney(journey.id)
           toast(ctaToast(journey.status))
+          postAction('claim', { journeyId: journey.id, status: journey.status })
         }}
         className={`mt-3 w-full text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
           claimed

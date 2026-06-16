@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Send, LifeBuoy, Repeat, Radio } from 'lucide-react'
 import { toast } from '../lib/toast'
+import { postAction } from '../lib/actions'
 
 const ACTIONS = [
   { label: 'Post Journey', icon: Send, toast: 'New journey posted' },
@@ -45,6 +46,7 @@ export default function Fab({ lifted = false }: { lifted?: boolean }) {
                 onClick={() => {
                   setOpen(false)
                   toast(action.toast)
+                  postAction('operator-action', { action: action.label })
                 }}
                 style={{ transitionDelay: open ? `${i * 40}ms` : '0ms' }}
                 className={`flex items-center gap-3 transition-all duration-300 ${

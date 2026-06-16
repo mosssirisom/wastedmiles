@@ -7,6 +7,7 @@ import {
   type Region,
 } from '../data/marketplace'
 import { toast } from '../lib/toast'
+import { postAction } from '../lib/actions'
 
 function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
@@ -163,7 +164,10 @@ export default function OperatorProfileScreen({ operator, regions, onBack }: Ope
       >
         <div className="max-w-2xl mx-auto">
           <button
-            onClick={() => toast(`Message sent to ${operator.name}`)}
+            onClick={() => {
+              toast(`Message sent to ${operator.name}`)
+              postAction('message', { operatorId: operator.id })
+            }}
             className="w-full flex items-center justify-center gap-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold py-3 rounded-lg transition-colors active:scale-[0.99]"
           >
             <MessageSquare size={16} />
