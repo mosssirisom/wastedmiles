@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plane, ArrowRight, Star, Map as MapIcon, X } from 'lucide-react'
+import { Plane, ArrowRight, Star, Map as MapIcon, X, CheckCircle2, MessageSquare } from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import {
@@ -226,6 +226,8 @@ interface HeroProps {
   onOpenPricing: () => void
   onOpenJoin: () => void
   onOpenMarketplace: () => void
+  onOpenMyJourneys: () => void
+  onOpenMessages: () => void
   onOpenJourney: (journey: Journey) => void
 }
 
@@ -237,6 +239,8 @@ export default function Hero({
   onOpenPricing,
   onOpenJoin,
   onOpenMarketplace,
+  onOpenMyJourneys,
+  onOpenMessages,
   onOpenJourney,
 }: HeroProps) {
   const totals = marketplaceTotals(regions)
@@ -410,8 +414,22 @@ export default function Hero({
           </span>
         </div>
 
-        {/* Right: Join (desktop) */}
-        <div className="flex-1 flex justify-end">
+        {/* Right: quick actions + Join (desktop) */}
+        <div className="flex-1 flex justify-end items-center gap-2">
+          <button
+            onClick={onOpenMyJourneys}
+            aria-label="My journeys"
+            className="hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-[#111113]/80 border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:border-[#3F3F46] transition-colors"
+          >
+            <CheckCircle2 size={17} />
+          </button>
+          <button
+            onClick={onOpenMessages}
+            aria-label="Messages"
+            className="hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-[#111113]/80 border border-[#27272A] text-[#A1A1AA] hover:text-[#FAFAFA] hover:border-[#3F3F46] transition-colors"
+          >
+            <MessageSquare size={17} />
+          </button>
           <button
             onClick={onOpenJoin}
             className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-6 py-2.5 rounded-full transition-colors"

@@ -47,9 +47,15 @@ interface JourneyDetailProps {
   journey: Journey | null
   onClose: () => void
   onOpenOperator?: (operatorId: string) => void
+  onMessageOperator?: (operatorId: string) => void
 }
 
-export default function JourneyDetail({ journey, onClose, onOpenOperator }: JourneyDetailProps) {
+export default function JourneyDetail({
+  journey,
+  onClose,
+  onOpenOperator,
+  onMessageOperator,
+}: JourneyDetailProps) {
   const { isClaimed, claimJourney } = useClaims()
   useEffect(() => {
     if (!journey) return
@@ -172,9 +178,8 @@ export default function JourneyDetail({ journey, onClose, onOpenOperator }: Jour
         </button>
         <button
           onClick={() => {
-            toast(`Message sent to ${op.name}`)
             postAction('message', { operatorId: op.id })
-            onClose()
+            onMessageOperator?.(op.id)
           }}
           className="mt-2 w-full flex items-center justify-center gap-2 bg-[#18181B] hover:bg-[#27272A] border border-[#27272A] text-[#FAFAFA] text-sm font-medium py-3 rounded-lg transition-colors"
         >

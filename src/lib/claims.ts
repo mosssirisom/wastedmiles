@@ -31,5 +31,5 @@ function getSnapshot() {
 // Subscribe a component to claim changes; returns the store helpers.
 export function useClaims() {
   useSyncExternalStore(subscribe, getSnapshot)
-  return { isClaimed, claimJourney }
+  return { isClaimed, claimJourney, claimedIds: Array.from(claimed) }
 }

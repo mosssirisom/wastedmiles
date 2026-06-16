@@ -6,7 +6,6 @@ import {
   type Operator,
   type Region,
 } from '../data/marketplace'
-import { toast } from '../lib/toast'
 import { postAction } from '../lib/actions'
 
 function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
@@ -44,9 +43,15 @@ interface OperatorProfileScreenProps {
   operator: Operator
   regions: Region[]
   onBack: () => void
+  onMessage: (operatorId: string) => void
 }
 
-export default function OperatorProfileScreen({ operator, regions, onBack }: OperatorProfileScreenProps) {
+export default function OperatorProfileScreen({
+  operator,
+  regions,
+  onBack,
+  onMessage,
+}: OperatorProfileScreenProps) {
   const reviews = buildReviews(operator.id)
   const recent = buildOperatorJourneys(regions, operator.id)
 
@@ -165,8 +170,8 @@ export default function OperatorProfileScreen({ operator, regions, onBack }: Ope
         <div className="max-w-2xl mx-auto">
           <button
             onClick={() => {
-              toast(`Message sent to ${operator.name}`)
               postAction('message', { operatorId: operator.id })
+              onMessage(operator.id)
             }}
             className="w-full flex items-center justify-center gap-2 bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold py-3 rounded-lg transition-colors active:scale-[0.99]"
           >

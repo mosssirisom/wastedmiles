@@ -7,6 +7,9 @@ import PricingScreen from './components/PricingScreen'
 import JoinScreen from './components/JoinScreen'
 import MarketplaceScreen from './components/MarketplaceScreen'
 import OperatorProfileScreen from './components/OperatorProfileScreen'
+import MyJourneysScreen from './components/MyJourneysScreen'
+import MessagesScreen from './components/MessagesScreen'
+import ThreadScreen from './components/ThreadScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
@@ -19,6 +22,9 @@ type View =
   | { kind: 'section'; section: SectionKind }
   | { kind: 'operators' }
   | { kind: 'operator'; id: string }
+  | { kind: 'my-journeys' }
+  | { kind: 'messages' }
+  | { kind: 'thread'; operatorId: string }
   | { kind: 'pricing' }
   | { kind: 'join' }
 
@@ -66,6 +72,8 @@ export default function App() {
       onOpenPricing={() => setView({ kind: 'pricing' })}
       onOpenJoin={() => setView({ kind: 'join' })}
       onOpenMarketplace={() => setView({ kind: 'marketplace' })}
+      onOpenMyJourneys={() => setView({ kind: 'my-journeys' })}
+      onOpenMessages={() => setView({ kind: 'messages' })}
       onOpenJourney={setDetailJourney}
     />
   )
@@ -116,9 +124,25 @@ export default function App() {
         operator={op}
         regions={regions}
         onBack={() => setView({ kind: 'operators' })}
+        onMessage={(id) => setView({ kind: 'thread', operatorId: id })}
       />
     ) : (
       home
+    )
+  } else if (view.kind === 'my-journeys') {
+    screen = (
+      <MyJourneysScreen regions={regions} onBack={goHome} onOpenJourney={setDetailJourney} />
+    )
+  } else if (view.kind === 'messages') {
+    screen = (
+      <MessagesScreen
+        onBack={goHome}
+        onOpenThread={(id) => setView({ kind: 'thread', operatorId: id })}
+      />
+    )
+  } else if (view.kind === 'thread') {
+    screen = (
+      <ThreadScreen operatorId={view.operatorId} onBack={() => setView({ kind: 'messages' })} />
     )
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
@@ -157,6 +181,10 @@ export default function App() {
           setDetailJourney(null)
           setView({ kind: 'operator', id })
         }}
+        onMessageOperator={(id) => {
+          setDetailJourney(null)
+          setView({ kind: 'thread', operatorId: id })
+        }}
       />
       {showNav && (
         <BottomNav
@@ -166,6 +194,8 @@ export default function App() {
           onEmpty={() => setView({ kind: 'section', section: 'empty' })}
           onCover={() => setView({ kind: 'section', section: 'cover' })}
           onOperators={() => setView({ kind: 'operators' })}
+          onMyJourneys={() => setView({ kind: 'my-journeys' })}
+          onMessages={() => setView({ kind: 'messages' })}
           onPricing={() => setView({ kind: 'pricing' })}
           onJoin={() => setView({ kind: 'join' })}
         />

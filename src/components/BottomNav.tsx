@@ -10,6 +10,8 @@ interface BottomNavProps {
   onEmpty: () => void
   onCover: () => void
   onOperators: () => void
+  onMyJourneys: () => void
+  onMessages: () => void
   onPricing: () => void
   onJoin: () => void
 }
@@ -21,6 +23,8 @@ export default function BottomNav({
   onEmpty,
   onCover,
   onOperators,
+  onMyJourneys,
+  onMessages,
   onPricing,
   onJoin,
 }: BottomNavProps) {
@@ -47,6 +51,24 @@ export default function BottomNav({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#27272A]" />
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                onMyJourneys()
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+            >
+              My Journeys
+            </button>
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                onMessages()
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+            >
+              Messages
+            </button>
             <button
               onClick={() => {
                 setMenuOpen(false)
