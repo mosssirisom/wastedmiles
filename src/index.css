@@ -63,6 +63,17 @@
 .marker-urgent { animation: markerGlow 2.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .marker-urgent { animation: none; } }
 
+/* Live network map layer */
+@keyframes netTwinkle { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.net-pulse { animation: netTwinkle 2s ease-in-out infinite; }
+@keyframes arcFlow { to { stroke-dashoffset: -16; } }
+.arc-flow { stroke-dasharray: 2 6; animation: arcFlow 1.3s linear infinite; }
+@keyframes chipPing { 0% { transform: scale(0.85); opacity: 0.4; } 100% { transform: scale(1.7); opacity: 0; } }
+.chip-ping { animation: chipPing 2.8s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .net-pulse, .arc-flow, .chip-ping { animation: none; }
+}
+
 /* Continuous opportunities ticker */
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .animate-marquee { animation: marquee 45s linear infinite; }

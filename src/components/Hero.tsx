@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plane, ArrowRight, Star, Map, X } from 'lucide-react'
+import { Plane, ArrowRight, Star, Map as MapIcon, X } from 'lucide-react'
 import L from 'leaflet'
 import { DARK_TILES, DARK_ATTRIBUTION } from '../lib/map'
 import {
@@ -16,6 +16,36 @@ import {
 
 const compactGBP = (n: number) =>
   n >= 1000 ? `£${(n / 1000).toFixed(1)}k` : `£${n}`
+
+// Live network map layer
+const NET = {
+  available: '#F97316',
+  empty: '#3B82F6',
+  urgent: '#EF4444',
+  operator: '#22C55E',
+}
+
+const ARC_PAIRS: [string, string][] = [
+  ['manchester', 'liverpool'],
+  ['manchester', 'leeds-bradford'],
+  ['birmingham', 'manchester'],
+  ['heathrow', 'gatwick'],
+  ['luton', 'stansted'],
+  ['glasgow', 'edinburgh'],
+]
+
+interface NetDot {
+  id: string
+  x: number
+  y: number
+  color: string
+  pulse: boolean
+}
+
+interface NetArc {
+  id: string
+  d: string
+}
 import type { SectionKind } from './SectionScreen'
 
 // Display view: the UK — the marketplace covers airports nationwide.
@@ -227,6 +257,7 @@ export default function Hero({
 
   const [mapMode, setMapMode] = useState(false)
   const [activePin, setActivePin] = useState<string | null>(null)
+  const [net, setNet] = useState<{ dots: NetDot[]; arcs: NetArc[] }>({ dots: [], arcs: [] })
   const baseDivRef = useRef<HTMLDivElement>(null)
   const baseMapRef = useRef<L.Map | null>(null)
   const regionsRef = useRef(regions)
@@ -254,6 +285,43 @@ export default function Hero({
         }
       })
     )
+
+    // Live network layer: opportunity dots, urgent markers, operator dots, arcs
+    const dots: NetDot[] = []
+    regionsRef.current.forEach((r) => {
+      r.journeys.slice(0, 2).forEach((j) => {
+        const p = map.latLngToContainerPoint([j.lat, j.lng])
+        const color =
+          j.status === 'available'
+            ? NET.available
+            : j.status === 'empty-return'
+              ? NET.empty
+              : NET.urgent
+        dots.push({ id: j.id, x: p.x, y: p.y, color, pulse: j.status === 'urgent' })
+      })
+      // one operator-online indicator per airport
+      const o = map.latLngToContainerPoint([r.center[0] + 0.16, r.center[1] + 0.18])
+      dots.push({ id: `${r.id}-op`, x: o.x, y: o.y, color: NET.operator, pulse: true })
+    })
+
+    const centerById = new Map(regionsRef.current.map((r) => [r.id, r.center]))
+    const arcs: NetArc[] = []
+    ARC_PAIRS.forEach(([a, b]) => {
+      const ca = centerById.get(a)
+      const cb = centerById.get(b)
+      if (!ca || !cb) return
+      const p1 = map.latLngToContainerPoint(ca)
+      const p2 = map.latLngToContainerPoint(cb)
+      const dx = p2.x - p1.x
+      const dy = p2.y - p1.y
+      const len = Math.hypot(dx, dy) || 1
+      const off = Math.min(len * 0.22, 44)
+      const cx = (p1.x + p2.x) / 2 - (dy / len) * off
+      const cy = (p1.y + p2.y) / 2 + (dx / len) * off
+      arcs.push({ id: `${a}-${b}`, d: `M ${p1.x} ${p1.y} Q ${cx} ${cy} ${p2.x} ${p2.y}` })
+    })
+
+    setNet({ dots, arcs })
   }, [])
 
   useEffect(() => {
@@ -438,6 +506,33 @@ export default function Hero({
       >
         <div ref={baseDivRef} className="absolute inset-0 z-10" />
 
+        {/* Live network layer */}
+        <svg className="absolute inset-0 z-[15] w-full h-full pointer-events-none" aria-hidden>
+          {net.arcs.map((a) => (
+            <path
+              key={a.id}
+              d={a.d}
+              fill="none"
+              stroke={NET.empty}
+              strokeWidth={1.5}
+              strokeOpacity={0.4}
+              className="arc-flow"
+            />
+          ))}
+          {net.dots.map((d) => (
+            <circle
+              key={d.id}
+              cx={d.x}
+              cy={d.y}
+              r={3}
+              fill={d.color}
+              stroke="#09090B"
+              strokeWidth={1}
+              className={d.pulse ? 'net-pulse' : undefined}
+            />
+          ))}
+        </svg>
+
         <div className="absolute inset-0 z-20 pointer-events-none bg-gradient-to-b from-[#09090B]/40 via-transparent to-[#09090B]/70" />
 
         {/* Mobile: dim the map so it reads as secondary until map mode */}
@@ -461,6 +556,11 @@ export default function Hero({
                 style={{ left: pin.x, top: pin.y }}
                 className="group absolute -translate-x-1/2 -translate-y-1/2 pointer-events-auto"
               >
+                {/* subtle live pulse */}
+                <span
+                  aria-hidden
+                  className="chip-ping absolute inset-0 rounded-lg border border-[#A1A1AA]/30"
+                />
                 {/* Compact marker: code + value */}
                 <button
                   onClick={() => setActivePin(active ? null : pin.id)}
@@ -525,7 +625,7 @@ export default function Hero({
             onClick={() => setMapMode(true)}
             className="md:hidden absolute bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-[#18181B] border border-[#27272A] text-[#FAFAFA] text-sm font-medium px-4 py-2.5 rounded-full shadow-lg"
           >
-            <Map size={16} />
+            <MapIcon size={16} />
             View live map
           </button>
         ) : (
@@ -537,6 +637,23 @@ export default function Hero({
             Done
           </button>
         )}
+
+        {/* Network legend */}
+        <div
+          className={`${mapMode ? 'flex' : 'hidden'} md:flex flex-col gap-1.5 absolute bottom-24 md:bottom-6 left-4 md:left-6 z-50 rounded-xl border border-[#27272A] bg-[#111113]/90 backdrop-blur-md px-3 py-2.5`}
+        >
+          {[
+            { c: NET.available, label: 'Available journey' },
+            { c: NET.empty, label: 'Empty return' },
+            { c: NET.urgent, label: 'Urgent cover' },
+            { c: NET.operator, label: 'Operator online' },
+          ].map((row) => (
+            <span key={row.label} className="flex items-center gap-2 text-[11px]">
+              <span className="h-2 w-2 rounded-full shrink-0" style={{ background: row.c }} />
+              <span className="text-[#A1A1AA]">{row.label}</span>
+            </span>
+          ))}
+        </div>
 
         {/* Live activity feed (bottom-right, desktop) */}
         <div
