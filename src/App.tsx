@@ -12,6 +12,8 @@ import MessagesScreen from './components/MessagesScreen'
 import ThreadScreen from './components/ThreadScreen'
 import NotificationsScreen from './components/NotificationsScreen'
 import DashboardScreen from './components/DashboardScreen'
+import SignInScreen from './components/SignInScreen'
+import AccountScreen from './components/AccountScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
@@ -30,6 +32,8 @@ type View =
   | { kind: 'thread'; operatorId: string }
   | { kind: 'notifications' }
   | { kind: 'dashboard' }
+  | { kind: 'signin' }
+  | { kind: 'account' }
   | { kind: 'pricing' }
   | { kind: 'join' }
 
@@ -82,6 +86,8 @@ export default function App() {
       onOpenMessages={() => setView({ kind: 'messages' })}
       onOpenNotifications={() => setView({ kind: 'notifications' })}
       onOpenDashboard={() => setView({ kind: 'dashboard' })}
+      onOpenSignIn={() => setView({ kind: 'signin' })}
+      onOpenAccount={() => setView({ kind: 'account' })}
       onOpenJourney={setDetailJourney}
     />
   )
@@ -156,6 +162,10 @@ export default function App() {
     screen = <NotificationsScreen onBack={goHome} />
   } else if (view.kind === 'dashboard') {
     screen = <DashboardScreen onBack={goHome} />
+  } else if (view.kind === 'signin') {
+    screen = <SignInScreen onBack={goHome} onDone={goHome} />
+  } else if (view.kind === 'account') {
+    screen = <AccountScreen onBack={goHome} onSignedOut={goHome} />
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
   } else if (view.kind === 'join') {
@@ -210,6 +220,8 @@ export default function App() {
           onMessages={() => setView({ kind: 'messages' })}
           onNotifications={() => setView({ kind: 'notifications' })}
           onDashboard={() => setView({ kind: 'dashboard' })}
+          onSignIn={() => setView({ kind: 'signin' })}
+          onAccount={() => setView({ kind: 'account' })}
           onPricing={() => setView({ kind: 'pricing' })}
           onJoin={() => setView({ kind: 'join' })}
         />

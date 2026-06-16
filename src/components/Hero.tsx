@@ -58,6 +58,7 @@ interface NetArc {
 }
 import type { SectionKind } from './SectionScreen'
 import { useNotifications } from '../lib/notifications'
+import { useAuth } from '../lib/auth'
 
 // Display view: the UK — the marketplace covers airports nationwide.
 // Centred slightly north so the whole UK sits below the fixed header.
@@ -241,6 +242,8 @@ interface HeroProps {
   onOpenMessages: () => void
   onOpenNotifications: () => void
   onOpenDashboard: () => void
+  onOpenSignIn: () => void
+  onOpenAccount: () => void
   onOpenJourney: (journey: Journey) => void
 }
 
@@ -256,9 +259,12 @@ export default function Hero({
   onOpenMessages,
   onOpenNotifications,
   onOpenDashboard,
+  onOpenSignIn,
+  onOpenAccount,
   onOpenJourney,
 }: HeroProps) {
   const { unread } = useNotifications()
+  const { user } = useAuth()
   const totals = marketplaceTotals(regions)
   const activity = useMemo(() => buildActivity(regions), [regions])
 
@@ -465,12 +471,30 @@ export default function Hero({
           >
             <MessageSquare size={17} />
           </button>
-          <button
-            onClick={onOpenJoin}
-            className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors"
-          >
-            Join the Network
-          </button>
+          {user ? (
+            <button
+              onClick={onOpenAccount}
+              aria-label="Account"
+              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-[#18181B] border border-[#27272A] text-sm font-semibold text-[#FAFAFA] hover:border-[#3F3F46] transition-colors"
+            >
+              {user.name.slice(0, 1).toUpperCase()}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onOpenSignIn}
+                className="hidden md:block text-[#A1A1AA] hover:text-[#FAFAFA] text-sm font-medium px-3 py-2.5 transition-colors"
+              >
+                Sign in
+              </button>
+              <button
+                onClick={onOpenJoin}
+                className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors"
+              >
+                Join the Network
+              </button>
+            </>
+          )}
         </div>
       </nav>
 

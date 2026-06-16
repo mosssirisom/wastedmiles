@@ -1,15 +1,27 @@
 import { useSyncExternalStore } from 'react'
+import { loadJSON, saveJSON } from './persist'
+import { api, hasBackend } from './api'
 
-// Lightweight global store of claimed journey ids (no prop drilling).
-const claimed = new Set<string>()
+// Global store of claimed journey ids — persisted locally, and synced to
+// the backend when one is configured (VITE_API_URL).
+const STORAGE_KEY = 'wm-claims'
+const claimed = new Set<string>(loadJSON<string[]>(STORAGE_KEY, []))
 const listeners = new Set<() => void>()
 let version = 0
+
+function emit() {
+  version++
+  saveJSON(STORAGE_KEY, Array.from(claimed))
+  listeners.forEach((l) => l())
+}
 
 export function claimJourney(id: string) {
   if (!claimed.has(id)) {
     claimed.add(id)
-    version++
-    listeners.forEach((l) => l())
+    emit()
+    if (hasBackend()) {
+      api.post('/claims', { journeyId: id }).catch(() => {})
+    }
   }
 }
 
@@ -28,7 +40,6 @@ function getSnapshot() {
   return version
 }
 
-// Subscribe a component to claim changes; returns the store helpers.
 export function useClaims() {
   useSyncExternalStore(subscribe, getSnapshot)
   return { isClaimed, claimJourney, claimedIds: Array.from(claimed) }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft, Check } from 'lucide-react'
+import { useAuth } from '../lib/auth'
 
 const inputClass =
   'w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-2.5 text-sm text-[#FAFAFA] placeholder:text-[#52525B] focus:outline-none focus:border-[#F97316]/60'
@@ -10,6 +11,7 @@ interface JoinScreenProps {
 }
 
 export default function JoinScreen({ onBack }: JoinScreenProps) {
+  const { signIn } = useAuth()
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +37,7 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
         body: JSON.stringify({ ...form, source: 'wasted-miles-web' }),
       })
       if (!res.ok) throw new Error(`Signup failed (${res.status})`)
+      await signIn(form.email, form.name)
       setSubmitted(true)
     } catch (err) {
       console.warn('[join] signup failed:', err)

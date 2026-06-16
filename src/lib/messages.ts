@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react'
+import { loadJSON, saveJSON } from './persist'
+import { api, hasBackend } from './api'
 
 export interface Message {
   id: number
@@ -12,13 +14,18 @@ export interface Thread {
   messages: Message[]
 }
 
-const threads = new Map<string, Message[]>()
+const STORAGE_KEY = 'wm-threads'
+const stored = loadJSON<Record<string, Message[]>>(STORAGE_KEY, {})
+const threads = new Map<string, Message[]>(Object.entries(stored))
 const listeners = new Set<() => void>()
 let version = 0
-let mid = 0
+let mid = Object.values(stored)
+  .flat()
+  .reduce((max, m) => Math.max(max, m.id), 0)
 
 function emit() {
   version++
+  saveJSON(STORAGE_KEY, Object.fromEntries(threads))
   listeners.forEach((l) => l())
 }
 
@@ -41,17 +48,23 @@ export function sendMessage(operatorId: string, text: string) {
   t.push({ id: ++mid, from: 'me', text, at: Date.now() })
   threads.set(operatorId, [...t])
   emit()
-  setTimeout(() => {
-    const cur = threads.get(operatorId) ?? []
-    cur.push({
-      id: ++mid,
-      from: 'op',
-      text: REPLIES[Math.floor(Math.random() * REPLIES.length)],
-      at: Date.now(),
-    })
-    threads.set(operatorId, [...cur])
-    emit()
-  }, 1200)
+
+  if (hasBackend()) {
+    api.post(`/threads/${operatorId}/messages`, { text }).catch(() => {})
+  } else {
+    // Local demo: simulate an operator reply.
+    setTimeout(() => {
+      const cur = threads.get(operatorId) ?? []
+      cur.push({
+        id: ++mid,
+        from: 'op',
+        text: REPLIES[Math.floor(Math.random() * REPLIES.length)],
+        at: Date.now(),
+      })
+      threads.set(operatorId, [...cur])
+      emit()
+    }, 1200)
+  }
 }
 
 function subscribe(l: () => void) {

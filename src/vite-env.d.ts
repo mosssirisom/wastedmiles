@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_SIGNUP_API_KEY?: string
   readonly VITE_ACTIONS_API_URL?: string
   readonly VITE_ACTIONS_API_KEY?: string
+  readonly VITE_API_URL?: string
+  readonly VITE_AUTH_API_URL?: string
 }
 
 interface ImportMeta {

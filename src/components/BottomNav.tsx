@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Home, List, Repeat, LifeBuoy, Menu as MenuIcon } from 'lucide-react'
+import { useAuth } from '../lib/auth'
 
 export type NavTab = 'home' | 'marketplace' | 'empty' | 'cover' | 'menu'
 
@@ -14,6 +15,8 @@ interface BottomNavProps {
   onMessages: () => void
   onNotifications: () => void
   onDashboard: () => void
+  onSignIn: () => void
+  onAccount: () => void
   onPricing: () => void
   onJoin: () => void
 }
@@ -29,9 +32,12 @@ export default function BottomNav({
   onMessages,
   onNotifications,
   onDashboard,
+  onSignIn,
+  onAccount,
   onPricing,
   onJoin,
 }: BottomNavProps) {
+  const { user } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const tabs: { id: NavTab; label: string; icon: typeof Home; onClick: () => void }[] = [
@@ -112,12 +118,24 @@ export default function BottomNav({
             <button
               onClick={() => {
                 setMenuOpen(false)
-                onJoin()
+                if (user) onAccount()
+                else onSignIn()
               }}
-              className="mt-2 w-full text-center px-4 py-3 rounded-xl text-base font-medium bg-[#F97316] hover:bg-[#EA580C] text-white transition-colors"
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
             >
-              Join the Network
+              {user ? 'Account' : 'Sign in'}
             </button>
+            {!user && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  onJoin()
+                }}
+                className="mt-2 w-full text-center px-4 py-3 rounded-xl text-base font-medium bg-[#F97316] hover:bg-[#EA580C] text-white transition-colors"
+              >
+                Join the Network
+              </button>
+            )}
           </div>
         </div>
       )}
