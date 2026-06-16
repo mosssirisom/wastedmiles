@@ -17,6 +17,7 @@ import AccountScreen from './components/AccountScreen'
 import PostJourneyScreen from './components/PostJourneyScreen'
 import MyPostedScreen from './components/MyPostedScreen'
 import FindWorkScreen from './components/FindWorkScreen'
+import PaymentMethodScreen from './components/PaymentMethodScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
@@ -40,6 +41,7 @@ type View =
   | { kind: 'post' }
   | { kind: 'posted' }
   | { kind: 'find-work' }
+  | { kind: 'payment' }
   | { kind: 'pricing' }
   | { kind: 'join' }
 
@@ -178,8 +180,11 @@ export default function App() {
         onBack={goHome}
         onSignedOut={goHome}
         onOpenPosted={() => setView({ kind: 'posted' })}
+        onOpenPayment={() => setView({ kind: 'payment' })}
       />
     )
+  } else if (view.kind === 'payment') {
+    screen = <PaymentMethodScreen onBack={goHome} onDone={goHome} />
   } else if (view.kind === 'post') {
     screen = (
       <PostJourneyScreen
@@ -189,7 +194,13 @@ export default function App() {
       />
     )
   } else if (view.kind === 'posted') {
-    screen = <MyPostedScreen onBack={goHome} onPost={() => setView({ kind: 'post' })} />
+    screen = (
+      <MyPostedScreen
+        onBack={goHome}
+        onPost={() => setView({ kind: 'post' })}
+        onAddPayment={() => setView({ kind: 'payment' })}
+      />
+    )
   } else if (view.kind === 'find-work') {
     screen = <FindWorkScreen onBack={goHome} />
   } else if (view.kind === 'pricing') {

@@ -11,7 +11,15 @@ import { OPERATORS, REGIONS } from '../data/marketplace'
 // The blind reverse-auction mirrors the Supabase RPCs (settle_job): the
 // lowest hidden bid wins and the operator only ever sees their cap.
 
-export type JobStatus = 'pending' | 'covered' | 'open' | 'bidding' | 'won' | 'lost' | 'expired'
+export type JobStatus =
+  | 'pending'
+  | 'covered'
+  | 'completed'
+  | 'open'
+  | 'bidding'
+  | 'won'
+  | 'lost'
+  | 'expired'
 
 export interface PostedJob {
   id: string
@@ -95,6 +103,15 @@ export function postJob(
   return job
 }
 
+// Release escrow on completion (driver paid winning bid, platform keeps spread).
+export function completeJob(id: string) {
+  const job = items.find((j) => j.id === id)
+  if (!job || job.status !== 'covered') return
+  job.status = 'completed'
+  emit()
+  if (hasBackend()) api.post(`/jobs/${id}/complete`, {}).catch(() => {})
+}
+
 // --- driver side -------------------------------------------------------------
 function settleBid(id: string, driverName: string) {
   const job = items.find((j) => j.id === id)
@@ -160,5 +177,6 @@ export function useJobs() {
     postJob,
     buyNow,
     placeBid,
+    completeJob,
   }
 }

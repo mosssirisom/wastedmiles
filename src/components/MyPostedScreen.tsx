@@ -1,6 +1,7 @@
-import { ArrowLeft, ArrowRight, Plane, Plus, Check, Loader } from 'lucide-react'
-import { useJobs, type PostedJob } from '../lib/jobsStore'
+import { ArrowLeft, ArrowRight, Plane, Plus, Check, Loader, CreditCard } from 'lucide-react'
+import { useJobs, completeJob, type PostedJob } from '../lib/jobsStore'
 import { formatGBP } from '../data/marketplace'
+import { useBilling } from '../lib/billing'
 
 function formatPickup(iso: string) {
   const d = new Date(iso)
@@ -14,12 +15,27 @@ function formatPickup(iso: string) {
   return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${time}`
 }
 
-function Card({ job }: { job: PostedJob }) {
+function Card({
+  job,
+  last4,
+  onAddPayment,
+}: {
+  job: PostedJob
+  last4?: string
+  onAddPayment: () => void
+}) {
   const covered = job.status === 'covered'
+  const completed = job.status === 'completed'
+  const settled = covered || completed
+
   return (
     <div className="rounded-2xl border border-[#27272A] bg-[#111113] p-4">
       <div className="flex items-start justify-between gap-3">
-        {covered ? (
+        {completed ? (
+          <span className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-md border bg-[#18181B] text-[#D4D4D8] border-[#27272A]">
+            <Check size={12} /> Completed
+          </span>
+        ) : covered ? (
           <span className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-md border bg-[#F97316]/15 text-[#F97316] border-[#F97316]/40">
             <Check size={12} /> Covered
           </span>
@@ -32,7 +48,7 @@ function Card({ job }: { job: PostedJob }) {
           <div className="text-lg font-bold tabular-nums tracking-[-0.02em] text-[#FAFAFA]">
             {formatGBP(job.cap)}
           </div>
-          <div className="text-[11px] text-[#71717A]">{covered ? 'you pay' : 'up to'}</div>
+          <div className="text-[11px] text-[#71717A]">{settled ? 'you pay' : 'up to'}</div>
         </div>
       </div>
 
@@ -50,14 +66,38 @@ function Card({ job }: { job: PostedJob }) {
         <span>{formatPickup(job.pickupAt)}</span>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-[#27272A] text-xs">
-        {covered ? (
-          <span className="text-[#A1A1AA]">
-            Covered by <span className="text-[#FAFAFA] font-medium">{job.driverName}</span> — verified
-            operator
-          </span>
-        ) : (
+      <div className="mt-3 pt-3 border-t border-[#27272A] text-xs space-y-2">
+        {!settled && (
           <span className="text-[#71717A]">Pending — we're matching the best available driver.</span>
+        )}
+
+        {settled && (
+          <div className="text-[#A1A1AA]">
+            {completed ? 'Completed by ' : 'Covered by '}
+            <span className="text-[#FAFAFA] font-medium">{job.driverName}</span> — verified operator
+          </div>
+        )}
+
+        {settled &&
+          (last4 ? (
+            <div className="flex items-center gap-1.5 text-[#71717A]">
+              <CreditCard size={13} />
+              {formatGBP(job.cap)} charged to •••• {last4} ·{' '}
+              {completed ? 'released' : 'held in escrow'}
+            </div>
+          ) : (
+            <button onClick={onAddPayment} className="text-[#F97316] font-medium hover:underline">
+              Add a payment method to complete
+            </button>
+          ))}
+
+        {covered && last4 && (
+          <button
+            onClick={() => completeJob(job.id)}
+            className="mt-1 w-full bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium py-2.5 rounded-lg transition-colors active:scale-[0.99]"
+          >
+            Mark journey complete
+          </button>
         )}
       </div>
     </div>
@@ -67,10 +107,12 @@ function Card({ job }: { job: PostedJob }) {
 interface MyPostedScreenProps {
   onBack: () => void
   onPost: () => void
+  onAddPayment: () => void
 }
 
-export default function MyPostedScreen({ onBack, onPost }: MyPostedScreenProps) {
+export default function MyPostedScreen({ onBack, onPost, onAddPayment }: MyPostedScreenProps) {
   const { posted: jobs } = useJobs()
+  const { card } = useBilling()
 
   return (
     <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>
@@ -115,7 +157,7 @@ export default function MyPostedScreen({ onBack, onPost }: MyPostedScreenProps) 
         ) : (
           <div className="mt-6 space-y-3">
             {jobs.map((j) => (
-              <Card key={j.id} job={j} />
+              <Card key={j.id} job={j} last4={card?.last4} onAddPayment={onAddPayment} />
             ))}
           </div>
         )}
