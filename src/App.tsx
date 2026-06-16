@@ -14,7 +14,7 @@ import { fetchRegions, OPERATORS, type Region, type Journey } from './data/marke
 
 type View =
   | { kind: 'home' }
-  | { kind: 'marketplace' }
+  | { kind: 'marketplace'; airport?: string }
   | { kind: 'region'; id: string }
   | { kind: 'section'; section: SectionKind }
   | { kind: 'operators' }
@@ -24,13 +24,17 @@ type View =
 
 export default function App() {
   const [regions, setRegions] = useState<Region[]>([])
+  const [loaded, setLoaded] = useState(false)
   const [view, setView] = useState<View>({ kind: 'home' })
   const [detailJourney, setDetailJourney] = useState<Journey | null>(null)
 
   useEffect(() => {
     let alive = true
     fetchRegions().then((r) => {
-      if (alive) setRegions(r)
+      if (alive) {
+        setRegions(r)
+        setLoaded(true)
+      }
     })
     return () => {
       alive = false
@@ -38,6 +42,20 @@ export default function App() {
   }, [])
 
   const goHome = () => setView({ kind: 'home' })
+
+  if (!loaded) {
+    return (
+      <div
+        className="min-h-screen bg-[#09090B] flex flex-col items-center justify-center gap-2"
+        style={{ minHeight: '100dvh', fontFamily: "'Inter', sans-serif" }}
+      >
+        <span className="text-[#FAFAFA] text-2xl font-playfair italic animate-pulse">
+          Wasted Miles
+        </span>
+        <span className="text-xs text-[#71717A]">Loading live network…</span>
+      </div>
+    )
+  }
 
   const home = (
     <Hero
@@ -55,12 +73,22 @@ export default function App() {
   let screen
   if (view.kind === 'marketplace') {
     screen = (
-      <MarketplaceScreen regions={regions} onBack={goHome} onOpenJourney={setDetailJourney} />
+      <MarketplaceScreen
+        regions={regions}
+        initialAirport={view.airport}
+        onBack={goHome}
+        onOpenJourney={setDetailJourney}
+      />
     )
   } else if (view.kind === 'region') {
     const region = regions.find((r) => r.id === view.id)
     screen = region ? (
-      <AreaScreen region={region} onBack={goHome} onOpenJourney={setDetailJourney} />
+      <AreaScreen
+        region={region}
+        onBack={goHome}
+        onOpenJourney={setDetailJourney}
+        onOpenMarketplace={(id) => setView({ kind: 'marketplace', airport: id })}
+      />
     ) : (
       home
     )

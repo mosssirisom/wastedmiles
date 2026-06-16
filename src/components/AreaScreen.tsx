@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Plane, SlidersHorizontal, Map, List } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Plane, SlidersHorizontal, Map, List } from 'lucide-react'
 import L from 'leaflet'
 import Fab from './Fab'
 import JourneyCard from './JourneyCard'
@@ -16,9 +16,15 @@ interface AreaScreenProps {
   region: Region
   onBack: () => void
   onOpenJourney: (journey: Journey) => void
+  onOpenMarketplace: (airportId: string) => void
 }
 
-export default function AreaScreen({ region, onBack, onOpenJourney }: AreaScreenProps) {
+export default function AreaScreen({
+  region,
+  onBack,
+  onOpenJourney,
+  onOpenMarketplace,
+}: AreaScreenProps) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const layerRef = useRef<L.LayerGroup | null>(null)
@@ -172,6 +178,14 @@ export default function AreaScreen({ region, onBack, onOpenJourney }: AreaScreen
               <div className="text-[11px] text-[#71717A]">Cover Requests</div>
             </div>
           </div>
+
+          <button
+            onClick={() => onOpenMarketplace(region.id)}
+            className="mt-3 flex items-center gap-1 text-xs font-medium text-[#F97316] hover:underline"
+          >
+            View {region.code} in full Marketplace
+            <ArrowRight size={13} />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">

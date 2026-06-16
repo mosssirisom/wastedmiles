@@ -43,11 +43,17 @@ interface MarketplaceScreenProps {
   regions: Region[]
   onBack: () => void
   onOpenJourney: (journey: Journey) => void
+  initialAirport?: string
 }
 
-export default function MarketplaceScreen({ regions, onBack, onOpenJourney }: MarketplaceScreenProps) {
+export default function MarketplaceScreen({
+  regions,
+  onBack,
+  onOpenJourney,
+  initialAirport,
+}: MarketplaceScreenProps) {
   const [search, setSearch] = useState('')
-  const [airport, setAirport] = useState<string>('all')
+  const [airport, setAirport] = useState<string>(initialAirport ?? 'all')
   const [sort, setSort] = useState<Sort>('value')
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [drawerOpen, setDrawerOpen] = useState(false)
