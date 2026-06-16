@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { X, ArrowRight, BadgeCheck, Star, MessageSquare } from 'lucide-react'
+import { X, ArrowRight, BadgeCheck, Star, MessageSquare, Check } from 'lucide-react'
 import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketplace'
 import { toast } from '../lib/toast'
+import { useClaims } from '../lib/claims'
 
 function claimToast(status: Journey['status']): string {
   if (status === 'empty-return') return 'Empty return matched'
@@ -48,6 +49,7 @@ interface JourneyDetailProps {
 }
 
 export default function JourneyDetail({ journey, onClose, onOpenOperator }: JourneyDetailProps) {
+  const { isClaimed, claimJourney } = useClaims()
   useEffect(() => {
     if (!journey) return
     document.body.style.overflow = 'hidden'
@@ -64,6 +66,7 @@ export default function JourneyDetail({ journey, onClose, onOpenOperator }: Jour
   if (!journey) return null
   const op = OPERATORS[journey.operatorId]
   const status = STATUS_META[journey.status]
+  const claimed = isClaimed(journey.id)
   const timeUrgent = journey.responseMins != null
   const timeText = timeUrgent ? `${journey.responseMins} mins remaining` : `Posted ${journey.posted}`
   const statusText = journey.status === 'urgent' ? 'Urgent' : status.label
@@ -145,13 +148,25 @@ export default function JourneyDetail({ journey, onClose, onOpenOperator }: Jour
 
         {/* CTAs */}
         <button
+          disabled={claimed}
           onClick={() => {
+            claimJourney(journey.id)
             toast(claimToast(journey.status))
             onClose()
           }}
-          className="mt-5 w-full bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-semibold py-3 rounded-lg transition-colors active:scale-[0.99]"
+          className={`mt-5 w-full text-sm font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+            claimed
+              ? 'bg-[#18181B] border border-[#27272A] text-[#A1A1AA] cursor-default'
+              : 'bg-[#F97316] hover:bg-[#EA580C] text-white active:scale-[0.99]'
+          }`}
         >
-          Claim Journey
+          {claimed ? (
+            <>
+              <Check size={16} /> Claimed
+            </>
+          ) : (
+            'Claim Journey'
+          )}
         </button>
         <button
           onClick={() => {

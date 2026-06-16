@@ -1,7 +1,8 @@
-import { Plane, ArrowRight, Users, Briefcase, Armchair } from 'lucide-react'
+import { Plane, ArrowRight, Users, Briefcase, Armchair, Check } from 'lucide-react'
 import OperatorTrust from './OperatorTrust'
 import { OPERATORS, STATUS_META, formatGBP, type Journey } from '../data/marketplace'
 import { toast } from '../lib/toast'
+import { useClaims } from '../lib/claims'
 
 function ctaLabel(status: Journey['status']): string {
   if (status === 'empty-return') return 'MATCH JOURNEY'
@@ -24,6 +25,8 @@ interface JourneyCardProps {
 export default function JourneyCard({ journey, active, onSelect }: JourneyCardProps) {
   const operator = OPERATORS[journey.operatorId]
   const status = STATUS_META[journey.status]
+  const { isClaimed, claimJourney } = useClaims()
+  const claimed = isClaimed(journey.id)
   const timeUrgent = journey.responseMins != null
   const timeText = timeUrgent ? `${journey.responseMins} mins remaining` : journey.posted
 
@@ -82,13 +85,26 @@ export default function JourneyCard({ journey, active, onSelect }: JourneyCardPr
 
       {/* CTA */}
       <button
+        disabled={claimed}
         onClick={(e) => {
           e.stopPropagation()
+          if (claimed) return
+          claimJourney(journey.id)
           toast(ctaToast(journey.status))
         }}
-        className="mt-3 w-full bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium py-2.5 rounded-lg transition-colors active:scale-[0.99]"
+        className={`mt-3 w-full text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+          claimed
+            ? 'bg-[#18181B] border border-[#27272A] text-[#A1A1AA] cursor-default'
+            : 'bg-[#F97316] hover:bg-[#EA580C] text-white active:scale-[0.99]'
+        }`}
       >
-        {ctaLabel(journey.status)}
+        {claimed ? (
+          <>
+            <Check size={15} /> Claimed
+          </>
+        ) : (
+          ctaLabel(journey.status)
+        )}
       </button>
     </div>
   )
