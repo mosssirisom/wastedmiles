@@ -14,6 +14,8 @@ import NotificationsScreen from './components/NotificationsScreen'
 import DashboardScreen from './components/DashboardScreen'
 import SignInScreen from './components/SignInScreen'
 import AccountScreen from './components/AccountScreen'
+import PostJourneyScreen from './components/PostJourneyScreen'
+import MyPostedScreen from './components/MyPostedScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
@@ -34,6 +36,8 @@ type View =
   | { kind: 'dashboard' }
   | { kind: 'signin' }
   | { kind: 'account' }
+  | { kind: 'post' }
+  | { kind: 'posted' }
   | { kind: 'pricing' }
   | { kind: 'join' }
 
@@ -88,6 +92,7 @@ export default function App() {
       onOpenDashboard={() => setView({ kind: 'dashboard' })}
       onOpenSignIn={() => setView({ kind: 'signin' })}
       onOpenAccount={() => setView({ kind: 'account' })}
+      onOpenPost={() => setView({ kind: 'post' })}
       onOpenJourney={setDetailJourney}
     />
   )
@@ -165,7 +170,23 @@ export default function App() {
   } else if (view.kind === 'signin') {
     screen = <SignInScreen onBack={goHome} onDone={goHome} />
   } else if (view.kind === 'account') {
-    screen = <AccountScreen onBack={goHome} onSignedOut={goHome} />
+    screen = (
+      <AccountScreen
+        onBack={goHome}
+        onSignedOut={goHome}
+        onOpenPosted={() => setView({ kind: 'posted' })}
+      />
+    )
+  } else if (view.kind === 'post') {
+    screen = (
+      <PostJourneyScreen
+        regions={regions}
+        onBack={goHome}
+        onPosted={() => setView({ kind: 'posted' })}
+      />
+    )
+  } else if (view.kind === 'posted') {
+    screen = <MyPostedScreen onBack={goHome} onPost={() => setView({ kind: 'post' })} />
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
   } else if (view.kind === 'join') {
@@ -222,6 +243,8 @@ export default function App() {
           onDashboard={() => setView({ kind: 'dashboard' })}
           onSignIn={() => setView({ kind: 'signin' })}
           onAccount={() => setView({ kind: 'account' })}
+          onPost={() => setView({ kind: 'post' })}
+          onPosted={() => setView({ kind: 'posted' })}
           onPricing={() => setView({ kind: 'pricing' })}
           onJoin={() => setView({ kind: 'join' })}
         />

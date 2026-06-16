@@ -1,12 +1,13 @@
-import { ArrowLeft, LogOut } from 'lucide-react'
+import { ArrowLeft, LogOut, Plane, ChevronRight } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
 interface AccountScreenProps {
   onBack: () => void
   onSignedOut: () => void
+  onOpenPosted: () => void
 }
 
-export default function AccountScreen({ onBack, onSignedOut }: AccountScreenProps) {
+export default function AccountScreen({ onBack, onSignedOut, onOpenPosted }: AccountScreenProps) {
   const { user, signOut } = useAuth()
   if (!user) return null
 
@@ -43,6 +44,15 @@ export default function AccountScreen({ onBack, onSignedOut }: AccountScreenProp
             <span className="text-sm text-[#F97316] font-medium">Verified operator</span>
           </div>
         </div>
+
+        <button
+          onClick={onOpenPosted}
+          className="mt-4 w-full flex items-center gap-3 rounded-2xl border border-[#27272A] bg-[#111113] px-4 py-3.5 hover:border-[#3F3F46] transition-colors"
+        >
+          <Plane size={17} className="-rotate-45 text-[#A1A1AA]" />
+          <span className="text-sm font-medium text-[#FAFAFA]">Posted journeys</span>
+          <ChevronRight size={16} className="ml-auto text-[#52525B]" />
+        </button>
 
         <button
           onClick={() => {

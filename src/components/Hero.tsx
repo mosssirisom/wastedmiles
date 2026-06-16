@@ -244,6 +244,7 @@ interface HeroProps {
   onOpenDashboard: () => void
   onOpenSignIn: () => void
   onOpenAccount: () => void
+  onOpenPost: () => void
   onOpenJourney: (journey: Journey) => void
 }
 
@@ -261,6 +262,7 @@ export default function Hero({
   onOpenDashboard,
   onOpenSignIn,
   onOpenAccount,
+  onOpenPost,
   onOpenJourney,
 }: HeroProps) {
   const { unread } = useNotifications()
@@ -472,13 +474,21 @@ export default function Hero({
             <MessageSquare size={17} />
           </button>
           {user ? (
-            <button
-              onClick={onOpenAccount}
-              aria-label="Account"
-              className="hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-[#18181B] border border-[#27272A] text-sm font-semibold text-[#FAFAFA] hover:border-[#3F3F46] transition-colors"
-            >
-              {user.name.slice(0, 1).toUpperCase()}
-            </button>
+            <>
+              <button
+                onClick={onOpenPost}
+                className="hidden md:block bg-[#F97316] hover:bg-[#EA580C] text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors"
+              >
+                Post a Journey
+              </button>
+              <button
+                onClick={onOpenAccount}
+                aria-label="Account"
+                className="hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-[#18181B] border border-[#27272A] text-sm font-semibold text-[#FAFAFA] hover:border-[#3F3F46] transition-colors"
+              >
+                {user.name.slice(0, 1).toUpperCase()}
+              </button>
+            </>
           ) : (
             <>
               <button

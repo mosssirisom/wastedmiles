@@ -17,6 +17,8 @@ interface BottomNavProps {
   onDashboard: () => void
   onSignIn: () => void
   onAccount: () => void
+  onPost: () => void
+  onPosted: () => void
   onPricing: () => void
   onJoin: () => void
 }
@@ -34,6 +36,8 @@ export default function BottomNav({
   onDashboard,
   onSignIn,
   onAccount,
+  onPost,
+  onPosted,
   onPricing,
   onJoin,
 }: BottomNavProps) {
@@ -61,6 +65,24 @@ export default function BottomNav({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#27272A]" />
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                onPost()
+              }}
+              className="mb-1 w-full text-center px-4 py-3 rounded-xl text-base font-medium bg-[#F97316] hover:bg-[#EA580C] text-white transition-colors"
+            >
+              Post a Journey
+            </button>
+            <button
+              onClick={() => {
+                setMenuOpen(false)
+                onPosted()
+              }}
+              className="w-full text-left px-4 py-3 rounded-xl text-base text-[#A1A1AA] hover:bg-[#18181B] transition-colors"
+            >
+              Posted Journeys
+            </button>
             <button
               onClick={() => {
                 setMenuOpen(false)
