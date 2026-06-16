@@ -642,6 +642,10 @@ export default function Hero({
         <div
           className={`${mapMode ? 'flex' : 'hidden'} md:flex flex-col gap-1.5 absolute bottom-24 md:bottom-6 left-4 md:left-6 z-50 rounded-xl border border-[#27272A] bg-[#111113]/90 backdrop-blur-md px-3 py-2.5`}
         >
+          <div className="flex items-center gap-1.5 pb-1.5 mb-0.5 border-b border-[#27272A] text-[10px] font-medium uppercase tracking-wider text-[#A1A1AA]">
+            <LiveDot />
+            Live Network
+          </div>
           {[
             { c: NET.available, label: 'Available journey' },
             { c: NET.empty, label: 'Empty return' },
