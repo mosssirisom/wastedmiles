@@ -6,9 +6,10 @@ import OperatorsScreen from './components/OperatorsScreen'
 import PricingScreen from './components/PricingScreen'
 import JoinScreen from './components/JoinScreen'
 import MarketplaceScreen from './components/MarketplaceScreen'
+import OperatorProfileScreen from './components/OperatorProfileScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
-import { fetchRegions, type Region, type Journey } from './data/marketplace'
+import { fetchRegions, OPERATORS, type Region, type Journey } from './data/marketplace'
 
 type View =
   | { kind: 'home' }
@@ -16,6 +17,7 @@ type View =
   | { kind: 'region'; id: string }
   | { kind: 'section'; section: SectionKind }
   | { kind: 'operators' }
+  | { kind: 'operator'; id: string }
   | { kind: 'pricing' }
   | { kind: 'join' }
 
@@ -71,7 +73,24 @@ export default function App() {
       />
     )
   } else if (view.kind === 'operators') {
-    screen = <OperatorsScreen onBack={goHome} regions={regions} />
+    screen = (
+      <OperatorsScreen
+        onBack={goHome}
+        regions={regions}
+        onOpenOperator={(id) => setView({ kind: 'operator', id })}
+      />
+    )
+  } else if (view.kind === 'operator') {
+    const op = OPERATORS[view.id]
+    screen = op ? (
+      <OperatorProfileScreen
+        operator={op}
+        regions={regions}
+        onBack={() => setView({ kind: 'operators' })}
+      />
+    ) : (
+      home
+    )
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
   } else if (view.kind === 'join') {
@@ -101,7 +120,14 @@ export default function App() {
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {screen}
-      <JourneyDetail journey={detailJourney} onClose={() => setDetailJourney(null)} />
+      <JourneyDetail
+        journey={detailJourney}
+        onClose={() => setDetailJourney(null)}
+        onOpenOperator={(id) => {
+          setDetailJourney(null)
+          setView({ kind: 'operator', id })
+        }}
+      />
       {showNav && (
         <BottomNav
           active={activeTab}

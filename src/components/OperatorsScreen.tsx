@@ -30,9 +30,12 @@ function Bar({ pct, color }: { pct: number; color: string }) {
   )
 }
 
-function OperatorCard({ op }: { op: Operator }) {
+function OperatorCard({ op, onClick }: { op: Operator; onClick: () => void }) {
   return (
-    <div className="rounded-2xl bg-[#111113] border border-[#27272A] p-5 hover:border-[#3F3F46] transition-colors">
+    <div
+      onClick={onClick}
+      className="cursor-pointer rounded-2xl bg-[#111113] border border-[#27272A] p-5 hover:border-[#3F3F46] transition-colors"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
@@ -81,9 +84,10 @@ function OperatorCard({ op }: { op: Operator }) {
 interface OperatorsScreenProps {
   onBack: () => void
   regions: Region[]
+  onOpenOperator: (id: string) => void
 }
 
-export default function OperatorsScreen({ onBack, regions }: OperatorsScreenProps) {
+export default function OperatorsScreen({ onBack, regions, onOpenOperator }: OperatorsScreenProps) {
   const operators = Object.values(OPERATORS)
   const avgRating = (operators.reduce((s, o) => s + o.rating, 0) / operators.length).toFixed(1)
   const totalCompleted = operators.reduce((s, o) => s + o.completed, 0)
@@ -128,7 +132,7 @@ export default function OperatorsScreen({ onBack, regions }: OperatorsScreenProp
 
         <div className="grid gap-4 mt-8 sm:grid-cols-2 lg:grid-cols-3">
           {operators.map((op) => (
-            <OperatorCard key={op.id} op={op} />
+            <OperatorCard key={op.id} op={op} onClick={() => onOpenOperator(op.id)} />
           ))}
         </div>
 
@@ -141,7 +145,8 @@ export default function OperatorsScreen({ onBack, regions }: OperatorsScreenProp
           {recentClaims.map((c) => (
             <div
               key={c.id}
-              className="rounded-xl border border-[#27272A] bg-[#111113] p-4 flex items-center justify-between gap-3"
+              onClick={() => onOpenOperator(c.operatorId)}
+              className="cursor-pointer rounded-xl border border-[#27272A] bg-[#111113] p-4 flex items-center justify-between gap-3 hover:border-[#3F3F46] transition-colors"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 text-sm font-medium text-[#FAFAFA]">

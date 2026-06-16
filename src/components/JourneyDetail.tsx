@@ -36,9 +36,10 @@ function Metric({ value, label }: { value: string; label: string }) {
 interface JourneyDetailProps {
   journey: Journey | null
   onClose: () => void
+  onOpenOperator?: (operatorId: string) => void
 }
 
-export default function JourneyDetail({ journey, onClose }: JourneyDetailProps) {
+export default function JourneyDetail({ journey, onClose, onOpenOperator }: JourneyDetailProps) {
   if (!journey) return null
   const op = OPERATORS[journey.operatorId]
   const status = STATUS_META[journey.status]
@@ -100,10 +101,13 @@ export default function JourneyDetail({ journey, onClose }: JourneyDetailProps) 
           <div className="text-[11px] text-[#71717A] uppercase tracking-wider mb-2">Operator</div>
           <div className="rounded-xl border border-[#27272A] bg-[#18181B] p-4">
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <button
+                onClick={() => onOpenOperator?.(op.id)}
+                className="flex items-center gap-1.5 min-w-0 text-left hover:opacity-80 transition-opacity"
+              >
                 <span className="text-base font-semibold text-[#FAFAFA] truncate">{op.name}</span>
                 <BadgeCheck size={16} className="text-[#A1A1AA] shrink-0" />
-              </div>
+              </button>
               <div className="flex items-center gap-1 shrink-0">
                 <Stars rating={op.rating} />
                 <span className="text-xs text-[#A1A1AA] ml-0.5 tabular-nums">{op.rating.toFixed(1)}</span>

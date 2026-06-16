@@ -19,6 +19,8 @@ export interface Operator {
   onTime: number // % on-time performance
   fleet: string
   memberSince: string // year joined
+  serviceAreas: string[]
+  vehicleTypes: string[]
 }
 
 export interface Journey {
@@ -87,14 +89,14 @@ export const STATUS_META: Record<
 /* ----------------------------- operators ---------------------------- */
 
 export const OPERATORS: Record<string, Operator> = {
-  'ev-exec': { id: 'ev-exec', name: 'EV Exec', rating: 5.0, completed: 423, acceptance: 99.4, onTime: 98.7, fleet: 'EV Executive', memberSince: '2022' },
-  pennine: { id: 'pennine', name: 'Pennine Cars', rating: 4.9, completed: 1208, acceptance: 97.1, onTime: 96.4, fleet: 'Saloon & MPV', memberSince: '2019' },
-  aire: { id: 'aire', name: 'Aire Executive', rating: 4.8, completed: 765, acceptance: 95.6, onTime: 97.9, fleet: 'Executive', memberSince: '2020' },
-  mersey: { id: 'mersey', name: 'Mersey Premier', rating: 4.9, completed: 540, acceptance: 98.2, onTime: 99.1, fleet: 'Premier EV', memberSince: '2021' },
-  northern: { id: 'northern', name: 'Northern Transfers', rating: 4.7, completed: 312, acceptance: 94.0, onTime: 95.3, fleet: 'MPV Fleet', memberSince: '2023' },
-  skyline: { id: 'skyline', name: 'Skyline Chauffeurs', rating: 5.0, completed: 689, acceptance: 99.0, onTime: 98.0, fleet: 'Luxury', memberSince: '2018' },
-  capital: { id: 'capital', name: 'Capital Cars', rating: 4.8, completed: 1502, acceptance: 96.3, onTime: 97.2, fleet: 'Saloon', memberSince: '2017' },
-  border: { id: 'border', name: 'Border Executive', rating: 4.9, completed: 421, acceptance: 98.8, onTime: 98.5, fleet: 'Executive EV', memberSince: '2020' },
+  'ev-exec': { id: 'ev-exec', name: 'EV Exec', rating: 5.0, completed: 423, acceptance: 99.4, onTime: 98.7, fleet: 'EV Executive', memberSince: '2022', serviceAreas: ['Manchester', 'Liverpool', 'Leeds'], vehicleTypes: ['Executive EV', 'Tesla Model Y'] },
+  pennine: { id: 'pennine', name: 'Pennine Cars', rating: 4.9, completed: 1208, acceptance: 97.1, onTime: 96.4, fleet: 'Saloon & MPV', memberSince: '2019', serviceAreas: ['Manchester', 'Leeds', 'Bradford', 'Sheffield'], vehicleTypes: ['Business Saloon', '8-Seat MPV', 'Estate'] },
+  aire: { id: 'aire', name: 'Aire Executive', rating: 4.8, completed: 765, acceptance: 95.6, onTime: 97.9, fleet: 'Executive', memberSince: '2020', serviceAreas: ['Leeds', 'Harrogate', 'York'], vehicleTypes: ['Executive', 'Mercedes E-Class'] },
+  mersey: { id: 'mersey', name: 'Mersey Premier', rating: 4.9, completed: 540, acceptance: 98.2, onTime: 99.1, fleet: 'Premier EV', memberSince: '2021', serviceAreas: ['Liverpool', 'Chester', 'Southport'], vehicleTypes: ['Premier EV', 'Luxury MPV'] },
+  northern: { id: 'northern', name: 'Northern Transfers', rating: 4.7, completed: 312, acceptance: 94.0, onTime: 95.3, fleet: 'MPV Fleet', memberSince: '2023', serviceAreas: ['Carlisle', 'Kendal', 'Lancaster'], vehicleTypes: ['8-Seat MPV', 'Estate'] },
+  skyline: { id: 'skyline', name: 'Skyline Chauffeurs', rating: 5.0, completed: 689, acceptance: 99.0, onTime: 98.0, fleet: 'Luxury', memberSince: '2018', serviceAreas: ['Heathrow', 'Gatwick', 'Central London'], vehicleTypes: ['Luxury', 'Mercedes E-Class', 'BMW 5 Series'] },
+  capital: { id: 'capital', name: 'Capital Cars', rating: 4.8, completed: 1502, acceptance: 96.3, onTime: 97.2, fleet: 'Saloon', memberSince: '2017', serviceAreas: ['Luton', 'Stansted', 'Cambridge'], vehicleTypes: ['Business Saloon', 'Estate'] },
+  border: { id: 'border', name: 'Border Executive', rating: 4.9, completed: 421, acceptance: 98.8, onTime: 98.5, fleet: 'Executive EV', memberSince: '2020', serviceAreas: ['Glasgow', 'Edinburgh', 'Stirling'], vehicleTypes: ['Executive EV', 'Luxury MPV'] },
 }
 
 export const OPERATOR_IDS = Object.keys(OPERATORS)
@@ -351,6 +353,56 @@ export function buildRecentClaims(regions: Region[]): RecentClaim[] {
     })
   })
   return claims.slice(0, 8)
+}
+
+/* ----------------------- operator profile data ---------------------- */
+
+export interface Review {
+  id: string
+  author: string
+  role: string
+  rating: number
+  text: string
+}
+
+const REVIEW_POOL: { author: string; role: string; text: string }[] = [
+  { author: 'Pennine Cars', role: 'Operator', text: 'Took a last-minute cover run for us at Manchester. Spotless car, on time, kept us updated the whole way.' },
+  { author: 'A. Whitfield', role: 'Dispatch', text: 'Reliable on empty returns — we trade journeys with them weekly and have never had an issue.' },
+  { author: 'Mersey Premier', role: 'Operator', text: 'Professional from booking to drop-off. Exactly the standard we expect when handing over a client.' },
+  { author: 'J. Okafor', role: 'Fleet Manager', text: 'Accepted an urgent airport transfer within minutes. Saved us a very awkward call to the client.' },
+  { author: 'Skyline Chauffeurs', role: 'Operator', text: 'Great comms and always punctual. Happy to pass executive work to them any day.' },
+  { author: 'L. Hargreaves', role: 'Dispatch', text: 'Consistent five-star service. Our go-to when our own fleet is stretched.' },
+]
+
+export function buildReviews(operatorId: string): Review[] {
+  const start = Math.max(0, OPERATOR_IDS.indexOf(operatorId))
+  const ratings = [5, 5, 4.8]
+  return ratings.map((rating, k) => {
+    const r = REVIEW_POOL[(start + k) % REVIEW_POOL.length]
+    return { id: `${operatorId}-rev-${k}`, author: r.author, role: r.role, rating, text: r.text }
+  })
+}
+
+export function buildOperatorJourneys(regions: Region[], operatorId: string): RecentClaim[] {
+  const agos = ['1h ago', '3h ago', 'yesterday', '2 days ago', '3 days ago']
+  const out: RecentClaim[] = []
+  let i = 0
+  regions.forEach((r) => {
+    r.journeys.forEach((j) => {
+      if (j.operatorId === operatorId && out.length < 5) {
+        out.push({
+          id: `done-${j.id}`,
+          fromCode: r.code,
+          to: j.to,
+          value: j.value,
+          operatorId,
+          ago: agos[i % agos.length],
+        })
+        i++
+      }
+    })
+  })
+  return out
 }
 
 export function buildActivity(regions: Region[]): ActivityEvent[] {
