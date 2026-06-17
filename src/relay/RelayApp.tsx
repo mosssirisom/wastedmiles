@@ -127,6 +127,7 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const [pts, setPts] = useState<Record<string, { x: number; y: number }> | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [mapError, setMapError] = useState<string | null>(null)
 
   // Initialise Mapbox map once.
   useEffect(() => {
@@ -156,6 +157,13 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
     map.touchZoomRotate.disable()
     map.touchPitch.disable()
     map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right')
+    // Surface any Mapbox failure (invalid token, URL-restricted token, style
+    // load error) on screen instead of failing silently to a blank map.
+    map.on('error', (e) => {
+      const msg = (e as { error?: { message?: string; status?: number } }).error?.message
+      const status = (e as { error?: { status?: number } }).error?.status
+      setMapError(msg ? `${msg}${status ? ` (${status})` : ''}` : 'Mapbox failed to load tiles')
+    })
     mapRef.current = map
     return () => {
       map.remove()
@@ -226,11 +234,13 @@ ${network!.routes
     <div className="relative flex-1 overflow-hidden">
       {/* real dark tiles */}
       <div ref={mapDivRef} className="absolute inset-0 z-0" />
-      {/* Build-time diagnostic: visible only when the Mapbox token did not make
-          it into the bundle (so the map silently falls back to no tiles). */}
-      {!hasToken && (
+      {/* Diagnostic: surface a missing token (build-time) or a rejected token /
+          tile-load failure (runtime) instead of failing silently. */}
+      {(!hasToken || mapError) && (
         <div className="absolute left-3 right-3 top-3 z-[60] rounded-lg border px-3 py-2 text-center text-[12px]" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: '#FCA5A5' }}>
-          VITE_MAPBOX_TOKEN missing from this build — add it in Vercel and redeploy.
+          {!hasToken
+            ? 'VITE_MAPBOX_TOKEN missing from this build — add it in Vercel and redeploy.'
+            : `Mapbox error: ${mapError}`}
         </div>
       )}
       {/* depth/vignette over tiles */}
