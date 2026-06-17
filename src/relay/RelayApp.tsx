@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type CSSProperties } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Menu,
   ArrowLeft,
@@ -6,22 +6,23 @@ import {
   ClipboardList,
   Map as MapIcon,
   Route,
-  Gavel,
-  MoreHorizontal,
+  MessageSquare,
+  User,
+  ChevronUp,
+  ChevronDown,
   Signal,
   Wifi,
   BatteryFull,
   Camera,
-  ChevronDown,
 } from 'lucide-react'
 
-const ACCENT = '#00F2FE'
-const BG = '#0B0D10'
-const PANEL = '#12161A'
-const LINE = '#1A1F26'
+const ACCENT = '#06B6D4'
+const BG = '#030712'
+const PANEL = '#0F172A'
+const LINE = '#1E293B'
 
-type Screen = 'map' | 'bid' | 'cover' | 'profile'
-type TabId = 'marketplace' | 'map' | 'trips' | 'bids' | 'more'
+type Screen = 'map' | 'bid' | 'cover' | 'profile' | 'messages'
+type TabId = 'marketplace' | 'map' | 'trips' | 'messages' | 'profile'
 
 /* -------------------------------------------------------------------------- */
 /*  Shell                                                                       */
@@ -30,19 +31,19 @@ type TabId = 'marketplace' | 'map' | 'trips' | 'bids' | 'more'
 function PhoneFrame({ children }: { children: ReactNode }) {
   return (
     <div
-      className="relative w-[375px] h-[812px] max-w-full rounded-[46px] border border-[#1A1F26] overflow-hidden flex flex-col"
-      style={{ background: BG, boxShadow: '0 40px 90px rgba(0,0,0,0.7), inset 0 0 0 2px rgba(255,255,255,0.02)' }}
+      className="relative w-[375px] h-[812px] max-w-full rounded-[46px] border overflow-hidden flex flex-col"
+      style={{ background: BG, borderColor: LINE, boxShadow: '0 40px 90px rgba(0,0,0,0.7)' }}
     >
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-black rounded-b-2xl z-30" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-black rounded-b-2xl z-50" />
       {children}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 rounded-full bg-white/25 z-30 pointer-events-none" />
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 rounded-full bg-white/25 z-50 pointer-events-none" />
     </div>
   )
 }
 
 function StatusBar() {
   return (
-    <div className="flex items-center justify-between px-7 pt-3.5 pb-1 text-white text-[15px] font-semibold tracking-tight">
+    <div className="flex items-center justify-between px-7 pt-3.5 pb-1 text-white text-[15px] font-semibold tracking-tight shrink-0">
       <span>9:41</span>
       <div className="flex items-center gap-1.5">
         <Signal size={15} />
@@ -53,31 +54,23 @@ function StatusBar() {
   )
 }
 
-function RelayLogo() {
-  return (
-    <div className="flex items-center gap-2">
-      <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-        <path d="M2 4.5 C6 1.5 16 1.5 20 4.5" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M2 8 C6 5 16 5 20 8" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeOpacity="0.8" />
-        <path d="M2 11.5 C6 8.5 16 8.5 20 11.5" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeOpacity="0.55" />
-      </svg>
-      <span className="text-white text-[16px] font-semibold tracking-tight">Relay</span>
-    </div>
-  )
-}
-
 function TopBar({ map, onBack }: { map?: boolean; onBack?: () => void }) {
   return (
-    <div className="relative flex items-center justify-between px-5 h-12 shrink-0">
-      <button onClick={onBack} className="text-white/80 active:opacity-60 z-10">
+    <div className="relative flex items-center justify-between px-5 h-12 shrink-0 z-40">
+      <button onClick={onBack} className="text-white/80 active:opacity-60">
         {map ? <Menu size={20} /> : <ArrowLeft size={20} />}
       </button>
       {map && (
-        <div className="absolute left-1/2 -translate-x-1/2">
-          <RelayLogo />
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <svg width="20" height="15" viewBox="0 0 20 15" fill="none">
+            <path d="M2 4 C5 1.5 15 1.5 18 4" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" />
+            <path d="M2 7.5 C5 5 15 5 18 7.5" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeOpacity="0.75" />
+            <path d="M2 11 C5 8.5 15 8.5 18 11" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeOpacity="0.5" />
+          </svg>
+          <span className="text-white text-[16px] font-semibold tracking-tight">Relay</span>
         </div>
       )}
-      <button className="text-white/80 active:opacity-60 z-10">
+      <button className="text-white/80 active:opacity-60">
         <Search size={19} />
       </button>
     </div>
@@ -88,27 +81,20 @@ const TABS: { id: TabId; label: string; icon: typeof MapIcon }[] = [
   { id: 'marketplace', label: 'Marketplace', icon: ClipboardList },
   { id: 'map', label: 'Map', icon: MapIcon },
   { id: 'trips', label: 'Trips', icon: Route },
-  { id: 'bids', label: 'Bids', icon: Gavel },
-  { id: 'more', label: 'More', icon: MoreHorizontal },
+  { id: 'messages', label: 'Messages', icon: MessageSquare },
+  { id: 'profile', label: 'Profile', icon: User },
 ]
 
 function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => void }) {
   return (
-    <div
-      className="mt-auto shrink-0 border-t border-[#1A1F26] px-1 pt-2.5 pb-7 flex justify-around"
-      style={{ background: 'rgba(11,13,16,0.95)' }}
-    >
+    <div className="mt-auto shrink-0 border-t px-1 pt-2.5 pb-7 flex justify-around z-40" style={{ background: BG, borderColor: LINE }}>
       {TABS.map((t) => {
         const Icon = t.icon
         const on = t.id === active
         return (
-          <button key={t.id} onClick={() => onTab(t.id)} className="flex flex-col items-center gap-1 w-[68px] active:opacity-60">
-            <Icon
-              size={20}
-              className={on ? '' : 'text-white/40'}
-              style={on ? { color: ACCENT, filter: 'drop-shadow(0 0 6px rgba(0,242,254,0.6))' } : undefined}
-            />
-            <span className="text-[10px] tracking-tight" style={on ? { color: ACCENT } : { color: 'rgba(255,255,255,0.4)' }}>
+          <button key={t.id} onClick={() => onTab(t.id)} className="flex flex-col items-center gap-1 w-[64px] active:opacity-60">
+            <Icon size={20} className={on ? '' : 'text-white/40'} style={on ? { color: ACCENT, filter: 'drop-shadow(0 0 6px rgba(6,182,212,0.6))' } : undefined} />
+            <span className="text-[10px] tracking-tight" style={{ color: on ? ACCENT : 'rgba(255,255,255,0.4)' }}>
               {t.label}
             </span>
           </button>
@@ -119,177 +105,208 @@ function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => voi
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Map                                                                         */
+/*  Map screen                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const C: Record<string, [number, number]> = {
-  Glasgow: [30, 12],
-  Newcastle: [47, 22],
-  Leeds: [46, 33],
-  Liverpool: [33, 38],
-  Manchester: [42, 39],
-  Birmingham: [47, 51],
-  Cardiff: [35, 61],
-  London: [63, 65],
-  Plymouth: [32, 75],
+const NODES = {
+  MAN: { x: 46, y: 40, jobs: 18, rev: '£4.2k' },
+  LPL: { x: 39, y: 44, jobs: 9, rev: '£3.1k' },
+  BHX: { x: 51, y: 54, jobs: 11, rev: '£4.2k' },
+  LHR: { x: 63, y: 65, jobs: 14, rev: '£5.7k' },
 }
-
-const EDGES: [keyof typeof C, keyof typeof C][] = [
-  ['Glasgow', 'Newcastle'],
-  ['Newcastle', 'Leeds'],
-  ['Leeds', 'Manchester'],
-  ['Manchester', 'Liverpool'],
-  ['Leeds', 'Birmingham'],
-  ['Manchester', 'Birmingham'],
-  ['Birmingham', 'London'],
-  ['Birmingham', 'Cardiff'],
-  ['Cardiff', 'Plymouth'],
-  ['Glasgow', 'Liverpool'],
-  ['Leeds', 'London'],
+type NodeKey = keyof typeof NODES
+const ROUTES: [NodeKey, NodeKey][] = [
+  ['LHR', 'MAN'],
+  ['MAN', 'LPL'],
+  ['MAN', 'BHX'],
+  ['BHX', 'LHR'],
+  ['LPL', 'LHR'],
 ]
 
-function NodeDot({ name, x, y }: { name: string; x: number; y: number }) {
+function Hotspot({ code, primary }: { code: NodeKey; primary?: boolean }) {
+  const n = NODES[code]
   return (
-    <div className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5" style={{ left: `${x}%`, top: `${y}%` }}>
-      <span className="h-1.5 w-1.5 rounded-full bg-white/70" style={{ boxShadow: '0 0 8px rgba(255,255,255,0.5)' }} />
-      <span className="text-[9px] text-white/40 whitespace-nowrap">{name}</span>
-    </div>
-  )
-}
-
-function Callout({
-  code,
-  value,
-  volume,
-  active,
-  x,
-  y,
-}: {
-  code: string
-  value: string
-  volume: string
-  active?: boolean
-  x: number
-  y: number
-}) {
-  const style: CSSProperties = { left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -100%)' }
-  return (
-    <div className="absolute flex flex-col items-center z-10" style={style}>
-      {/* tooltip */}
+    <div
+      className="absolute z-20 flex flex-col items-center"
+      style={{ left: `${n.x}%`, top: `${n.y}%`, transform: 'translate(-50%, -100%)' }}
+    >
       <div
-        className="rounded-lg border px-2.5 py-1.5 text-center"
+        className="rounded-xl border px-3 py-2 text-center"
         style={{
           background: PANEL,
-          borderColor: active ? 'rgba(0,242,254,0.6)' : LINE,
-          boxShadow: active ? '0 0 16px rgba(0,242,254,0.4)' : '0 6px 16px rgba(0,0,0,0.5)',
+          borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE,
+          boxShadow: primary ? '0 0 22px rgba(6,182,212,0.4)' : '0 8px 20px rgba(0,0,0,0.55)',
         }}
       >
-        <div className="text-[10px] font-semibold text-white leading-none">{code}</div>
-        <div className="text-[12px] font-bold leading-tight mt-0.5" style={{ color: ACCENT }}>
-          {value}
+        <div className="text-[12px] font-bold text-white leading-none">{code}</div>
+        <div className="text-[10px] text-white/50 mt-1 leading-none">{n.jobs} Jobs</div>
+        <div className="text-[13px] font-bold leading-tight mt-0.5" style={{ color: ACCENT }}>
+          {n.rev}
         </div>
-        <div className="text-[9px] text-white/40 leading-none">{volume}</div>
       </div>
-      {/* pointer */}
-      <div
-        className="h-2 w-2 rotate-45 -mt-1 border-r border-b"
-        style={{ background: PANEL, borderColor: active ? 'rgba(0,242,254,0.6)' : LINE }}
-      />
-      {/* node */}
+      <div className="h-2 w-2 rotate-45 -mt-1 border-r border-b" style={{ background: PANEL, borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE }} />
       <div className="relative mt-1 flex items-center justify-center">
-        {active && (
-          <span
-            className="absolute h-6 w-6 rounded-full border"
-            style={{ borderColor: 'rgba(0,242,254,0.7)', boxShadow: '0 0 14px rgba(0,242,254,0.5)' }}
-          />
-        )}
-        <span
-          className="h-2 w-2 rounded-full"
-          style={{
-            background: active ? ACCENT : '#fff',
-            boxShadow: active ? '0 0 12px rgba(0,242,254,0.9)' : '0 0 8px rgba(255,255,255,0.6)',
-          }}
-        />
+        <span className="absolute h-5 w-5 rounded-full animate-ping" style={{ background: 'rgba(6,182,212,0.35)' }} />
+        <span className="h-2.5 w-2.5 rounded-full" style={{ background: ACCENT, boxShadow: '0 0 12px rgba(6,182,212,0.9)' }} />
       </div>
     </div>
   )
 }
+
+const DOT_CSS = `
+.relaydot{position:absolute;width:4px;height:4px;border-radius:9999px;background:${ACCENT};box-shadow:0 0 8px ${ACCENT};transform:translate(-50%,-50%);}
+${ROUTES.map(([a, b], i) => {
+  const A = NODES[a]
+  const B = NODES[b]
+  return `@keyframes relayflow${i}{0%{left:${A.x}%;top:${A.y}%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:${B.x}%;top:${B.y}%;opacity:0}}`
+}).join('\n')}
+`
 
 function MapView({ go }: { go: (s: Screen) => void }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const heat = [
+    { x: 63, y: 65, s: 200 },
+    { x: 46, y: 40, s: 150 },
+    { x: 51, y: 54, s: 130 },
+    { x: 39, y: 44, s: 120 },
+  ]
+
   return (
-    <div className="relative flex-1 overflow-hidden" style={{ background: BG }}>
+    <div className="relative flex-1 overflow-hidden">
+      <style>{DOT_CSS}</style>
+
+      {/* base + grid */}
       <div
         className="absolute inset-0"
+        style={{ background: `radial-gradient(120% 90% at 58% 42%, rgba(6,182,212,0.06), transparent 55%), ${BG}` }}
+      />
+      <div
+        className="absolute inset-0 opacity-[0.07]"
         style={{
-          background:
-            'radial-gradient(120% 80% at 45% 30%, rgba(0,242,254,0.05), transparent 55%), radial-gradient(90% 60% at 65% 80%, rgba(255,255,255,0.02), transparent 60%)',
+          backgroundImage:
+            'linear-gradient(rgba(148,163,184,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.7) 1px, transparent 1px)',
+          backgroundSize: '30px 30px',
         }}
       />
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-        {/* faint landmass */}
-        <path
-          d="M34 8 C26 14 30 22 26 28 C22 34 30 36 28 42 C24 48 30 54 30 60 C32 68 26 74 32 80 C40 86 50 82 52 74 C58 72 66 70 66 62 C70 56 62 50 60 44 C58 36 52 32 48 26 C46 18 44 10 34 8 Z"
-          fill="rgba(255,255,255,0.02)"
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth="0.35"
+
+      {/* heatmap */}
+      {heat.map((h, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full blur-2xl pointer-events-none"
+          style={{
+            left: `${h.x}%`,
+            top: `${h.y}%`,
+            width: h.s,
+            height: h.s,
+            transform: 'translate(-50%,-50%)',
+            background: 'radial-gradient(closest-side, rgba(6,182,212,0.28), transparent)',
+          }}
         />
-        {/* network paths */}
-        {EDGES.map(([a, b], i) => (
+      ))}
+
+      {/* routes */}
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full z-10">
+        {ROUTES.map(([a, b], i) => (
           <line
             key={i}
-            x1={C[a][0]}
-            y1={C[a][1]}
-            x2={C[b][0]}
-            y2={C[b][1]}
+            x1={NODES[a].x}
+            y1={NODES[a].y}
+            x2={NODES[b].x}
+            y2={NODES[b].y}
             stroke={ACCENT}
-            strokeOpacity="0.16"
+            strokeOpacity="0.28"
             strokeWidth="0.4"
-            strokeDasharray="0.6 2"
+            strokeDasharray="1 2.5"
             strokeLinecap="round"
+            className="arc-flow"
           />
         ))}
-        {/* main relay route */}
-        <path
-          d="M30 12 C 22 30, 42 42, 47 51 C 52 60, 58 60, 63 65"
-          fill="none"
-          stroke={ACCENT}
-          strokeOpacity="0.5"
-          strokeWidth="0.5"
-          strokeDasharray="0.6 2.4"
-          strokeLinecap="round"
-        />
       </svg>
 
-      {/* secondary city nodes + labels */}
-      <NodeDot name="Glasgow" x={C.Glasgow[0]} y={C.Glasgow[1]} />
-      <NodeDot name="Newcastle" x={C.Newcastle[0]} y={C.Newcastle[1]} />
-      <NodeDot name="Leeds" x={C.Leeds[0]} y={C.Leeds[1]} />
-      <NodeDot name="Cardiff" x={C.Cardiff[0]} y={C.Cardiff[1]} />
-      <NodeDot name="Plymouth" x={C.Plymouth[0]} y={C.Plymouth[1]} />
+      {/* live moving dots */}
+      {ROUTES.flatMap(([_a, _b], i) =>
+        [0, 1.4, 2.8].map((delay, j) => (
+          <span
+            key={`${i}-${j}`}
+            className="relaydot z-10"
+            style={{ animation: `relayflow${i} 4s linear infinite`, animationDelay: `-${delay}s` }}
+          />
+        ))
+      )}
 
-      {/* hub callouts */}
-      <Callout code="LPL" value="£3.1K" volume="9" x={C.Liverpool[0]} y={C.Liverpool[1]} />
-      <Callout code="MAN" value="£4.2K" volume="18" x={C.Manchester[0]} y={C.Manchester[1]} />
-      <Callout code="BHX" value="£4.2K" volume="11" x={C.Birmingham[0]} y={C.Birmingham[1]} />
-      <Callout code="LHR" value="£5.7K" volume="14" active x={C.London[0]} y={C.London[1]} />
+      {/* hotspots */}
+      <Hotspot code="MAN" />
+      <Hotspot code="LPL" />
+      <Hotspot code="BHX" />
+      <Hotspot code="LHR" primary />
 
-      {/* tap anywhere on a hub goes to bids */}
-      <button onClick={() => go('bid')} className="absolute inset-0" aria-label="Open bids" style={{ background: 'transparent' }} />
+      {/* bottom sheet */}
+      <div
+        className="absolute left-0 right-0 bottom-0 z-30 rounded-t-2xl border-t px-5 pt-2.5 pb-4"
+        style={{ background: 'rgba(15,23,42,0.97)', borderColor: LINE, backdropFilter: 'blur(10px)' }}
+      >
+        <button onClick={() => setExpanded((e) => !e)} className="w-full">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+          <div className="flex items-end justify-between">
+            <div className="text-left">
+              <div className="text-[11px] uppercase tracking-wider text-white/45">Available Jobs Today</div>
+              <div className="text-[26px] font-bold text-white leading-none mt-1">
+                247 <span className="text-base font-medium text-white/45">Jobs</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[11px] text-white/45">Available</div>
+              <div className="text-[19px] font-bold leading-tight" style={{ color: ACCENT }}>
+                £42,300
+              </div>
+            </div>
+            <div className="pl-3 pb-1 text-white/40">
+              {expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+            </div>
+          </div>
+        </button>
+
+        {expanded && (
+          <div className="mt-3 pt-3 border-t" style={{ borderColor: LINE }}>
+            <div className="text-[12px] font-medium text-white/80 mb-2">Top Opportunities</div>
+            <div className="space-y-1.5">
+              {[
+                ['Manchester → Heathrow', '£180'],
+                ['Blackpool → Manchester Airport', '£90'],
+                ['Liverpool → Heathrow', '£210'],
+              ].map(([r, p]) => (
+                <button
+                  key={r}
+                  onClick={() => go('bid')}
+                  className="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-left active:opacity-80"
+                  style={{ background: BG, border: `1px solid ${LINE}` }}
+                >
+                  <span className="text-[13px] text-white truncate">{r}</span>
+                  <span className="text-[13px] font-semibold shrink-0" style={{ color: ACCENT }}>
+                    {p}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Secondary screens (kept navigable)                                          */
+/*  Secondary screens                                                           */
 /* -------------------------------------------------------------------------- */
 
-function InputField({ label, value, placeholder, dropdown }: { label: string; value?: string; placeholder?: string; dropdown?: boolean }) {
+function Field({ label, value, placeholder }: { label: string; value?: string; placeholder?: string }) {
   return (
     <div>
       <label className="block text-[11px] text-white/40 mb-1.5">{label}</label>
-      <div className="flex items-center justify-between border rounded-xl px-3.5 py-3" style={{ background: PANEL, borderColor: LINE }}>
+      <div className="border rounded-xl px-3.5 py-3" style={{ background: PANEL, borderColor: LINE }}>
         <span className={`text-sm ${value ? 'text-white' : 'text-white/30'}`}>{value ?? placeholder}</span>
-        {dropdown && <ChevronDown size={16} className="text-white/40" />}
       </div>
     </div>
   )
@@ -316,28 +333,41 @@ function BidView({ go }: { go: (s: Screen) => void }) {
         ))}
       </div>
       <h2 className="text-[13px] font-medium text-white/80 mt-6 mb-3">Bidding Timeline</h2>
-      <div>
-        {rows.map(([n, s, a], i) => (
-          <div key={n} className="relative pl-7 pb-4">
-            {i < rows.length - 1 && <span className="absolute left-[5px] top-3 bottom-0 w-px bg-white/10" />}
-            <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full border border-white/30" style={{ background: PANEL }} />
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[13px] text-white">{n}</div>
-                <div className="text-[11px] text-white/40">{s}</div>
-              </div>
-              <span className="text-[13px] font-medium text-white">{a}</span>
+      {rows.map(([n, s, a], i) => (
+        <div key={n} className="relative pl-7 pb-4">
+          {i < rows.length - 1 && <span className="absolute left-[5px] top-3 bottom-0 w-px bg-white/10" />}
+          <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full border border-white/30" style={{ background: PANEL }} />
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[13px] text-white">{n}</div>
+              <div className="text-[11px] text-white/40">{s}</div>
             </div>
+            <span className="text-[13px] font-medium text-white">{a}</span>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
       <h2 className="text-[13px] font-medium text-white/80 mt-4 mb-2">Entry</h2>
-      <button
-        onClick={() => go('cover')}
-        className="w-full text-left border rounded-xl px-3.5 py-3 active:opacity-80"
-        style={{ background: PANEL, borderColor: LINE }}
-      >
+      <button onClick={() => go('cover')} className="w-full text-left border rounded-xl px-3.5 py-3 active:opacity-80" style={{ background: PANEL, borderColor: LINE }}>
         <span className="text-sm text-white/30">Entry floor here...</span>
+      </button>
+    </div>
+  )
+}
+
+function CoverView({ go }: { go: (s: Screen) => void }) {
+  return (
+    <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
+      <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Request Cover</h1>
+      <Field label="Date" value="09/11/2022" />
+      <Field label="Pickup" value="Blackpool" />
+      <Field label="Drop-off" placeholder="Drop-off" />
+      <Field label="Tier" value="Tier - A" />
+      <Field label="Offer" placeholder="Your Offer" />
+      <div className="text-[13px] text-white/60">
+        Your Max Offer: <span className="text-white font-medium">£70</span>
+      </div>
+      <button onClick={() => go('bid')} className="w-full rounded-xl py-3.5 text-[15px] font-semibold active:opacity-90" style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(6,182,212,0.55))`, color: BG }}>
+        Post Job
       </button>
     </div>
   )
@@ -347,45 +377,41 @@ function ProfileView() {
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Complete Your Profile</h1>
-      <InputField label="Fleet name" value="Blackpool" />
-      <InputField label="Email" value="Blackpool" />
-      <InputField label="Phone number" value="Blackpool" />
+      <Field label="Fleet name" value="Blackpool" />
+      <Field label="Email" value="Blackpool" />
+      <Field label="Phone number" value="Blackpool" />
       <div>
         <label className="block text-[11px] text-white/40 mb-1.5">Upload License Photo</label>
         <button className="w-full h-28 rounded-xl border flex items-center justify-center active:opacity-80" style={{ background: PANEL, borderColor: LINE }}>
           <Camera size={26} className="text-white/35" />
         </button>
       </div>
-      <div>
-        <label className="block text-[11px] text-white/40 mb-1.5">Standard Vehicle Type</label>
-        <div className="flex gap-1 border rounded-xl p-1" style={{ background: PANEL, borderColor: LINE }}>
-          <button className="flex-1 rounded-lg bg-white/[0.08] text-white text-sm py-2 font-medium">Standard</button>
-          <button className="flex-1 rounded-lg text-white/40 text-sm py-2 active:bg-white/[0.04]">Standard</button>
-        </div>
-      </div>
     </div>
   )
 }
 
-function CoverView({ go }: { go: (s: Screen) => void }) {
+function MessagesView() {
+  const threads = [
+    ['Pennine Cars', 'Can you confirm the 17:45 pickup?'],
+    ['Mersey Premier', 'Driver en route to LHR.'],
+    ['Skyline Chauffeurs', 'Thanks — accepted the cover.'],
+  ]
   return (
-    <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
-      <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Request Cover</h1>
-      <InputField label="Date" value="09/11/2022" />
-      <InputField label="Pickup" value="Blackpool" />
-      <InputField label="Drop-off" placeholder="Drop-off" />
-      <InputField label="Tier" value="Tier - A" dropdown />
-      <InputField label="Offer" placeholder="Your Offer" />
-      <div className="text-[13px] text-white/60">
-        Your Max Offer: <span className="text-white font-medium">£70</span>
+    <div className="flex-1 overflow-y-auto px-5 pb-4">
+      <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1 mb-4">Messages</h1>
+      <div className="space-y-2">
+        {threads.map(([n, m]) => (
+          <div key={n} className="flex items-center gap-3 rounded-xl border p-3.5" style={{ background: PANEL, borderColor: LINE }}>
+            <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold text-white" style={{ background: BG, border: `1px solid ${LINE}` }}>
+              {n.slice(0, 1)}
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-white">{n}</div>
+              <div className="text-xs text-white/40 truncate">{m}</div>
+            </div>
+          </div>
+        ))}
       </div>
-      <button
-        onClick={() => go('bid')}
-        className="w-full rounded-xl py-3.5 text-[15px] font-semibold active:opacity-90"
-        style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(0,242,254,0.55))`, color: BG }}
-      >
-        Post Job
-      </button>
     </div>
   )
 }
@@ -398,29 +424,35 @@ export default function RelayApp() {
   const [screen, setScreen] = useState<Screen>('map')
 
   const activeTab: TabId =
-    screen === 'map' ? 'map' : screen === 'profile' ? 'trips' : screen === 'cover' ? 'marketplace' : 'bids'
+    screen === 'map'
+      ? 'map'
+      : screen === 'cover'
+        ? 'marketplace'
+        : screen === 'messages'
+          ? 'messages'
+          : screen === 'profile'
+            ? 'profile'
+            : 'trips'
 
   const onTab = (id: TabId) => {
     if (id === 'map') setScreen('map')
-    else if (id === 'trips') setScreen('profile')
-    else if (id === 'bids') setScreen('bid')
     else if (id === 'marketplace') setScreen('cover')
-    else setScreen('map')
+    else if (id === 'trips') setScreen('bid')
+    else if (id === 'messages') setScreen('messages')
+    else setScreen('profile')
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#06080A' }}>
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#020509' }}>
       <PhoneFrame>
         <StatusBar />
-        {screen === 'map' && <TopBar map />}
-        {screen === 'bid' && <TopBar onBack={() => setScreen('map')} />}
-        {screen === 'cover' && <TopBar onBack={() => setScreen('bid')} />}
-        {screen === 'profile' && <TopBar onBack={() => setScreen('map')} />}
+        {screen === 'map' ? <TopBar map /> : <TopBar onBack={() => setScreen('map')} />}
 
         {screen === 'map' && <MapView go={setScreen} />}
         {screen === 'bid' && <BidView go={setScreen} />}
         {screen === 'cover' && <CoverView go={setScreen} />}
         {screen === 'profile' && <ProfileView />}
+        {screen === 'messages' && <MessagesView />}
 
         <BottomNav active={activeTab} onTab={onTab} />
       </PhoneFrame>
