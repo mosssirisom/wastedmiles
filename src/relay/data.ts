@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, hasBackend } from '../lib/api'
 import { loadJSON, saveJSON } from '../lib/persist'
-import { useJobs, postJob, type PostedJob } from '../lib/jobsStore'
+import { useJobs, postJob, type PostedJob, type JobStatus } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
 import {
   REGIONS,
@@ -64,6 +64,11 @@ export interface BidDetail {
   buyNow: string
   highestBid: string
   timeline: BidRow[]
+  // live job handle for placing actions (undefined when no market job exists)
+  jobId?: string
+  status?: JobStatus
+  cap?: number
+  myBid?: number
 }
 
 export interface Thread {
@@ -161,6 +166,10 @@ export function useBid(): BidDetail {
     buyNow: formatGBP(top.cap),
     highestBid: formatGBP(top.myBid ?? Math.round(top.cap * 0.8)),
     timeline,
+    jobId: top.id,
+    status: top.status,
+    cap: top.cap,
+    myBid: top.myBid,
   }
 }
 
