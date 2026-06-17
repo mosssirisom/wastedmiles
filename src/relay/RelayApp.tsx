@@ -406,6 +406,15 @@ function CoverView({ go }: { go: (s: Screen) => void }) {
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Request Cover</h1>
+      {!user && (
+        <button
+          onClick={() => go('profile')}
+          className="w-full text-left rounded-xl border px-3.5 py-2.5 text-[13px] text-white/70 active:opacity-80"
+          style={{ background: PANEL, borderColor: LINE }}
+        >
+          Sign in to post a job. <span style={{ color: ACCENT }}>Sign in →</span>
+        </button>
+      )}
       <InputField label="Date" value={date} onChange={setDate} />
       <InputField label="Pickup" value={pickup} onChange={setPickup} />
       <InputField label="Drop-off" value={dropoff} onChange={setDropoff} placeholder="Drop-off" />
