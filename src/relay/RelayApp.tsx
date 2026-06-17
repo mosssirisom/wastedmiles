@@ -254,13 +254,19 @@ ${network!.routes
       .join('\n')}`
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    // Pinned to the visual viewport (not flex-sized) so the map always fills
+    // the screen regardless of how the flex column resolves its height. The
+    // TopBar and BottomNav float over this at z-40.
+    <div
+      className="fixed left-1/2 -translate-x-1/2 top-0 w-full max-w-[480px] overflow-hidden z-0"
+      style={{ height: '100dvh' }}
+    >
       {/* real dark tiles */}
       <div ref={mapDivRef} className="absolute inset-0 z-0" />
       {/* Always-on diagnostic strip. BUILD_TAG confirms the running deploy is
           fresh (defeats cache ambiguity); the rest reports live Mapbox state. */}
-      <div className="absolute left-3 right-3 top-3 z-[60] rounded-lg border px-3 py-2 text-center text-[11px] leading-snug" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: mapError ? '#FCA5A5' : '#94A3B8' }}>
-        <span style={{ color: ACCENT }}>diag-7</span>{' · '}
+      <div className="absolute left-3 right-3 z-[60] rounded-lg border px-3 py-2 text-center text-[11px] leading-snug" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: mapError ? '#FCA5A5' : '#94A3B8', top: 'calc(env(safe-area-inset-top) + 52px)' }}>
+        <span style={{ color: ACCENT }}>diag-8</span>{' · '}
         token: {hasToken ? 'yes' : 'NO'}{' · '}
         style: {styleLoaded ? 'loaded' : 'pending'}{' · '}
         {diag || 'no-fit'}
@@ -325,10 +331,10 @@ ${network!.routes
         </>
       )}
 
-      {/* bottom sheet */}
+      {/* bottom sheet — sits just above the floating BottomNav */}
       <div
-        className="absolute left-0 right-0 bottom-0 z-30 rounded-t-2xl border-t px-5 pt-2.5 pb-4"
-        style={{ background: 'rgba(15,23,42,0.97)', borderColor: LINE, backdropFilter: 'blur(10px)' }}
+        className="absolute left-0 right-0 z-30 rounded-t-2xl border-t px-5 pt-2.5 pb-4"
+        style={{ background: 'rgba(15,23,42,0.97)', borderColor: LINE, backdropFilter: 'blur(10px)', bottom: 'calc(env(safe-area-inset-bottom) + 60px)' }}
       >
         <button onClick={() => setExpanded((e) => !e)} className="w-full">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
