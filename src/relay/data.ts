@@ -1,16 +1,31 @@
 import { useEffect, useState } from 'react'
 import { api, hasBackend } from '../lib/api'
 import { loadJSON, saveJSON } from '../lib/persist'
+import { useJobs, postJob, type PostedJob } from '../lib/jobsStore'
+import { useMessages } from '../lib/messages'
+import {
+  REGIONS,
+  OPERATORS,
+  OPERATOR_IDS,
+  regionMetrics,
+  marketplaceTotals,
+  formatGBP,
+  buildRecentClaims,
+} from '../data/marketplace'
 
 // -----------------------------------------------------------------------------
-// Relay data layer.
+// Relay data layer — backed by the real marketplace backend.
 //
-// Every Relay screen reads through this module instead of hardcoding values.
-// All reads/writes go through the shared, env-gated `api` client:
-//   - VITE_API_URL set   -> real HTTP calls to the backend, cached locally.
-//   - VITE_API_URL unset -> seed/mock data (persisted to localStorage), so the
-//                           prototype runs offline and stays identical in shape.
-// Flipping on a real backend is therefore a config change, not a rewrite.
+// The Relay screens render the same view-model shapes as before, but the data
+// now comes from the shared backend stores instead of local mocks:
+//   - Map / network   -> REGIONS + marketplaceTotals + jobsStore (live jobs)
+//   - Bid             -> jobsStore market jobs + recent claim activity
+//   - Messages        -> OPERATORS catalog + useMessages thread store
+//   - Request Cover   -> jobsStore.postJob (real blind-auction job)
+//   - Profile         -> data layer (api when VITE_API_URL is set, else cache)
+//
+// Every store already routes through the env-gated `api` client, so setting
+// VITE_API_URL switches Relay onto the real HTTP/Supabase backend unchanged.
 // -----------------------------------------------------------------------------
 
 export interface Airport {
@@ -71,96 +86,149 @@ export interface CoverRequest {
   offer: string
 }
 
-// --- seed data (used as both the offline source and the cache fallback) ------
-
-const MOCK_NETWORK: NetworkSnapshot = {
-  airports: [
-    { code: 'MAN', lat: 53.365, lng: -2.272, jobs: 18, rev: '£4.2k' },
-    { code: 'LPL', lat: 53.336, lng: -2.85, jobs: 9, rev: '£3.1k' },
-    { code: 'BHX', lat: 52.454, lng: -1.748, jobs: 11, rev: '£4.2k' },
-    { code: 'LHR', lat: 51.47, lng: -0.454, jobs: 14, rev: '£5.7k', primary: true },
-  ],
-  routes: [
-    { from: 'LHR', to: 'MAN' },
-    { from: 'MAN', to: 'LPL' },
-    { from: 'MAN', to: 'BHX' },
-    { from: 'BHX', to: 'LHR' },
-    { from: 'LPL', to: 'LHR' },
-  ],
-  totalJobs: 247,
-  available: '£42,300',
-  opportunities: [
-    { id: 'op_1', route: 'Manchester → Heathrow', price: '£180' },
-    { id: 'op_2', route: 'Blackpool → Manchester Airport', price: '£90' },
-    { id: 'op_3', route: 'Liverpool → Heathrow', price: '£210' },
-  ],
-}
-
-const MOCK_BID: BidDetail = {
-  from: 'LONDON',
-  to: 'MANCHESTER',
-  buyNow: '£70',
-  highestBid: '£55',
-  timeline: [
-    { name: 'Smith driver', note: 'Late bids', amount: '£280' },
-    { name: 'Frasch driver', note: '22:03 bid', amount: '£230' },
-    { name: 'Erach driver', note: 'Blind Bid', amount: '£230' },
-    { name: 'Jamo driver', note: 'Blind Bid', amount: '£230' },
-  ],
-}
-
-const MOCK_THREADS: Thread[] = [
-  { id: 't_1', name: 'Pennine Cars', preview: 'Can you confirm the 17:45 pickup?' },
-  { id: 't_2', name: 'Mersey Premier', preview: 'Driver en route to LHR.' },
-  { id: 't_3', name: 'Skyline Chauffeurs', preview: 'Thanks — accepted the cover.' },
+// The four hotspots Relay renders, drawn from the real region catalogue.
+const HOTSPOT_CODES = ['MAN', 'LPL', 'BHX', 'LHR'] as const
+const PRIMARY_CODE = 'LHR'
+const RELAY_ROUTES: RelayRoute[] = [
+  { from: 'LHR', to: 'MAN' },
+  { from: 'MAN', to: 'LPL' },
+  { from: 'MAN', to: 'BHX' },
+  { from: 'BHX', to: 'LHR' },
+  { from: 'LPL', to: 'LHR' },
 ]
 
+function buildOpportunities(jobs: PostedJob[]): Opportunity[] {
+  const fromJobs: Opportunity[] = jobs
+    .slice(0, 3)
+    .map((j) => ({ id: j.id, route: `${j.fromName} → ${j.to}`, price: formatGBP(j.cap) }))
+  if (fromJobs.length >= 3) return fromJobs
+  const fill: Opportunity[] = REGIONS.flatMap((r) =>
+    r.journeys.map((j) => ({ id: j.id, route: `${r.name} → ${j.to}`, price: formatGBP(j.value) }))
+  )
+  return [...fromJobs, ...fill].slice(0, 3)
+}
+
+// Reactive: re-renders when jobs change (e.g. after Request Cover posts one).
+export function useNetwork(): NetworkSnapshot {
+  const { jobs, market } = useJobs()
+
+  const airports: Airport[] = HOTSPOT_CODES.map((code) => {
+    const region = REGIONS.find((r) => r.code === code)!
+    const m = regionMetrics(region)
+    return {
+      code,
+      lat: region.center[0],
+      lng: region.center[1],
+      jobs: m.opportunities,
+      rev: formatGBP(m.revenue),
+      primary: code === PRIMARY_CODE,
+    }
+  })
+
+  const totals = marketplaceTotals(REGIONS)
+  const extraValue = jobs.reduce((sum, j) => sum + j.cap, 0)
+
+  return {
+    airports,
+    routes: RELAY_ROUTES,
+    totalJobs: totals.opportunities + jobs.length,
+    available: formatGBP(totals.revenue + extraValue),
+    opportunities: buildOpportunities(market),
+  }
+}
+
+// Reactive: the live market job a driver can bid on, plus real claim activity.
+// (Competing bids stay hidden — this is a blind reverse auction — so the
+// timeline is sourced from recent settled claim activity across the network.)
+export function useBid(): BidDetail {
+  const { market } = useJobs()
+  const top = market[0]
+
+  const timeline: BidRow[] = buildRecentClaims(REGIONS)
+    .slice(0, 4)
+    .map((c) => ({
+      name: OPERATORS[c.operatorId]?.name ?? 'Operator',
+      note: c.ago,
+      amount: formatGBP(c.value),
+    }))
+
+  if (!top) {
+    return { from: '—', to: '—', buyNow: '—', highestBid: '—', timeline }
+  }
+  return {
+    from: top.fromCode,
+    to: top.to.toUpperCase(),
+    buyNow: formatGBP(top.cap),
+    highestBid: formatGBP(top.myBid ?? Math.round(top.cap * 0.8)),
+    timeline,
+  }
+}
+
+function journeyPreview(operatorId: string): string {
+  for (const region of REGIONS) {
+    const j = region.journeys.find((jj) => jj.operatorId === operatorId)
+    if (j) return `${region.code} → ${j.to} · ${formatGBP(j.value)}`
+  }
+  return 'No recent activity'
+}
+
+// Reactive: operator conversations with live message previews.
+export function useThreads(): Thread[] {
+  const { getThread } = useMessages()
+  return OPERATOR_IDS.slice(0, 4).map((id) => {
+    const op = OPERATORS[id]
+    const msgs = getThread(id)
+    const last = msgs[msgs.length - 1]
+    return {
+      id,
+      name: op.name,
+      preview: last ? last.text : journeyPreview(id),
+    }
+  })
+}
+
+// Request Cover posts a real job into the blind-auction engine (which routes
+// to the backend when VITE_API_URL is set, otherwise simulates locally).
+export async function requestCover(input: CoverRequest): Promise<void> {
+  const offer = Number(input.offer.replace(/[^0-9.]/g, '')) || 70
+  postJob({
+    fromCode: 'BPL',
+    fromName: input.pickup || 'Blackpool',
+    to: input.dropoff || 'Manchester Airport',
+    vehicle: 'standard',
+    passengers: 1,
+    luggage: 1,
+    pickupAt: new Date().toISOString(),
+    cap: offer,
+  })
+}
+
+// --- Profile (still served by the env-gated data client) ---------------------
+
+const PROFILE_KEY = 'relay-profile'
 const MOCK_PROFILE: Profile = {
   fleetName: 'Blackpool Executive',
   email: 'ops@blackpool-exec.co.uk',
   phone: '07700 900482',
 }
-
-// --- fetch helpers -----------------------------------------------------------
-
-const KEY = {
-  network: 'relay-network',
-  bid: 'relay-bid',
-  threads: 'relay-threads',
-  profile: 'relay-profile',
-}
-
-// Simulated network latency so offline mode still exercises loading states.
 const delay = (ms = 320) => new Promise((r) => setTimeout(r, ms))
 
-async function read<T>(path: string, key: string, mock: T): Promise<T> {
+export async function fetchProfile(): Promise<Profile> {
   if (hasBackend()) {
-    const data = await api.get<T>(path)
-    saveJSON(key, data)
+    const data = await api.get<Profile>('/relay/profile')
+    saveJSON(PROFILE_KEY, data)
     return data
   }
   await delay()
-  return loadJSON<T>(key, mock)
-}
-
-export const fetchNetwork = () => read('/relay/network', KEY.network, MOCK_NETWORK)
-export const fetchBid = () => read('/relay/bid', KEY.bid, MOCK_BID)
-export const fetchThreads = () => read('/relay/threads', KEY.threads, MOCK_THREADS)
-export const fetchProfile = () => read('/relay/profile', KEY.profile, MOCK_PROFILE)
-
-export async function requestCover(input: CoverRequest): Promise<void> {
-  if (hasBackend()) {
-    await api.post('/relay/cover', input).catch(() => {})
-  }
-  // Offline: nothing to persist server-side; the UI advances optimistically.
+  return loadJSON<Profile>(PROFILE_KEY, MOCK_PROFILE)
 }
 
 export async function saveProfile(input: Profile): Promise<void> {
-  saveJSON(KEY.profile, input)
+  saveJSON(PROFILE_KEY, input)
   if (hasBackend()) await api.post('/relay/profile', input).catch(() => {})
 }
 
-// --- tiny async hook ---------------------------------------------------------
+// --- tiny async hook (used by the Profile read) ------------------------------
 
 export function useResource<T>(loader: () => Promise<T>): { data: T | null; loading: boolean } {
   const [data, setData] = useState<T | null>(null)

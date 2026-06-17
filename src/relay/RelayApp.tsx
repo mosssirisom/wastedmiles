@@ -17,9 +17,9 @@ import {
 import {
   type Airport,
   type NetworkSnapshot,
-  fetchNetwork,
-  fetchBid,
-  fetchThreads,
+  useNetwork,
+  useBid,
+  useThreads,
   fetchProfile,
   requestCover,
   useResource,
@@ -153,11 +153,18 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
     }
   }, [])
 
-  // Fit + project the airports once the network snapshot has loaded.
+  // Keep the latest snapshot in a ref so the projection effect can read it
+  // without re-running on every render (useNetwork returns a fresh object).
+  const netRef = useRef(network)
+  netRef.current = network
+  const airportsSig = network ? network.airports.map((a) => `${a.code}:${a.lat}:${a.lng}`).join('|') : ''
+
+  // Fit + project the airports once the coordinates are known.
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !network) return
-    const airports = network.airports
+    const net = netRef.current
+    if (!map || !net) return
+    const airports = net.airports
     const bounds = L.latLngBounds(airports.map((a) => [a.lat, a.lng] as [number, number]))
     const compute = () => {
       map.invalidateSize()
@@ -172,7 +179,8 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
     setTimeout(compute, 0)
     window.addEventListener('resize', compute)
     return () => window.removeEventListener('resize', compute)
-  }, [network])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [airportsSig])
 
   const ready = !!(pts && network)
   const dotCss =
@@ -313,7 +321,7 @@ function Field({ label, value, placeholder }: { label: string; value?: string; p
 }
 
 function BidView({ go }: { go: (s: Screen) => void }) {
-  const { data: bid, loading } = useResource(fetchBid)
+  const bid = useBid()
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">
@@ -331,7 +339,6 @@ function BidView({ go }: { go: (s: Screen) => void }) {
         ))}
       </div>
       <h2 className="text-[13px] font-medium text-white/80 mt-6 mb-3">Bidding Timeline</h2>
-      {loading && <div className="text-[12px] text-white/30">Loading bids…</div>}
       {(bid?.timeline ?? []).map((row, i, arr) => (
         <div key={row.name} className="relative pl-7 pb-4">
           {i < arr.length - 1 && <span className="absolute left-[5px] top-3 bottom-0 w-px bg-white/10" />}
@@ -435,11 +442,10 @@ function ProfileView() {
 }
 
 function MessagesView() {
-  const { data: threads, loading } = useResource(fetchThreads)
+  const threads = useThreads()
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1 mb-4">Messages</h1>
-      {loading && <div className="text-[12px] text-white/30">Loading conversations…</div>}
       <div className="space-y-2">
         {(threads ?? []).map((t) => (
           <div key={t.id} className="flex items-center gap-3 rounded-xl border p-3.5" style={{ background: PANEL, borderColor: LINE }}>
@@ -463,7 +469,7 @@ function MessagesView() {
 
 export default function RelayApp() {
   const [screen, setScreen] = useState<Screen>('map')
-  const { data: network } = useResource<NetworkSnapshot>(fetchNetwork)
+  const network = useNetwork()
 
   const activeTab: TabId =
     screen === 'map'
