@@ -14,6 +14,16 @@ import {
   ChevronDown,
   Camera,
 } from 'lucide-react'
+import {
+  type Airport,
+  type NetworkSnapshot,
+  fetchNetwork,
+  fetchBid,
+  fetchThreads,
+  fetchProfile,
+  requestCover,
+  useResource,
+} from './data'
 
 const ACCENT = '#06B6D4'
 const BG = '#030712'
@@ -87,24 +97,8 @@ function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => voi
 /*  Map screen (real dark tiles + projected overlays)                           */
 /* -------------------------------------------------------------------------- */
 
-const NODES = {
-  MAN: { lat: 53.365, lng: -2.272, jobs: 18, rev: '£4.2k' },
-  LPL: { lat: 53.336, lng: -2.85, jobs: 9, rev: '£3.1k' },
-  BHX: { lat: 52.454, lng: -1.748, jobs: 11, rev: '£4.2k' },
-  LHR: { lat: 51.47, lng: -0.454, jobs: 14, rev: '£5.7k' },
-}
-type NodeKey = keyof typeof NODES
-const ROUTES: [NodeKey, NodeKey][] = [
-  ['LHR', 'MAN'],
-  ['MAN', 'LPL'],
-  ['MAN', 'BHX'],
-  ['BHX', 'LHR'],
-  ['LPL', 'LHR'],
-]
-type Pts = Record<NodeKey, { x: number; y: number }>
-
-function Hotspot({ code, pt, primary }: { code: NodeKey; pt: { x: number; y: number }; primary?: boolean }) {
-  const n = NODES[code]
+function Hotspot({ airport, pt }: { airport: Airport; pt: { x: number; y: number } }) {
+  const primary = airport.primary
   return (
     <div className="absolute z-20 flex flex-col items-center" style={{ left: pt.x, top: pt.y, transform: 'translate(-50%, -100%)' }}>
       <div
@@ -115,10 +109,10 @@ function Hotspot({ code, pt, primary }: { code: NodeKey; pt: { x: number; y: num
           boxShadow: primary ? '0 0 22px rgba(6,182,212,0.45)' : '0 8px 20px rgba(0,0,0,0.55)',
         }}
       >
-        <div className="text-[12px] font-bold text-white leading-none">{code}</div>
-        <div className="text-[10px] text-white/50 mt-1 leading-none">{n.jobs} Jobs</div>
+        <div className="text-[12px] font-bold text-white leading-none">{airport.code}</div>
+        <div className="text-[10px] text-white/50 mt-1 leading-none">{airport.jobs} Jobs</div>
         <div className="text-[13px] font-bold leading-tight mt-0.5" style={{ color: ACCENT }}>
-          {n.rev}
+          {airport.rev}
         </div>
       </div>
       <div className="h-2 w-2 rotate-45 -mt-1 border-r border-b" style={{ background: 'rgba(15,23,42,0.95)', borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE }} />
@@ -130,15 +124,16 @@ function Hotspot({ code, pt, primary }: { code: NodeKey; pt: { x: number; y: num
   )
 }
 
-function MapView({ go }: { go: (s: Screen) => void }) {
+function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSnapshot | null }) {
   const mapDivRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
-  const [pts, setPts] = useState<Pts | null>(null)
+  const [pts, setPts] = useState<Record<string, { x: number; y: number }> | null>(null)
   const [expanded, setExpanded] = useState(false)
 
+  // Initialise the dark-tile basemap once.
   useEffect(() => {
     const el = mapDivRef.current
-    if (!el) return
+    if (!el || mapRef.current) return
     const map = L.map(el, {
       zoomControl: false,
       attributionControl: true,
@@ -151,37 +146,44 @@ function MapView({ go }: { go: (s: Screen) => void }) {
     })
     mapRef.current = map
     L.tileLayer(DARK_TILES, { subdomains: 'abcd', attribution: ATTR, maxZoom: 19 }).addTo(map)
-
-    const bounds = L.latLngBounds(
-      (Object.keys(NODES) as NodeKey[]).map((k) => [NODES[k].lat, NODES[k].lng] as [number, number])
-    )
-
-    const compute = () => {
-      map.invalidateSize()
-      map.fitBounds(bounds, { paddingTopLeft: [64, 110], paddingBottomRight: [64, 320] })
-      const next = {} as Pts
-      ;(Object.keys(NODES) as NodeKey[]).forEach((k) => {
-        const p = map.latLngToContainerPoint([NODES[k].lat, NODES[k].lng])
-        next[k] = { x: p.x, y: p.y }
-      })
-      setPts(next)
-    }
-    setTimeout(compute, 0)
-    window.addEventListener('resize', compute)
+    map.setView([53, -2], 6)
     return () => {
-      window.removeEventListener('resize', compute)
       map.remove()
       mapRef.current = null
     }
   }, [])
 
+  // Fit + project the airports once the network snapshot has loaded.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !network) return
+    const airports = network.airports
+    const bounds = L.latLngBounds(airports.map((a) => [a.lat, a.lng] as [number, number]))
+    const compute = () => {
+      map.invalidateSize()
+      map.fitBounds(bounds, { paddingTopLeft: [64, 110], paddingBottomRight: [64, 320] })
+      const next: Record<string, { x: number; y: number }> = {}
+      airports.forEach((a) => {
+        const p = map.latLngToContainerPoint([a.lat, a.lng])
+        next[a.code] = { x: p.x, y: p.y }
+      })
+      setPts(next)
+    }
+    setTimeout(compute, 0)
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
+  }, [network])
+
+  const ready = !!(pts && network)
   const dotCss =
-    pts &&
+    ready &&
     `.relaydot{position:absolute;width:4px;height:4px;border-radius:9999px;background:${ACCENT};box-shadow:0 0 8px ${ACCENT};transform:translate(-50%,-50%);}
-${ROUTES.map(
-      ([a, b], i) =>
-        `@keyframes relayflow${i}{0%{left:${pts[a].x}px;top:${pts[a].y}px;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:${pts[b].x}px;top:${pts[b].y}px;opacity:0}}`
-    ).join('\n')}`
+${network!.routes
+      .map(
+        (r, i) =>
+          `@keyframes relayflow${i}{0%{left:${pts![r.from].x}px;top:${pts![r.from].y}px;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:${pts![r.to].x}px;top:${pts![r.to].y}px;opacity:0}}`
+      )
+      .join('\n')}`
 
   return (
     <div className="relative flex-1 overflow-hidden">
@@ -193,20 +195,20 @@ ${ROUTES.map(
         style={{ background: 'radial-gradient(120% 80% at 55% 35%, rgba(6,182,212,0.05), transparent 55%), linear-gradient(to bottom, transparent 55%, rgba(3,7,18,0.85))' }}
       />
 
-      {pts && (
+      {ready && (
         <>
           <style>{dotCss}</style>
 
           {/* heatmap */}
-          {(Object.keys(NODES) as NodeKey[]).map((k) => (
+          {network!.airports.map((a) => (
             <div
-              key={k}
+              key={a.code}
               className="absolute z-[6] rounded-full blur-2xl pointer-events-none"
               style={{
-                left: pts[k].x,
-                top: pts[k].y,
-                width: 150 + NODES[k].jobs * 5,
-                height: 150 + NODES[k].jobs * 5,
+                left: pts![a.code].x,
+                top: pts![a.code].y,
+                width: 150 + a.jobs * 5,
+                height: 150 + a.jobs * 5,
                 transform: 'translate(-50%,-50%)',
                 background: 'radial-gradient(closest-side, rgba(6,182,212,0.25), transparent)',
               }}
@@ -215,13 +217,13 @@ ${ROUTES.map(
 
           {/* routes */}
           <svg className="absolute inset-0 w-full h-full z-10 pointer-events-none">
-            {ROUTES.map(([a, b], i) => (
+            {network!.routes.map((r, i) => (
               <line
                 key={i}
-                x1={pts[a].x}
-                y1={pts[a].y}
-                x2={pts[b].x}
-                y2={pts[b].y}
+                x1={pts![r.from].x}
+                y1={pts![r.from].y}
+                x2={pts![r.to].x}
+                y2={pts![r.to].y}
                 stroke={ACCENT}
                 strokeOpacity="0.3"
                 strokeWidth="1.3"
@@ -233,17 +235,16 @@ ${ROUTES.map(
           </svg>
 
           {/* live moving dots */}
-          {ROUTES.flatMap((_r, i) =>
+          {network!.routes.flatMap((_r, i) =>
             [0, 1.4, 2.8].map((delay, j) => (
               <span key={`${i}-${j}`} className="relaydot z-10" style={{ animation: `relayflow${i} 4s linear infinite`, animationDelay: `-${delay}s` }} />
             ))
           )}
 
           {/* hotspots */}
-          <Hotspot code="MAN" pt={pts.MAN} />
-          <Hotspot code="LPL" pt={pts.LPL} />
-          <Hotspot code="BHX" pt={pts.BHX} />
-          <Hotspot code="LHR" pt={pts.LHR} primary />
+          {network!.airports.map((a) => (
+            <Hotspot key={a.code} airport={a} pt={pts![a.code]} />
+          ))}
         </>
       )}
 
@@ -258,13 +259,13 @@ ${ROUTES.map(
             <div className="text-left">
               <div className="text-[11px] uppercase tracking-wider text-white/45">Available Jobs Today</div>
               <div className="text-[26px] font-bold text-white leading-none mt-1">
-                247 <span className="text-base font-medium text-white/45">Jobs</span>
+                {network ? network.totalJobs : '—'} <span className="text-base font-medium text-white/45">Jobs</span>
               </div>
             </div>
             <div className="text-right">
               <div className="text-[11px] text-white/45">Available</div>
               <div className="text-[19px] font-bold leading-tight" style={{ color: ACCENT }}>
-                £42,300
+                {network ? network.available : '—'}
               </div>
             </div>
             <div className="pl-3 pb-1 text-white/40">{expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}</div>
@@ -275,20 +276,16 @@ ${ROUTES.map(
           <div className="mt-3 pt-3 border-t" style={{ borderColor: LINE }}>
             <div className="text-[12px] font-medium text-white/80 mb-2">Top Opportunities</div>
             <div className="space-y-1.5">
-              {[
-                ['Manchester → Heathrow', '£180'],
-                ['Blackpool → Manchester Airport', '£90'],
-                ['Liverpool → Heathrow', '£210'],
-              ].map(([r, p]) => (
+              {(network?.opportunities ?? []).map((o) => (
                 <button
-                  key={r}
+                  key={o.id}
                   onClick={() => go('bid')}
                   className="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-left active:opacity-80"
                   style={{ background: BG, border: `1px solid ${LINE}` }}
                 >
-                  <span className="text-[13px] text-white truncate">{r}</span>
+                  <span className="text-[13px] text-white truncate">{o.route}</span>
                   <span className="text-[13px] font-semibold shrink-0" style={{ color: ACCENT }}>
-                    {p}
+                    {o.price}
                   </span>
                 </button>
               ))}
@@ -316,19 +313,17 @@ function Field({ label, value, placeholder }: { label: string; value?: string; p
 }
 
 function BidView({ go }: { go: (s: Screen) => void }) {
-  const rows = [
-    ['Smith driver', 'Late bids', '£280'],
-    ['Frasch driver', '22:03 bid', '£230'],
-    ['Erach driver', 'Blind Bid', '£230'],
-    ['Jamo driver', 'Blind Bid', '£230'],
-  ]
+  const { data: bid, loading } = useResource(fetchBid)
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">
-        LONDON <span className="text-white/40">→</span> MANCHESTER
+        {bid ? bid.from : '—'} <span className="text-white/40">→</span> {bid ? bid.to : '—'}
       </h1>
       <div className="grid grid-cols-2 gap-3 mt-4">
-        {[['Buy It Now', '£70'], ['Highest Bid', '£55']].map(([l, v]) => (
+        {[
+          ['Buy It Now', bid?.buyNow ?? '—'],
+          ['Highest Bid', bid?.highestBid ?? '—'],
+        ].map(([l, v]) => (
           <div key={l} className="rounded-xl border p-3" style={{ background: PANEL, borderColor: LINE }}>
             <div className="text-[11px] text-white/40">{l}</div>
             <div className="text-xl font-semibold text-white mt-0.5">{v}</div>
@@ -336,16 +331,17 @@ function BidView({ go }: { go: (s: Screen) => void }) {
         ))}
       </div>
       <h2 className="text-[13px] font-medium text-white/80 mt-6 mb-3">Bidding Timeline</h2>
-      {rows.map(([n, s, a], i) => (
-        <div key={n} className="relative pl-7 pb-4">
-          {i < rows.length - 1 && <span className="absolute left-[5px] top-3 bottom-0 w-px bg-white/10" />}
+      {loading && <div className="text-[12px] text-white/30">Loading bids…</div>}
+      {(bid?.timeline ?? []).map((row, i, arr) => (
+        <div key={row.name} className="relative pl-7 pb-4">
+          {i < arr.length - 1 && <span className="absolute left-[5px] top-3 bottom-0 w-px bg-white/10" />}
           <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full border border-white/30" style={{ background: PANEL }} />
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[13px] text-white">{n}</div>
-              <div className="text-[11px] text-white/40">{s}</div>
+              <div className="text-[13px] text-white">{row.name}</div>
+              <div className="text-[11px] text-white/40">{row.note}</div>
             </div>
-            <span className="text-[13px] font-medium text-white">{a}</span>
+            <span className="text-[13px] font-medium text-white">{row.amount}</span>
           </div>
         </div>
       ))}
@@ -357,32 +353,77 @@ function BidView({ go }: { go: (s: Screen) => void }) {
   )
 }
 
+function InputField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+}) {
+  return (
+    <div>
+      <label className="block text-[11px] text-white/40 mb-1.5">{label}</label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full border rounded-xl px-3.5 py-3 text-sm text-white outline-none placeholder:text-white/30"
+        style={{ background: PANEL, borderColor: LINE }}
+      />
+    </div>
+  )
+}
+
 function CoverView({ go }: { go: (s: Screen) => void }) {
+  const [date, setDate] = useState('09/11/2022')
+  const [pickup, setPickup] = useState('Blackpool')
+  const [dropoff, setDropoff] = useState('')
+  const [tier, setTier] = useState('Tier - A')
+  const [offer, setOffer] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const submit = async () => {
+    setSubmitting(true)
+    await requestCover({ date, pickup, dropoff, tier, offer })
+    setSubmitting(false)
+    go('bid')
+  }
+
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Request Cover</h1>
-      <Field label="Date" value="09/11/2022" />
-      <Field label="Pickup" value="Blackpool" />
-      <Field label="Drop-off" placeholder="Drop-off" />
-      <Field label="Tier" value="Tier - A" />
-      <Field label="Offer" placeholder="Your Offer" />
+      <InputField label="Date" value={date} onChange={setDate} />
+      <InputField label="Pickup" value={pickup} onChange={setPickup} />
+      <InputField label="Drop-off" value={dropoff} onChange={setDropoff} placeholder="Drop-off" />
+      <InputField label="Tier" value={tier} onChange={setTier} />
+      <InputField label="Offer" value={offer} onChange={setOffer} placeholder="Your Offer" />
       <div className="text-[13px] text-white/60">
         Your Max Offer: <span className="text-white font-medium">£70</span>
       </div>
-      <button onClick={() => go('bid')} className="w-full rounded-xl py-3.5 text-[15px] font-semibold active:opacity-90" style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(6,182,212,0.55))`, color: BG }}>
-        Post Job
+      <button
+        onClick={submit}
+        disabled={submitting}
+        className="w-full rounded-xl py-3.5 text-[15px] font-semibold active:opacity-90 disabled:opacity-60"
+        style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(6,182,212,0.55))`, color: BG }}
+      >
+        {submitting ? 'Posting…' : 'Post Job'}
       </button>
     </div>
   )
 }
 
 function ProfileView() {
+  const { data: profile } = useResource(fetchProfile)
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Complete Your Profile</h1>
-      <Field label="Fleet name" value="Blackpool" />
-      <Field label="Email" value="Blackpool" />
-      <Field label="Phone number" value="Blackpool" />
+      <Field label="Fleet name" value={profile?.fleetName} placeholder="Fleet name" />
+      <Field label="Email" value={profile?.email} placeholder="Email" />
+      <Field label="Phone number" value={profile?.phone} placeholder="Phone number" />
       <div>
         <label className="block text-[11px] text-white/40 mb-1.5">Upload License Photo</label>
         <button className="w-full h-28 rounded-xl border flex items-center justify-center active:opacity-80" style={{ background: PANEL, borderColor: LINE }}>
@@ -394,23 +435,20 @@ function ProfileView() {
 }
 
 function MessagesView() {
-  const threads = [
-    ['Pennine Cars', 'Can you confirm the 17:45 pickup?'],
-    ['Mersey Premier', 'Driver en route to LHR.'],
-    ['Skyline Chauffeurs', 'Thanks — accepted the cover.'],
-  ]
+  const { data: threads, loading } = useResource(fetchThreads)
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1 mb-4">Messages</h1>
+      {loading && <div className="text-[12px] text-white/30">Loading conversations…</div>}
       <div className="space-y-2">
-        {threads.map(([n, m]) => (
-          <div key={n} className="flex items-center gap-3 rounded-xl border p-3.5" style={{ background: PANEL, borderColor: LINE }}>
+        {(threads ?? []).map((t) => (
+          <div key={t.id} className="flex items-center gap-3 rounded-xl border p-3.5" style={{ background: PANEL, borderColor: LINE }}>
             <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold text-white" style={{ background: BG, border: `1px solid ${LINE}` }}>
-              {n.slice(0, 1)}
+              {t.name.slice(0, 1)}
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-medium text-white">{n}</div>
-              <div className="text-xs text-white/40 truncate">{m}</div>
+              <div className="text-sm font-medium text-white">{t.name}</div>
+              <div className="text-xs text-white/40 truncate">{t.preview}</div>
             </div>
           </div>
         ))}
@@ -425,6 +463,7 @@ function MessagesView() {
 
 export default function RelayApp() {
   const [screen, setScreen] = useState<Screen>('map')
+  const { data: network } = useResource<NetworkSnapshot>(fetchNetwork)
 
   const activeTab: TabId =
     screen === 'map'
@@ -457,7 +496,7 @@ export default function RelayApp() {
       >
         {screen === 'map' ? <TopBar map /> : <TopBar onBack={() => setScreen('map')} />}
 
-        {screen === 'map' && <MapView go={setScreen} />}
+        {screen === 'map' && <MapView go={setScreen} network={network} />}
         {screen === 'bid' && <BidView go={setScreen} />}
         {screen === 'cover' && <CoverView go={setScreen} />}
         {screen === 'profile' && <ProfileView />}
