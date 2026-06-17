@@ -33,17 +33,6 @@ body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
   height: 100% !important;
 }
 
-/* Relay mobile nav: make the map screen the primary Home tab and move it before Marketplace. */
-@media (max-width: 767px) {
-  div[class*='justify-around'] > button:nth-child(1) { order: 2; }
-  div[class*='justify-around'] > button:nth-child(2) { order: 1; }
-  div[class*='justify-around'] > button:nth-child(2) span { font-size: 0; }
-  div[class*='justify-around'] > button:nth-child(2) span::after {
-    content: 'Home';
-    font-size: 10px;
-  }
-}
-
 /* Status journey markers — monochrome except urgent (accent orange) */
 .journey-pin {
   width: 16px;
