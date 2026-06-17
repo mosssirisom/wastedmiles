@@ -17,8 +17,9 @@ import {
   Send,
 } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
-import { buyNow, placeBid } from '../lib/jobsStore'
+import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
+import { formatGBP } from '../data/marketplace'
 import {
   type Airport,
   type NetworkSnapshot,
@@ -38,7 +39,7 @@ const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.pn
 const ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
-type Screen = 'map' | 'bid' | 'cover' | 'profile' | 'messages' | 'thread'
+type Screen = 'map' | 'bid' | 'cover' | 'profile' | 'messages' | 'thread' | 'trips'
 type TabId = 'marketplace' | 'map' | 'trips' | 'messages' | 'profile'
 
 /* -------------------------------------------------------------------------- */
@@ -629,6 +630,82 @@ function ThreadView({ operatorId, name }: { operatorId: string; name: string }) 
   )
 }
 
+const TRIP_STATUS: Record<string, { label: string; color: string }> = {
+  pending: { label: 'Awaiting driver', color: '#F59E0B' },
+  covered: { label: 'Covered', color: ACCENT },
+  completed: { label: 'Completed', color: '#22C55E' },
+  open: { label: 'Open', color: '#94A3B8' },
+  bidding: { label: 'Bidding', color: ACCENT },
+  won: { label: 'Won', color: '#22C55E' },
+  lost: { label: 'Lost', color: '#64748B' },
+  expired: { label: 'Expired', color: '#64748B' },
+}
+
+function TripsView({ go }: { go: (s: Screen) => void }) {
+  const { posted, market, completeJob } = useJobs()
+  const mine = [...posted, ...market.filter((j) => j.status !== 'open')].sort(
+    (a, b) => b.createdAt - a.createdAt
+  )
+
+  return (
+    <div className="flex-1 overflow-y-auto px-5 pb-4">
+      <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1 mb-4">Trips</h1>
+
+      {mine.length === 0 ? (
+        <div className="mt-10 text-center">
+          <div className="text-sm text-white/60">No trips yet.</div>
+          <button
+            onClick={() => go('cover')}
+            className="mt-4 rounded-xl px-5 py-3 text-[15px] font-semibold active:opacity-90"
+            style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(6,182,212,0.55))`, color: BG }}
+          >
+            Post a Job
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {mine.map((j) => {
+            const meta = TRIP_STATUS[j.status] ?? { label: j.status, color: '#94A3B8' }
+            return (
+              <div key={j.id} className="rounded-xl border p-3.5" style={{ background: PANEL, borderColor: LINE }}>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-white">
+                    {j.fromCode} <span className="text-white/40">→</span> {j.to}
+                  </div>
+                  <div className="text-sm font-semibold" style={{ color: ACCENT }}>
+                    {formatGBP(j.myBid ?? j.cap)}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span
+                    className="text-[11px] font-medium px-2 py-0.5 rounded-md"
+                    style={{ color: meta.color, background: meta.color + '22' }}
+                  >
+                    {meta.label}
+                  </span>
+                  <span className="text-[11px] text-white/40">
+                    {j.source === 'me' ? 'Posted' : 'Bid'}
+                    {j.driverName ? ` · ${j.driverName}` : ''}
+                  </span>
+                </div>
+                {j.source === 'me' && j.status === 'covered' && (
+                  <button
+                    onClick={() => completeJob(j.id)}
+                    className="mt-3 w-full rounded-lg py-2.5 text-sm font-semibold active:opacity-90"
+                    style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(6,182,212,0.55))`, color: BG }}
+                  >
+                    Mark complete
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* -------------------------------------------------------------------------- */
 /*  App                                                                         */
 /* -------------------------------------------------------------------------- */
@@ -657,7 +734,7 @@ export default function RelayApp() {
   const onTab = (id: TabId) => {
     if (id === 'map') setScreen('map')
     else if (id === 'marketplace') setScreen('cover')
-    else if (id === 'trips') setScreen('bid')
+    else if (id === 'trips') setScreen('trips')
     else if (id === 'messages') setScreen('messages')
     else setScreen('profile')
   }
@@ -684,6 +761,7 @@ export default function RelayApp() {
           {screen === 'map' && <MapView go={setScreen} network={network} />}
           {screen === 'bid' && <BidView go={setScreen} />}
           {screen === 'cover' && <CoverView go={setScreen} />}
+          {screen === 'trips' && <TripsView go={setScreen} />}
           {screen === 'profile' && <ProfileView />}
           {screen === 'messages' && <MessagesView onOpen={openThread} />}
           {screen === 'thread' && activeOp && (
