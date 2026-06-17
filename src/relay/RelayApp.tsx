@@ -49,12 +49,7 @@ function TopBar({ map, onBack }: { map?: boolean; onBack?: () => void }) {
         {map ? <Menu size={20} /> : <ArrowLeft size={20} />}
       </button>
       {map && (
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-          <svg width="20" height="15" viewBox="0 0 20 15" fill="none">
-            <path d="M2 4 C5 1.5 15 1.5 18 4" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" />
-            <path d="M2 7.5 C5 5 15 5 18 7.5" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeOpacity="0.75" />
-            <path d="M2 11 C5 8.5 15 8.5 18 11" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeOpacity="0.5" />
-          </svg>
+        <div className="absolute left-1/2 -translate-x-1/2">
           <span className="text-white text-[16px] font-semibold tracking-tight">Relay</span>
         </div>
       )}
@@ -388,6 +383,7 @@ function InputField({
 }
 
 function CoverView({ go }: { go: (s: Screen) => void }) {
+  const { user } = useAuth()
   const [date, setDate] = useState('09/11/2022')
   const [pickup, setPickup] = useState('Blackpool')
   const [dropoff, setDropoff] = useState('')
@@ -396,6 +392,11 @@ function CoverView({ go }: { go: (s: Screen) => void }) {
   const [submitting, setSubmitting] = useState(false)
 
   const submit = async () => {
+    // Posting a job requires an authenticated operator.
+    if (!user) {
+      go('profile')
+      return
+    }
     setSubmitting(true)
     await requestCover({ date, pickup, dropoff, tier, offer })
     setSubmitting(false)
@@ -419,7 +420,7 @@ function CoverView({ go }: { go: (s: Screen) => void }) {
         className="w-full rounded-xl py-3.5 text-[15px] font-semibold active:opacity-90 disabled:opacity-60"
         style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(6,182,212,0.55))`, color: BG }}
       >
-        {submitting ? 'Posting…' : 'Post Job'}
+        {!user ? 'Sign in to post' : submitting ? 'Posting…' : 'Post Job'}
       </button>
     </div>
   )
