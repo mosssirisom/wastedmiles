@@ -13,7 +13,9 @@ import {
   ChevronUp,
   ChevronDown,
   Camera,
+  LogOut,
 } from 'lucide-react'
+import { AuthProvider, useAuth } from '../lib/auth'
 import {
   type Airport,
   type NetworkSnapshot,
@@ -424,12 +426,38 @@ function CoverView({ go }: { go: (s: Screen) => void }) {
 }
 
 function ProfileView() {
+  const { user, loading, signIn, signOut } = useAuth()
   const { data: profile } = useResource(fetchProfile)
+  const [email, setEmail] = useState('')
+  const [fleet, setFleet] = useState('')
+
+  // Signed out — sign-in path backed by the real auth store.
+  if (!user) {
+    return (
+      <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
+        <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Sign In</h1>
+        <p className="text-[13px] text-white/50 -mt-1">Sign in to manage your fleet profile and jobs.</p>
+        <InputField label="Fleet name" value={fleet} onChange={setFleet} placeholder="Fleet name" />
+        <InputField label="Email" value={email} onChange={setEmail} placeholder="you@fleet.co.uk" />
+        <button
+          onClick={() => email.trim() && signIn(email.trim(), fleet.trim() || undefined)}
+          disabled={loading || !email.trim()}
+          className="w-full rounded-xl py-3.5 text-[15px] font-semibold active:opacity-90 disabled:opacity-60"
+          style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(6,182,212,0.55))`, color: BG }}
+        >
+          {loading ? 'Signing in…' : 'Sign In'}
+        </button>
+      </div>
+    )
+  }
+
+  // Signed in — real account details from the auth store.
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
-      <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Complete Your Profile</h1>
-      <Field label="Fleet name" value={profile?.fleetName} placeholder="Fleet name" />
-      <Field label="Email" value={profile?.email} placeholder="Email" />
+      <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">Your Profile</h1>
+      <Field label="Fleet name" value={user.name} placeholder="Fleet name" />
+      <Field label="Email" value={user.email} placeholder="Email" />
+      <Field label="Operator ID" value={user.operatorId} placeholder="Operator ID" />
       <Field label="Phone number" value={profile?.phone} placeholder="Phone number" />
       <div>
         <label className="block text-[11px] text-white/40 mb-1.5">Upload License Photo</label>
@@ -437,6 +465,14 @@ function ProfileView() {
           <Camera size={26} className="text-white/35" />
         </button>
       </div>
+      <button
+        onClick={signOut}
+        className="w-full flex items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium text-white/80 active:opacity-80"
+        style={{ background: PANEL, borderColor: LINE }}
+      >
+        <LogOut size={16} />
+        Sign out
+      </button>
     </div>
   )
 }
@@ -491,25 +527,27 @@ export default function RelayApp() {
   }
 
   return (
-    <div className="w-full flex justify-center" style={{ background: '#020509' }}>
-      <div
-        className="relative w-full max-w-[480px] flex flex-col overflow-hidden"
-        style={{
-          background: BG,
-          height: '100dvh',
-          paddingTop: 'env(safe-area-inset-top)',
-        }}
-      >
-        {screen === 'map' ? <TopBar map /> : <TopBar onBack={() => setScreen('map')} />}
+    <AuthProvider>
+      <div className="w-full flex justify-center" style={{ background: '#020509' }}>
+        <div
+          className="relative w-full max-w-[480px] flex flex-col overflow-hidden"
+          style={{
+            background: BG,
+            height: '100dvh',
+            paddingTop: 'env(safe-area-inset-top)',
+          }}
+        >
+          {screen === 'map' ? <TopBar map /> : <TopBar onBack={() => setScreen('map')} />}
 
-        {screen === 'map' && <MapView go={setScreen} network={network} />}
-        {screen === 'bid' && <BidView go={setScreen} />}
-        {screen === 'cover' && <CoverView go={setScreen} />}
-        {screen === 'profile' && <ProfileView />}
-        {screen === 'messages' && <MessagesView />}
+          {screen === 'map' && <MapView go={setScreen} network={network} />}
+          {screen === 'bid' && <BidView go={setScreen} />}
+          {screen === 'cover' && <CoverView go={setScreen} />}
+          {screen === 'profile' && <ProfileView />}
+          {screen === 'messages' && <MessagesView />}
 
-        <BottomNav active={activeTab} onTab={onTab} />
+          <BottomNav active={activeTab} onTab={onTab} />
+        </div>
       </div>
-    </div>
+    </AuthProvider>
   )
 }
