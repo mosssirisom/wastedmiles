@@ -35,7 +35,7 @@ const PANEL = '#0F172A'
 const LINE = '#1E293B'
 
 type Screen = 'map' | 'bid' | 'cover' | 'profile' | 'messages' | 'thread' | 'trips'
-type TabId = 'marketplace' | 'map' | 'trips' | 'messages' | 'profile'
+type TabId = 'map' | 'marketplace' | 'trips' | 'profile'
 
 /* -------------------------------------------------------------------------- */
 /*  Shell                                                                       */
@@ -60,10 +60,9 @@ function TopBar({ map, onBack }: { map?: boolean; onBack?: () => void }) {
 }
 
 const TABS: { id: TabId; label: string; icon: typeof MapIcon }[] = [
+  { id: 'map', label: 'Home', icon: MapIcon },
   { id: 'marketplace', label: 'Marketplace', icon: ClipboardList },
-  { id: 'map', label: 'Map', icon: MapIcon },
   { id: 'trips', label: 'Trips', icon: Route },
-  { id: 'messages', label: 'Messages', icon: MessageSquare },
   { id: 'profile', label: 'Profile', icon: User },
 ]
 
@@ -352,7 +351,7 @@ function CoverView({ go }: { go: (s: Screen) => void }) {
   )
 }
 
-function ProfileView() {
+function ProfileView({ onOpenMessages }: { onOpenMessages: () => void }) {
   const { user, loading, signIn, signOut } = useAuth()
   const { data: profile } = useResource(fetchProfile)
   const [email, setEmail] = useState('')
@@ -386,6 +385,17 @@ function ProfileView() {
       <Field label="Email" value={user.email} placeholder="Email" />
       <Field label="Operator ID" value={user.operatorId} placeholder="Operator ID" />
       <Field label="Phone number" value={profile?.phone} placeholder="Phone number" />
+      <button
+        onClick={onOpenMessages}
+        className="w-full flex items-center justify-between rounded-xl border px-3.5 py-3 text-left active:opacity-80"
+        style={{ background: PANEL, borderColor: LINE }}
+      >
+        <span className="flex items-center gap-2 text-sm font-medium text-white/80">
+          <MessageSquare size={17} />
+          Messages
+        </span>
+        <span className="text-xs text-white/35">Open</span>
+      </button>
       <div>
         <label className="block text-[11px] text-white/40 mb-1.5">Upload License Photo</label>
         <button className="w-full h-28 rounded-xl border flex items-center justify-center active:opacity-80" style={{ background: PANEL, borderColor: LINE }}>
@@ -592,17 +602,14 @@ export default function RelayApp() {
       ? 'map'
       : screen === 'cover'
         ? 'marketplace'
-        : screen === 'messages' || screen === 'thread'
-          ? 'messages'
-          : screen === 'profile'
-            ? 'profile'
-            : 'trips'
+        : screen === 'trips'
+          ? 'trips'
+          : 'profile'
 
   const onTab = (id: TabId) => {
     if (id === 'map') setScreen('map')
     else if (id === 'marketplace') setScreen('cover')
     else if (id === 'trips') setScreen('trips')
-    else if (id === 'messages') setScreen('messages')
     else setScreen('profile')
   }
 
@@ -629,7 +636,7 @@ export default function RelayApp() {
           {screen === 'bid' && <BidView go={setScreen} />}
           {screen === 'cover' && <CoverView go={setScreen} />}
           {screen === 'trips' && <TripsView go={setScreen} />}
-          {screen === 'profile' && <ProfileView />}
+          {screen === 'profile' && <ProfileView onOpenMessages={() => setScreen('messages')} />}
           {screen === 'messages' && <MessagesView onOpen={openThread} />}
           {screen === 'thread' && activeOp && (
             <ThreadView operatorId={activeOp.id} name={activeOp.name} />
