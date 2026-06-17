@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import {
   Menu,
   ArrowLeft,
@@ -20,6 +22,9 @@ const ACCENT = '#06B6D4'
 const BG = '#030712'
 const PANEL = '#0F172A'
 const LINE = '#1E293B'
+const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+const ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
 type Screen = 'map' | 'bid' | 'cover' | 'profile' | 'messages'
 type TabId = 'marketplace' | 'map' | 'trips' | 'messages' | 'profile'
@@ -43,7 +48,7 @@ function PhoneFrame({ children }: { children: ReactNode }) {
 
 function StatusBar() {
   return (
-    <div className="flex items-center justify-between px-7 pt-3.5 pb-1 text-white text-[15px] font-semibold tracking-tight shrink-0">
+    <div className="flex items-center justify-between px-7 pt-3.5 pb-1 text-white text-[15px] font-semibold tracking-tight shrink-0 z-40">
       <span>9:41</span>
       <div className="flex items-center gap-1.5">
         <Signal size={15} />
@@ -105,14 +110,14 @@ function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => voi
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Map screen                                                                  */
+/*  Map screen (real dark tiles + projected overlays)                           */
 /* -------------------------------------------------------------------------- */
 
 const NODES = {
-  MAN: { x: 46, y: 40, jobs: 18, rev: '£4.2k' },
-  LPL: { x: 39, y: 44, jobs: 9, rev: '£3.1k' },
-  BHX: { x: 51, y: 54, jobs: 11, rev: '£4.2k' },
-  LHR: { x: 63, y: 65, jobs: 14, rev: '£5.7k' },
+  MAN: { lat: 53.365, lng: -2.272, jobs: 18, rev: '£4.2k' },
+  LPL: { lat: 53.336, lng: -2.85, jobs: 9, rev: '£3.1k' },
+  BHX: { lat: 52.454, lng: -1.748, jobs: 11, rev: '£4.2k' },
+  LHR: { lat: 51.47, lng: -0.454, jobs: 14, rev: '£5.7k' },
 }
 type NodeKey = keyof typeof NODES
 const ROUTES: [NodeKey, NodeKey][] = [
@@ -122,20 +127,18 @@ const ROUTES: [NodeKey, NodeKey][] = [
   ['BHX', 'LHR'],
   ['LPL', 'LHR'],
 ]
+type Pts = Record<NodeKey, { x: number; y: number }>
 
-function Hotspot({ code, primary }: { code: NodeKey; primary?: boolean }) {
+function Hotspot({ code, pt, primary }: { code: NodeKey; pt: { x: number; y: number }; primary?: boolean }) {
   const n = NODES[code]
   return (
-    <div
-      className="absolute z-20 flex flex-col items-center"
-      style={{ left: `${n.x}%`, top: `${n.y}%`, transform: 'translate(-50%, -100%)' }}
-    >
+    <div className="absolute z-20 flex flex-col items-center" style={{ left: pt.x, top: pt.y, transform: 'translate(-50%, -100%)' }}>
       <div
         className="rounded-xl border px-3 py-2 text-center"
         style={{
-          background: PANEL,
+          background: 'rgba(15,23,42,0.95)',
           borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE,
-          boxShadow: primary ? '0 0 22px rgba(6,182,212,0.4)' : '0 8px 20px rgba(0,0,0,0.55)',
+          boxShadow: primary ? '0 0 22px rgba(6,182,212,0.45)' : '0 8px 20px rgba(0,0,0,0.55)',
         }}
       >
         <div className="text-[12px] font-bold text-white leading-none">{code}</div>
@@ -144,7 +147,7 @@ function Hotspot({ code, primary }: { code: NodeKey; primary?: boolean }) {
           {n.rev}
         </div>
       </div>
-      <div className="h-2 w-2 rotate-45 -mt-1 border-r border-b" style={{ background: PANEL, borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE }} />
+      <div className="h-2 w-2 rotate-45 -mt-1 border-r border-b" style={{ background: 'rgba(15,23,42,0.95)', borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE }} />
       <div className="relative mt-1 flex items-center justify-center">
         <span className="absolute h-5 w-5 rounded-full animate-ping" style={{ background: 'rgba(6,182,212,0.35)' }} />
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: ACCENT, boxShadow: '0 0 12px rgba(6,182,212,0.9)' }} />
@@ -153,94 +156,122 @@ function Hotspot({ code, primary }: { code: NodeKey; primary?: boolean }) {
   )
 }
 
-const DOT_CSS = `
-.relaydot{position:absolute;width:4px;height:4px;border-radius:9999px;background:${ACCENT};box-shadow:0 0 8px ${ACCENT};transform:translate(-50%,-50%);}
-${ROUTES.map(([a, b], i) => {
-  const A = NODES[a]
-  const B = NODES[b]
-  return `@keyframes relayflow${i}{0%{left:${A.x}%;top:${A.y}%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:${B.x}%;top:${B.y}%;opacity:0}}`
-}).join('\n')}
-`
-
 function MapView({ go }: { go: (s: Screen) => void }) {
+  const mapDivRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const [pts, setPts] = useState<Pts | null>(null)
   const [expanded, setExpanded] = useState(false)
 
-  const heat = [
-    { x: 63, y: 65, s: 200 },
-    { x: 46, y: 40, s: 150 },
-    { x: 51, y: 54, s: 130 },
-    { x: 39, y: 44, s: 120 },
-  ]
+  useEffect(() => {
+    const el = mapDivRef.current
+    if (!el) return
+    const map = L.map(el, {
+      zoomControl: false,
+      attributionControl: true,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      touchZoom: false,
+    })
+    mapRef.current = map
+    L.tileLayer(DARK_TILES, { subdomains: 'abcd', attribution: ATTR, maxZoom: 19 }).addTo(map)
+
+    const bounds = L.latLngBounds(
+      (Object.keys(NODES) as NodeKey[]).map((k) => [NODES[k].lat, NODES[k].lng] as [number, number])
+    )
+
+    const compute = () => {
+      map.invalidateSize()
+      map.fitBounds(bounds, { paddingTopLeft: [64, 110], paddingBottomRight: [64, 320] })
+      const next = {} as Pts
+      ;(Object.keys(NODES) as NodeKey[]).forEach((k) => {
+        const p = map.latLngToContainerPoint([NODES[k].lat, NODES[k].lng])
+        next[k] = { x: p.x, y: p.y }
+      })
+      setPts(next)
+    }
+    setTimeout(compute, 0)
+    window.addEventListener('resize', compute)
+    return () => {
+      window.removeEventListener('resize', compute)
+      map.remove()
+      mapRef.current = null
+    }
+  }, [])
+
+  const dotCss =
+    pts &&
+    `.relaydot{position:absolute;width:4px;height:4px;border-radius:9999px;background:${ACCENT};box-shadow:0 0 8px ${ACCENT};transform:translate(-50%,-50%);}
+${ROUTES.map(
+      ([a, b], i) =>
+        `@keyframes relayflow${i}{0%{left:${pts[a].x}px;top:${pts[a].y}px;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:${pts[b].x}px;top:${pts[b].y}px;opacity:0}}`
+    ).join('\n')}`
 
   return (
     <div className="relative flex-1 overflow-hidden">
-      <style>{DOT_CSS}</style>
-
-      {/* base + grid */}
+      {/* real dark tiles */}
+      <div ref={mapDivRef} className="absolute inset-0 z-0" />
+      {/* depth/vignette over tiles */}
       <div
-        className="absolute inset-0"
-        style={{ background: `radial-gradient(120% 90% at 58% 42%, rgba(6,182,212,0.06), transparent 55%), ${BG}` }}
-      />
-      <div
-        className="absolute inset-0 opacity-[0.07]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(148,163,184,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.7) 1px, transparent 1px)',
-          backgroundSize: '30px 30px',
-        }}
+        className="absolute inset-0 z-[5] pointer-events-none"
+        style={{ background: 'radial-gradient(120% 80% at 55% 35%, rgba(6,182,212,0.05), transparent 55%), linear-gradient(to bottom, transparent 55%, rgba(3,7,18,0.85))' }}
       />
 
-      {/* heatmap */}
-      {heat.map((h, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full blur-2xl pointer-events-none"
-          style={{
-            left: `${h.x}%`,
-            top: `${h.y}%`,
-            width: h.s,
-            height: h.s,
-            transform: 'translate(-50%,-50%)',
-            background: 'radial-gradient(closest-side, rgba(6,182,212,0.28), transparent)',
-          }}
-        />
-      ))}
+      {pts && (
+        <>
+          <style>{dotCss}</style>
 
-      {/* routes */}
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full z-10">
-        {ROUTES.map(([a, b], i) => (
-          <line
-            key={i}
-            x1={NODES[a].x}
-            y1={NODES[a].y}
-            x2={NODES[b].x}
-            y2={NODES[b].y}
-            stroke={ACCENT}
-            strokeOpacity="0.28"
-            strokeWidth="0.4"
-            strokeDasharray="1 2.5"
-            strokeLinecap="round"
-            className="arc-flow"
-          />
-        ))}
-      </svg>
+          {/* heatmap */}
+          {(Object.keys(NODES) as NodeKey[]).map((k) => (
+            <div
+              key={k}
+              className="absolute z-[6] rounded-full blur-2xl pointer-events-none"
+              style={{
+                left: pts[k].x,
+                top: pts[k].y,
+                width: 150 + NODES[k].jobs * 5,
+                height: 150 + NODES[k].jobs * 5,
+                transform: 'translate(-50%,-50%)',
+                background: 'radial-gradient(closest-side, rgba(6,182,212,0.25), transparent)',
+              }}
+            />
+          ))}
 
-      {/* live moving dots */}
-      {ROUTES.flatMap(([_a, _b], i) =>
-        [0, 1.4, 2.8].map((delay, j) => (
-          <span
-            key={`${i}-${j}`}
-            className="relaydot z-10"
-            style={{ animation: `relayflow${i} 4s linear infinite`, animationDelay: `-${delay}s` }}
-          />
-        ))
+          {/* routes */}
+          <svg className="absolute inset-0 w-full h-full z-10 pointer-events-none">
+            {ROUTES.map(([a, b], i) => (
+              <line
+                key={i}
+                x1={pts[a].x}
+                y1={pts[a].y}
+                x2={pts[b].x}
+                y2={pts[b].y}
+                stroke={ACCENT}
+                strokeOpacity="0.3"
+                strokeWidth="1.3"
+                strokeDasharray="3 7"
+                strokeLinecap="round"
+                className="arc-flow"
+              />
+            ))}
+          </svg>
+
+          {/* live moving dots */}
+          {ROUTES.flatMap((_r, i) =>
+            [0, 1.4, 2.8].map((delay, j) => (
+              <span key={`${i}-${j}`} className="relaydot z-10" style={{ animation: `relayflow${i} 4s linear infinite`, animationDelay: `-${delay}s` }} />
+            ))
+          )}
+
+          {/* hotspots */}
+          <Hotspot code="MAN" pt={pts.MAN} />
+          <Hotspot code="LPL" pt={pts.LPL} />
+          <Hotspot code="BHX" pt={pts.BHX} />
+          <Hotspot code="LHR" pt={pts.LHR} primary />
+        </>
       )}
-
-      {/* hotspots */}
-      <Hotspot code="MAN" />
-      <Hotspot code="LPL" />
-      <Hotspot code="BHX" />
-      <Hotspot code="LHR" primary />
 
       {/* bottom sheet */}
       <div
@@ -262,9 +293,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
                 £42,300
               </div>
             </div>
-            <div className="pl-3 pb-1 text-white/40">
-              {expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-            </div>
+            <div className="pl-3 pb-1 text-white/40">{expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}</div>
           </div>
         </button>
 
