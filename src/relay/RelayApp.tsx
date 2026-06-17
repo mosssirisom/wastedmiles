@@ -121,43 +121,43 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
         </div>
       </div>
 
-      {/* Isolated, self-sizing Mapbox map */}
+      {/* Isolated, self-sizing Mapbox map (fills behind the floating controls) */}
       <RelayMap network={network} resizeSignal={expanded} />
 
-      {/* Job sheet — fills the area below the map, tucked under its lower edge */}
-      <div
-        className="flex-1 min-h-0 overflow-y-auto -mt-3 rounded-t-2xl border-t px-5 pt-2.5 pb-4"
-        style={{ background: 'rgba(15,23,42,0.97)', borderColor: LINE, backdropFilter: 'blur(10px)' }}
-      >
-        <button onClick={() => setExpanded((e) => !e)} className="w-full">
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-          <div className="flex items-end justify-between">
-            <div className="text-left">
-              <div className="text-[11px] uppercase tracking-wider text-white/45">Available Jobs Today</div>
-              <div className="text-[26px] font-bold text-white leading-none mt-1">
-                {network ? network.totalJobs : '—'} <span className="text-base font-medium text-white/45">Jobs</span>
+      {/* Floating jobs summary — no solid panel; blends into the map above the
+          bottom nav. Wrapper ignores pointer events; content re-enables them. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30">
+        <div
+          className="absolute inset-x-0 bottom-0 pointer-events-none"
+          style={{ height: 240, background: 'linear-gradient(to top, rgba(3,7,18,0.9), rgba(3,7,18,0.45) 45%, transparent)' }}
+        />
+        <div className="relative px-5 pb-3 pointer-events-auto">
+          <button onClick={() => setExpanded((e) => !e)} className="w-full">
+            <div className="flex items-end justify-between">
+              <div className="text-left">
+                <div className="text-[11px] uppercase tracking-wider text-white/55">Available Jobs Today</div>
+                <div className="text-[26px] font-bold text-white leading-none mt-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
+                  {network ? network.totalJobs : '—'} <span className="text-base font-medium text-white/55">Jobs</span>
+                </div>
               </div>
-            </div>
-            <div className="text-right">
-              <div className="text-[11px] text-white/45">Available</div>
-              <div className="text-[19px] font-bold leading-tight" style={{ color: ACCENT }}>
-                {network ? network.available : '—'}
+              <div className="text-right">
+                <div className="text-[11px] text-white/55">Available</div>
+                <div className="text-[19px] font-bold leading-tight" style={{ color: ACCENT, textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
+                  {network ? network.available : '—'}
+                </div>
               </div>
+              <div className="pl-3 pb-1 text-white/55">{expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}</div>
             </div>
-            <div className="pl-3 pb-1 text-white/40">{expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}</div>
-          </div>
-        </button>
+          </button>
 
-        {expanded && (
-          <div className="mt-3 pt-3 border-t" style={{ borderColor: LINE }}>
-            <div className="text-[12px] font-medium text-white/80 mb-2">Top Opportunities</div>
-            <div className="space-y-1.5">
+          {expanded && (
+            <div className="mt-3 space-y-1.5 max-h-[42vh] overflow-y-auto">
               {(network?.opportunities ?? []).map((o) => (
                 <button
                   key={o.id}
                   onClick={() => go('bid')}
                   className="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-left active:opacity-80"
-                  style={{ background: BG, border: `1px solid ${LINE}` }}
+                  style={{ background: 'rgba(15,23,42,0.85)', border: `1px solid ${LINE}`, backdropFilter: 'blur(8px)' }}
                 >
                   <span className="text-[13px] text-white truncate">{o.route}</span>
                   <span className="text-[13px] font-semibold shrink-0" style={{ color: ACCENT }}>
@@ -166,8 +166,8 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

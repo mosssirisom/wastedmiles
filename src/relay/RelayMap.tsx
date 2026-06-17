@@ -202,7 +202,7 @@ ${network!.routes
   return (
     <section
       className="relative w-full overflow-hidden"
-      style={{ height: 'calc(100dvh - 260px)', minHeight: '480px' }}
+      style={{ height: '100%', minHeight: '480px' }}
     >
       {/* Mapbox container — absolutely filled, forced to 100% (see index.css) */}
       <div ref={containerRef} className="absolute inset-0 z-0" style={{ width: '100%', height: '100%', background: '#030712' }} />
