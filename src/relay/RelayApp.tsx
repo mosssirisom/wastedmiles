@@ -97,7 +97,30 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="relative flex-1 flex flex-col min-h-0">
+      {/* Floating map controls — no solid bar; they blend over the map like
+          Uber / Apple Maps. Wrapper ignores pointer events; buttons re-enable. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-40">
+        <div
+          className="absolute inset-x-0 top-0 h-28 pointer-events-none"
+          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.45), transparent)' }}
+        />
+        <div
+          className="relative flex items-center justify-between px-5 h-12"
+          style={{ marginTop: 'env(safe-area-inset-top)' }}
+        >
+          <button className="pointer-events-auto text-white/90 active:opacity-60" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+            <Menu size={22} />
+          </button>
+          <span className="text-white text-[16px] font-semibold tracking-tight" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+            Relay
+          </span>
+          <button className="pointer-events-auto text-white/90 active:opacity-60" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+            <Search size={20} />
+          </button>
+        </div>
+      </div>
+
       {/* Isolated, self-sizing Mapbox map */}
       <RelayMap network={network} resizeSignal={expanded} />
 
@@ -591,16 +614,16 @@ export default function RelayApp() {
           style={{
             background: BG,
             height: '100dvh',
-            paddingTop: 'env(safe-area-inset-top)',
+            // Map screen is full-bleed to the top (controls float over the map
+            // and handle the safe area themselves); other screens inset.
+            paddingTop: screen === 'map' ? 0 : 'env(safe-area-inset-top)',
           }}
         >
-          {screen === 'map' ? (
-            <TopBar map />
-          ) : screen === 'thread' ? (
+          {screen === 'thread' ? (
             <TopBar onBack={() => setScreen('messages')} />
-          ) : (
+          ) : screen !== 'map' ? (
             <TopBar onBack={() => setScreen('map')} />
-          )}
+          ) : null}
 
           {screen === 'map' && <MapView go={setScreen} network={network} />}
           {screen === 'bid' && <BidView go={setScreen} />}
