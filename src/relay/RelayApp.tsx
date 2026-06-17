@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import L from 'leaflet'
+import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import {
   Menu,
   ArrowLeft,
@@ -34,9 +35,6 @@ const ACCENT = '#06B6D4'
 const BG = '#030712'
 const PANEL = '#0F172A'
 const LINE = '#1E293B'
-const DARK_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-const ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
 type Screen = 'map' | 'bid' | 'cover' | 'profile' | 'messages' | 'thread' | 'trips'
 type TabId = 'marketplace' | 'map' | 'trips' | 'messages' | 'profile'
@@ -126,27 +124,39 @@ function Hotspot({ airport, pt }: { airport: Airport; pt: { x: number; y: number
 
 function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSnapshot | null }) {
   const mapDivRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<L.Map | null>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
   const [pts, setPts] = useState<Record<string, { x: number; y: number }> | null>(null)
   const [expanded, setExpanded] = useState(false)
 
-  // Initialise the dark-tile basemap once.
+  // Initialise Mapbox map once.
   useEffect(() => {
     const el = mapDivRef.current
     if (!el || mapRef.current) return
-    const map = L.map(el, {
-      zoomControl: false,
-      attributionControl: true,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      boxZoom: false,
-      keyboard: false,
-      touchZoom: false,
+    const token = (import.meta.env.VITE_MAPBOX_TOKEN as string | undefined)?.trim()
+    if (!token) return
+
+    mapboxgl.accessToken = token
+    const map = new mapboxgl.Map({
+      container: el,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center: [-3.2, 54.9],
+      zoom: 5.35,
+      minZoom: 4.4,
+      maxZoom: 12,
+      attributionControl: false,
+      logoPosition: 'bottom-left',
     })
+    // Static overlay map — disable all user interaction.
+    map.scrollZoom.disable()
+    map.boxZoom.disable()
+    map.dragPan.disable()
+    map.dragRotate.disable()
+    map.keyboard.disable()
+    map.doubleClickZoom.disable()
+    map.touchZoomRotate.disable()
+    map.touchPitch.disable()
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right')
     mapRef.current = map
-    L.tileLayer(DARK_TILES, { subdomains: 'abcd', attribution: ATTR, maxZoom: 19 }).addTo(map)
-    map.setView([53, -2], 6)
     return () => {
       map.remove()
       mapRef.current = null
@@ -159,27 +169,44 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
   netRef.current = network
   const airportsSig = network ? network.airports.map((a) => `${a.code}:${a.lat}:${a.lng}`).join('|') : ''
 
-  // Fit + project the airports once the coordinates are known.
+  // Fit bounds and project airport pixels once the map style has loaded.
   useEffect(() => {
     const map = mapRef.current
     const net = netRef.current
     if (!map || !net) return
     const airports = net.airports
-    const bounds = L.latLngBounds(airports.map((a) => [a.lat, a.lng] as [number, number]))
+
+    const lats = airports.map((a) => a.lat)
+    const lngs = airports.map((a) => a.lng)
+    const sw: [number, number] = [Math.min(...lngs), Math.min(...lats)]
+    const ne: [number, number] = [Math.max(...lngs), Math.max(...lats)]
+
     const compute = () => {
-      map.invalidateSize()
-      map.fitBounds(bounds, { paddingTopLeft: [64, 110], paddingBottomRight: [64, 320] })
+      map.resize()
+      map.fitBounds([sw, ne], {
+        padding: { top: 110, bottom: 320, left: 64, right: 64 },
+        animate: false,
+        duration: 0,
+      })
       const next: Record<string, { x: number; y: number }> = {}
       airports.forEach((a) => {
-        const p = map.latLngToContainerPoint([a.lat, a.lng])
+        const p = map.project([a.lng, a.lat])
         next[a.code] = { x: p.x, y: p.y }
       })
       setPts(next)
     }
-    // Defer projection until Mapbox has loaded its style/tiles.
-    ;(map as unknown as { onLoad(cb: () => void): void }).onLoad(compute)
+
+    // Fire immediately if style already loaded, otherwise wait for 'load'.
+    if (map.isStyleLoaded()) {
+      compute()
+    } else {
+      map.once('load', compute)
+    }
     window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
+    return () => {
+      map.off('load', compute)
+      window.removeEventListener('resize', compute)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [airportsSig])
 
