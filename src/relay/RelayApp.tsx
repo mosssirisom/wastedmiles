@@ -128,6 +128,7 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
   const [pts, setPts] = useState<Record<string, { x: number; y: number }> | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
+  const [styleLoaded, setStyleLoaded] = useState(false)
 
   // Initialise Mapbox map once.
   useEffect(() => {
@@ -164,6 +165,7 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
       const status = (e as { error?: { status?: number } }).error?.status
       setMapError(msg ? `${msg}${status ? ` (${status})` : ''}` : 'Mapbox failed to load tiles')
     })
+    map.on('load', () => setStyleLoaded(true))
     mapRef.current = map
     return () => {
       map.remove()
@@ -234,15 +236,14 @@ ${network!.routes
     <div className="relative flex-1 overflow-hidden">
       {/* real dark tiles */}
       <div ref={mapDivRef} className="absolute inset-0 z-0" />
-      {/* Diagnostic: surface a missing token (build-time) or a rejected token /
-          tile-load failure (runtime) instead of failing silently. */}
-      {(!hasToken || mapError) && (
-        <div className="absolute left-3 right-3 top-3 z-[60] rounded-lg border px-3 py-2 text-center text-[12px]" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: '#FCA5A5' }}>
-          {!hasToken
-            ? 'VITE_MAPBOX_TOKEN missing from this build — add it in Vercel and redeploy.'
-            : `Mapbox error: ${mapError}`}
-        </div>
-      )}
+      {/* Always-on diagnostic strip. BUILD_TAG confirms the running deploy is
+          fresh (defeats cache ambiguity); the rest reports live Mapbox state. */}
+      <div className="absolute left-3 right-3 top-3 z-[60] rounded-lg border px-3 py-2 text-center text-[11px] leading-snug" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: mapError ? '#FCA5A5' : '#94A3B8' }}>
+        <span style={{ color: ACCENT }}>diag-4</span>{' · '}
+        token: {hasToken ? 'yes' : 'NO'}{' · '}
+        style: {styleLoaded ? 'loaded' : 'pending'}
+        {mapError ? <div style={{ color: '#FCA5A5' }}>err: {mapError}</div> : null}
+      </div>
       {/* depth/vignette over tiles */}
       <div
         className="absolute inset-0 z-[5] pointer-events-none"
