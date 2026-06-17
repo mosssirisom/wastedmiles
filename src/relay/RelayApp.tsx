@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type ReactNode, type CSSProperties } from 'react'
 import {
   Menu,
   ArrowLeft,
   Search,
-  Store,
+  ClipboardList,
   Map as MapIcon,
-  User,
+  Route,
   Gavel,
   MoreHorizontal,
   Signal,
@@ -15,18 +15,24 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
-const ACCENT = '#7DDCE8'
+const ACCENT = '#00F2FE'
+const BG = '#0B0D10'
+const PANEL = '#12161A'
+const LINE = '#1A1F26'
 
 type Screen = 'map' | 'bid' | 'cover' | 'profile'
-type TabId = 'marketplace' | 'map' | 'profile' | 'bids' | 'more'
+type TabId = 'marketplace' | 'map' | 'trips' | 'bids' | 'more'
 
 /* -------------------------------------------------------------------------- */
-/*  Reusable components                                                         */
+/*  Shell                                                                       */
 /* -------------------------------------------------------------------------- */
 
 function PhoneFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="relative w-[375px] h-[812px] max-w-full rounded-[44px] border border-white/10 bg-[#071012] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.6)] flex flex-col">
+    <div
+      className="relative w-[375px] h-[812px] max-w-full rounded-[46px] border border-[#1A1F26] overflow-hidden flex flex-col"
+      style={{ background: BG, boxShadow: '0 40px 90px rgba(0,0,0,0.7), inset 0 0 0 2px rgba(255,255,255,0.02)' }}
+    >
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-black rounded-b-2xl z-30" />
       {children}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 rounded-full bg-white/25 z-30 pointer-events-none" />
@@ -47,49 +53,62 @@ function StatusBar() {
   )
 }
 
-function TopBar({ back, logo, onBack }: { back?: boolean; logo?: boolean; onBack?: () => void }) {
+function RelayLogo() {
   return (
-    <div className="flex items-center justify-between px-5 h-12 shrink-0">
-      <div className="flex items-center gap-2.5">
-        <button onClick={onBack} className="text-white/80 active:opacity-60">
-          {back ? <ArrowLeft size={20} /> : <Menu size={20} />}
-        </button>
-        {logo && (
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block h-3 w-3 rotate-45 rounded-[2px] border border-white/70" />
-            <span className="text-white text-[15px] font-semibold tracking-tight">Relay</span>
-          </div>
-        )}
-      </div>
-      <button className="text-white/80 active:opacity-60">
+    <div className="flex items-center gap-2">
+      <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+        <path d="M2 4.5 C6 1.5 16 1.5 20 4.5" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M2 8 C6 5 16 5 20 8" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeOpacity="0.8" />
+        <path d="M2 11.5 C6 8.5 16 8.5 20 11.5" stroke={ACCENT} strokeWidth="1.6" strokeLinecap="round" strokeOpacity="0.55" />
+      </svg>
+      <span className="text-white text-[16px] font-semibold tracking-tight">Relay</span>
+    </div>
+  )
+}
+
+function TopBar({ map, onBack }: { map?: boolean; onBack?: () => void }) {
+  return (
+    <div className="relative flex items-center justify-between px-5 h-12 shrink-0">
+      <button onClick={onBack} className="text-white/80 active:opacity-60 z-10">
+        {map ? <Menu size={20} /> : <ArrowLeft size={20} />}
+      </button>
+      {map && (
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <RelayLogo />
+        </div>
+      )}
+      <button className="text-white/80 active:opacity-60 z-10">
         <Search size={19} />
       </button>
     </div>
   )
 }
 
-const TABS: { id: TabId; label: string; icon: typeof Store }[] = [
-  { id: 'marketplace', label: 'Marketplace', icon: Store },
+const TABS: { id: TabId; label: string; icon: typeof MapIcon }[] = [
+  { id: 'marketplace', label: 'Marketplace', icon: ClipboardList },
   { id: 'map', label: 'Map', icon: MapIcon },
-  { id: 'profile', label: 'Profile', icon: User },
+  { id: 'trips', label: 'Trips', icon: Route },
   { id: 'bids', label: 'Bids', icon: Gavel },
   { id: 'more', label: 'More', icon: MoreHorizontal },
 ]
 
 function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => void }) {
   return (
-    <div className="mt-auto shrink-0 border-t border-white/10 bg-[#071012]/95 backdrop-blur-md px-1 pt-2.5 pb-7 flex justify-around">
+    <div
+      className="mt-auto shrink-0 border-t border-[#1A1F26] px-1 pt-2.5 pb-7 flex justify-around"
+      style={{ background: 'rgba(11,13,16,0.95)' }}
+    >
       {TABS.map((t) => {
         const Icon = t.icon
         const on = t.id === active
         return (
-          <button
-            key={t.id}
-            onClick={() => onTab(t.id)}
-            className="flex flex-col items-center gap-1 w-[68px] active:opacity-60"
-          >
-            <Icon size={20} style={on ? { color: ACCENT } : undefined} className={on ? '' : 'text-white/45'} />
-            <span className="text-[10px] tracking-tight" style={on ? { color: ACCENT } : undefined}>
+          <button key={t.id} onClick={() => onTab(t.id)} className="flex flex-col items-center gap-1 w-[68px] active:opacity-60">
+            <Icon
+              size={20}
+              className={on ? '' : 'text-white/40'}
+              style={on ? { color: ACCENT, filter: 'drop-shadow(0 0 6px rgba(0,242,254,0.6))' } : undefined}
+            />
+            <span className="text-[10px] tracking-tight" style={on ? { color: ACCENT } : { color: 'rgba(255,255,255,0.4)' }}>
               {t.label}
             </span>
           </button>
@@ -99,21 +118,176 @@ function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => voi
   )
 }
 
-function InputField({
-  label,
+/* -------------------------------------------------------------------------- */
+/*  Map                                                                         */
+/* -------------------------------------------------------------------------- */
+
+const C: Record<string, [number, number]> = {
+  Glasgow: [30, 12],
+  Newcastle: [47, 22],
+  Leeds: [46, 33],
+  Liverpool: [33, 38],
+  Manchester: [42, 39],
+  Birmingham: [47, 51],
+  Cardiff: [35, 61],
+  London: [63, 65],
+  Plymouth: [32, 75],
+}
+
+const EDGES: [keyof typeof C, keyof typeof C][] = [
+  ['Glasgow', 'Newcastle'],
+  ['Newcastle', 'Leeds'],
+  ['Leeds', 'Manchester'],
+  ['Manchester', 'Liverpool'],
+  ['Leeds', 'Birmingham'],
+  ['Manchester', 'Birmingham'],
+  ['Birmingham', 'London'],
+  ['Birmingham', 'Cardiff'],
+  ['Cardiff', 'Plymouth'],
+  ['Glasgow', 'Liverpool'],
+  ['Leeds', 'London'],
+]
+
+function NodeDot({ name, x, y }: { name: string; x: number; y: number }) {
+  return (
+    <div className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5" style={{ left: `${x}%`, top: `${y}%` }}>
+      <span className="h-1.5 w-1.5 rounded-full bg-white/70" style={{ boxShadow: '0 0 8px rgba(255,255,255,0.5)' }} />
+      <span className="text-[9px] text-white/40 whitespace-nowrap">{name}</span>
+    </div>
+  )
+}
+
+function Callout({
+  code,
   value,
-  placeholder,
-  dropdown,
+  volume,
+  active,
+  x,
+  y,
 }: {
-  label: string
-  value?: string
-  placeholder?: string
-  dropdown?: boolean
+  code: string
+  value: string
+  volume: string
+  active?: boolean
+  x: number
+  y: number
 }) {
+  const style: CSSProperties = { left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -100%)' }
+  return (
+    <div className="absolute flex flex-col items-center z-10" style={style}>
+      {/* tooltip */}
+      <div
+        className="rounded-lg border px-2.5 py-1.5 text-center"
+        style={{
+          background: PANEL,
+          borderColor: active ? 'rgba(0,242,254,0.6)' : LINE,
+          boxShadow: active ? '0 0 16px rgba(0,242,254,0.4)' : '0 6px 16px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div className="text-[10px] font-semibold text-white leading-none">{code}</div>
+        <div className="text-[12px] font-bold leading-tight mt-0.5" style={{ color: ACCENT }}>
+          {value}
+        </div>
+        <div className="text-[9px] text-white/40 leading-none">{volume}</div>
+      </div>
+      {/* pointer */}
+      <div
+        className="h-2 w-2 rotate-45 -mt-1 border-r border-b"
+        style={{ background: PANEL, borderColor: active ? 'rgba(0,242,254,0.6)' : LINE }}
+      />
+      {/* node */}
+      <div className="relative mt-1 flex items-center justify-center">
+        {active && (
+          <span
+            className="absolute h-6 w-6 rounded-full border"
+            style={{ borderColor: 'rgba(0,242,254,0.7)', boxShadow: '0 0 14px rgba(0,242,254,0.5)' }}
+          />
+        )}
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{
+            background: active ? ACCENT : '#fff',
+            boxShadow: active ? '0 0 12px rgba(0,242,254,0.9)' : '0 0 8px rgba(255,255,255,0.6)',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function MapView({ go }: { go: (s: Screen) => void }) {
+  return (
+    <div className="relative flex-1 overflow-hidden" style={{ background: BG }}>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(120% 80% at 45% 30%, rgba(0,242,254,0.05), transparent 55%), radial-gradient(90% 60% at 65% 80%, rgba(255,255,255,0.02), transparent 60%)',
+        }}
+      />
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+        {/* faint landmass */}
+        <path
+          d="M34 8 C26 14 30 22 26 28 C22 34 30 36 28 42 C24 48 30 54 30 60 C32 68 26 74 32 80 C40 86 50 82 52 74 C58 72 66 70 66 62 C70 56 62 50 60 44 C58 36 52 32 48 26 C46 18 44 10 34 8 Z"
+          fill="rgba(255,255,255,0.02)"
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth="0.35"
+        />
+        {/* network paths */}
+        {EDGES.map(([a, b], i) => (
+          <line
+            key={i}
+            x1={C[a][0]}
+            y1={C[a][1]}
+            x2={C[b][0]}
+            y2={C[b][1]}
+            stroke={ACCENT}
+            strokeOpacity="0.16"
+            strokeWidth="0.4"
+            strokeDasharray="0.6 2"
+            strokeLinecap="round"
+          />
+        ))}
+        {/* main relay route */}
+        <path
+          d="M30 12 C 22 30, 42 42, 47 51 C 52 60, 58 60, 63 65"
+          fill="none"
+          stroke={ACCENT}
+          strokeOpacity="0.5"
+          strokeWidth="0.5"
+          strokeDasharray="0.6 2.4"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      {/* secondary city nodes + labels */}
+      <NodeDot name="Glasgow" x={C.Glasgow[0]} y={C.Glasgow[1]} />
+      <NodeDot name="Newcastle" x={C.Newcastle[0]} y={C.Newcastle[1]} />
+      <NodeDot name="Leeds" x={C.Leeds[0]} y={C.Leeds[1]} />
+      <NodeDot name="Cardiff" x={C.Cardiff[0]} y={C.Cardiff[1]} />
+      <NodeDot name="Plymouth" x={C.Plymouth[0]} y={C.Plymouth[1]} />
+
+      {/* hub callouts */}
+      <Callout code="LPL" value="£3.1K" volume="9" x={C.Liverpool[0]} y={C.Liverpool[1]} />
+      <Callout code="MAN" value="£4.2K" volume="18" x={C.Manchester[0]} y={C.Manchester[1]} />
+      <Callout code="BHX" value="£4.2K" volume="11" x={C.Birmingham[0]} y={C.Birmingham[1]} />
+      <Callout code="LHR" value="£5.7K" volume="14" active x={C.London[0]} y={C.London[1]} />
+
+      {/* tap anywhere on a hub goes to bids */}
+      <button onClick={() => go('bid')} className="absolute inset-0" aria-label="Open bids" style={{ background: 'transparent' }} />
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Secondary screens (kept navigable)                                          */
+/* -------------------------------------------------------------------------- */
+
+function InputField({ label, value, placeholder, dropdown }: { label: string; value?: string; placeholder?: string; dropdown?: boolean }) {
   return (
     <div>
       <label className="block text-[11px] text-white/40 mb-1.5">{label}</label>
-      <div className="flex items-center justify-between bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 py-3">
+      <div className="flex items-center justify-between border rounded-xl px-3.5 py-3" style={{ background: PANEL, borderColor: LINE }}>
         <span className={`text-sm ${value ? 'text-white' : 'text-white/30'}`}>{value ?? placeholder}</span>
         {dropdown && <ChevronDown size={16} className="text-white/40" />}
       </div>
@@ -121,160 +295,47 @@ function InputField({
   )
 }
 
-function AirportPin({
-  code,
-  price,
-  count,
-  glow,
-  style,
-  onClick,
-}: {
-  code: string
-  price: string
-  count: string
-  glow?: boolean
-  style: React.CSSProperties
-  onClick?: () => void
-}) {
-  return (
-    <button onClick={onClick} className="absolute -translate-x-1/2 -translate-y-1/2 active:scale-95 transition-transform" style={style}>
-      {glow && (
-        <span
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-16 w-16 rounded-full border border-[#7DDCE8]/40"
-          style={{ boxShadow: '0 0 24px rgba(125,220,232,0.25), inset 0 0 18px rgba(125,220,232,0.12)' }}
-        />
-      )}
-      <div
-        className={`relative flex items-center gap-1.5 rounded-full border bg-[#0b1418]/90 backdrop-blur px-2 py-1 ${
-          glow ? 'border-[#7DDCE8]/60' : 'border-white/10'
-        }`}
-        style={glow ? { boxShadow: '0 0 12px rgba(125,220,232,0.3)' } : undefined}
-      >
-        <span className="text-[10px] font-semibold text-white">{code}</span>
-        <span className="text-[10px] font-medium" style={{ color: ACCENT }}>
-          {price}
-        </span>
-        <span className="text-[9px] text-white/40">{count}</span>
-      </div>
-    </button>
-  )
-}
-
-function TimelineBid({ name, sub, amount, last }: { name: string; sub: string; amount: string; last?: boolean }) {
-  return (
-    <div className="relative pl-7 pb-4">
-      {!last && <span className="absolute left-[5px] top-3 bottom-0 w-px bg-white/10" />}
-      <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full bg-[#0b1418] border border-white/30" />
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-[13px] text-white">{name}</div>
-          <div className="text-[11px] text-white/40">{sub}</div>
-        </div>
-        <span className="text-[13px] font-medium text-white">{amount}</span>
-      </div>
-    </div>
-  )
-}
-
-function UploadBox({ label }: { label: string }) {
-  return (
-    <div>
-      <label className="block text-[11px] text-white/40 mb-1.5">{label}</label>
-      <button className="w-full h-28 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-center active:bg-white/[0.04]">
-        <Camera size={26} className="text-white/35" />
-      </button>
-    </div>
-  )
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Screens                                                                     */
-/* -------------------------------------------------------------------------- */
-
-const CITIES: { name: string; x: number; y: number }[] = [
-  { name: 'Glasgow', x: 30, y: 9 },
-  { name: 'Newcastle', x: 49, y: 19 },
-  { name: 'Liverpool', x: 29, y: 30 },
-  { name: 'Leeds', x: 47, y: 30 },
-  { name: 'Manchester', x: 38, y: 35 },
-  { name: 'Birmingham', x: 47, y: 47 },
-  { name: 'Cardiff', x: 33, y: 58 },
-  { name: 'London', x: 64, y: 62 },
-  { name: 'Plymouth', x: 30, y: 72 },
-]
-
-function MapView({ go }: { go: (s: Screen) => void }) {
-  return (
-    <div className="relative flex-1 overflow-hidden">
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(120% 80% at 40% 30%, rgba(125,220,232,0.05), transparent 60%), radial-gradient(100% 60% at 60% 80%, rgba(255,255,255,0.03), transparent 60%)',
-        }}
-      />
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-        <path
-          d="M34 6 C26 12 30 20 26 26 C22 32 30 34 28 40 C24 46 30 52 30 58 C32 66 26 72 32 78 C40 84 50 80 52 72 C58 70 66 68 66 60 C70 54 62 48 60 42 C58 34 52 30 48 24 C46 16 44 8 34 6 Z"
-          fill="rgba(255,255,255,0.025)"
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth="0.4"
-        />
-        <path
-          d="M30 9 C 22 26, 40 40, 44 50 C 50 58, 58 58, 64 62"
-          fill="none"
-          stroke={ACCENT}
-          strokeOpacity="0.55"
-          strokeWidth="0.5"
-          strokeDasharray="0.5 2.5"
-          strokeLinecap="round"
-        />
-      </svg>
-      {CITIES.map((c) => (
-        <div
-          key={c.name}
-          className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center gap-1"
-          style={{ left: `${c.x}%`, top: `${c.y}%` }}
-        >
-          <span className="h-1 w-1 rounded-full bg-white/40" />
-          <span className="text-[9px] text-white/40 whitespace-nowrap">{c.name}</span>
-        </div>
-      ))}
-      <AirportPin code="LPL" price="£3.1K" count="9" style={{ left: '27%', top: '27%' }} onClick={() => go('bid')} />
-      <AirportPin code="MAN" price="£4.2K" count="18" style={{ left: '41%', top: '37%' }} onClick={() => go('bid')} />
-      <AirportPin code="BHX" price="£4.2K" count="11" style={{ left: '50%', top: '47%' }} onClick={() => go('bid')} />
-      <AirportPin code="LHR" price="£5.7K" count="14" glow style={{ left: '66%', top: '64%' }} onClick={() => go('bid')} />
-    </div>
-  )
-}
-
 function BidView({ go }: { go: (s: Screen) => void }) {
+  const rows = [
+    ['Smith driver', 'Late bids', '£280'],
+    ['Frasch driver', '22:03 bid', '£230'],
+    ['Erach driver', 'Blind Bid', '£230'],
+    ['Jamo driver', 'Blind Bid', '£230'],
+  ]
   return (
     <div className="flex-1 overflow-y-auto px-5 pb-4">
       <h1 className="text-[17px] font-semibold text-white tracking-tight mt-1">
         LONDON <span className="text-white/40">→</span> MANCHESTER
       </h1>
       <div className="grid grid-cols-2 gap-3 mt-4">
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
-          <div className="text-[11px] text-white/40">Buy It Now</div>
-          <div className="text-xl font-semibold text-white mt-0.5">£70</div>
-        </div>
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
-          <div className="text-[11px] text-white/40">Highest Bid</div>
-          <div className="text-xl font-semibold text-white mt-0.5">£55</div>
-        </div>
+        {[['Buy It Now', '£70'], ['Highest Bid', '£55']].map(([l, v]) => (
+          <div key={l} className="rounded-xl border p-3" style={{ background: PANEL, borderColor: LINE }}>
+            <div className="text-[11px] text-white/40">{l}</div>
+            <div className="text-xl font-semibold text-white mt-0.5">{v}</div>
+          </div>
+        ))}
       </div>
       <h2 className="text-[13px] font-medium text-white/80 mt-6 mb-3">Bidding Timeline</h2>
       <div>
-        <TimelineBid name="Smith driver" sub="Late bids" amount="£280" />
-        <TimelineBid name="Frasch driver" sub="22:03 bid" amount="£230" />
-        <TimelineBid name="Erach driver" sub="Blind Bid" amount="£230" />
-        <TimelineBid name="Jamo driver" sub="Blind Bid" amount="£230" last />
+        {rows.map(([n, s, a], i) => (
+          <div key={n} className="relative pl-7 pb-4">
+            {i < rows.length - 1 && <span className="absolute left-[5px] top-3 bottom-0 w-px bg-white/10" />}
+            <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full border border-white/30" style={{ background: PANEL }} />
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[13px] text-white">{n}</div>
+                <div className="text-[11px] text-white/40">{s}</div>
+              </div>
+              <span className="text-[13px] font-medium text-white">{a}</span>
+            </div>
+          </div>
+        ))}
       </div>
       <h2 className="text-[13px] font-medium text-white/80 mt-4 mb-2">Entry</h2>
       <button
         onClick={() => go('cover')}
-        className="w-full text-left bg-white/[0.03] border border-white/[0.08] rounded-xl px-3.5 py-3 active:bg-white/[0.05]"
+        className="w-full text-left border rounded-xl px-3.5 py-3 active:opacity-80"
+        style={{ background: PANEL, borderColor: LINE }}
       >
         <span className="text-sm text-white/30">Entry floor here...</span>
       </button>
@@ -289,10 +350,15 @@ function ProfileView() {
       <InputField label="Fleet name" value="Blackpool" />
       <InputField label="Email" value="Blackpool" />
       <InputField label="Phone number" value="Blackpool" />
-      <UploadBox label="Upload License Photo" />
+      <div>
+        <label className="block text-[11px] text-white/40 mb-1.5">Upload License Photo</label>
+        <button className="w-full h-28 rounded-xl border flex items-center justify-center active:opacity-80" style={{ background: PANEL, borderColor: LINE }}>
+          <Camera size={26} className="text-white/35" />
+        </button>
+      </div>
       <div>
         <label className="block text-[11px] text-white/40 mb-1.5">Standard Vehicle Type</label>
-        <div className="flex gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1">
+        <div className="flex gap-1 border rounded-xl p-1" style={{ background: PANEL, borderColor: LINE }}>
           <button className="flex-1 rounded-lg bg-white/[0.08] text-white text-sm py-2 font-medium">Standard</button>
           <button className="flex-1 rounded-lg text-white/40 text-sm py-2 active:bg-white/[0.04]">Standard</button>
         </div>
@@ -315,8 +381,8 @@ function CoverView({ go }: { go: (s: Screen) => void }) {
       </div>
       <button
         onClick={() => go('bid')}
-        className="w-full rounded-xl py-3.5 text-[15px] font-semibold text-[#05090B] active:opacity-90"
-        style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(125,220,232,0.55))` }}
+        className="w-full rounded-xl py-3.5 text-[15px] font-semibold active:opacity-90"
+        style={{ background: `linear-gradient(180deg, ${ACCENT}, rgba(0,242,254,0.55))`, color: BG }}
       >
         Post Job
       </button>
@@ -325,31 +391,31 @@ function CoverView({ go }: { go: (s: Screen) => void }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  App — one navigable phone                                                   */
+/*  App                                                                         */
 /* -------------------------------------------------------------------------- */
 
 export default function RelayApp() {
   const [screen, setScreen] = useState<Screen>('map')
 
   const activeTab: TabId =
-    screen === 'map' ? 'map' : screen === 'profile' ? 'profile' : 'bids'
+    screen === 'map' ? 'map' : screen === 'profile' ? 'trips' : screen === 'cover' ? 'marketplace' : 'bids'
 
   const onTab = (id: TabId) => {
     if (id === 'map') setScreen('map')
-    else if (id === 'profile') setScreen('profile')
+    else if (id === 'trips') setScreen('profile')
     else if (id === 'bids') setScreen('bid')
     else if (id === 'marketplace') setScreen('cover')
     else setScreen('map')
   }
 
   return (
-    <div className="min-h-screen bg-[#05090B] flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#06080A' }}>
       <PhoneFrame>
         <StatusBar />
-        {screen === 'map' && <TopBar logo />}
-        {screen === 'bid' && <TopBar back onBack={() => setScreen('map')} />}
-        {screen === 'cover' && <TopBar back onBack={() => setScreen('bid')} />}
-        {screen === 'profile' && <TopBar back onBack={() => setScreen('map')} />}
+        {screen === 'map' && <TopBar map />}
+        {screen === 'bid' && <TopBar onBack={() => setScreen('map')} />}
+        {screen === 'cover' && <TopBar onBack={() => setScreen('bid')} />}
+        {screen === 'profile' && <TopBar onBack={() => setScreen('map')} />}
 
         {screen === 'map' && <MapView go={setScreen} />}
         {screen === 'bid' && <BidView go={setScreen} />}
