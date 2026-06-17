@@ -194,8 +194,16 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
 
     const compute = () => {
       map.resize()
+      const c = map.getCanvas()
+      const w = c.clientWidth
+      const h = c.clientHeight
+      // Clamp padding so it can never exceed the container — otherwise Mapbox
+      // fitBounds silently bails and the camera never moves.
+      const padX = Math.min(64, Math.max(0, (w - 80) / 2))
+      const padTop = Math.min(110, h * 0.18)
+      const padBottom = Math.min(300, h * 0.42)
       map.fitBounds([sw, ne], {
-        padding: { top: 110, bottom: 320, left: 64, right: 64 },
+        padding: { top: padTop, bottom: padBottom, left: padX, right: padX },
         animate: false,
         duration: 0,
       })
@@ -205,21 +213,28 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
         next[a.code] = { x: p.x, y: p.y }
       })
       setPts(next)
-      const c = map.getCanvas()
-      setDiag(`z${map.getZoom().toFixed(1)} ${c.clientWidth}x${c.clientHeight}`)
+      setDiag(`z${map.getZoom().toFixed(1)} ${w}x${h}`)
     }
 
     // Fire immediately if style already loaded, otherwise wait for 'load'.
-    // Defer a frame so the flex container has resolved its height first.
     const run = () => requestAnimationFrame(compute)
     if (map.isStyleLoaded()) {
       run()
     } else {
       map.once('load', run)
     }
+
+    // Re-fit + re-render whenever the container's size settles/changes. This is
+    // the canonical fix for a Mapbox map inside a flex container that may not
+    // have its final height at init time.
+    const el = mapDivRef.current
+    const ro = el ? new ResizeObserver(() => compute()) : null
+    if (el && ro) ro.observe(el)
+
     window.addEventListener('resize', compute)
     return () => {
       map.off('load', run)
+      ro?.disconnect()
       window.removeEventListener('resize', compute)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -244,7 +259,7 @@ ${network!.routes
       {/* Always-on diagnostic strip. BUILD_TAG confirms the running deploy is
           fresh (defeats cache ambiguity); the rest reports live Mapbox state. */}
       <div className="absolute left-3 right-3 top-3 z-[60] rounded-lg border px-3 py-2 text-center text-[11px] leading-snug" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: mapError ? '#FCA5A5' : '#94A3B8' }}>
-        <span style={{ color: ACCENT }}>diag-5</span>{' · '}
+        <span style={{ color: ACCENT }}>diag-6</span>{' · '}
         token: {hasToken ? 'yes' : 'NO'}{' · '}
         style: {styleLoaded ? 'loaded' : 'pending'}{' · '}
         {diag || 'no-fit'}
