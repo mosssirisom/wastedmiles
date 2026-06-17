@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
 import {
   Menu,
   ArrowLeft,
@@ -21,7 +19,6 @@ import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
 import { formatGBP } from '../data/marketplace'
 import {
-  type Airport,
   type NetworkSnapshot,
   useNetwork,
   useBid,
@@ -30,6 +27,7 @@ import {
   requestCover,
   useResource,
 } from './data'
+import RelayMap from './RelayMap'
 
 const ACCENT = '#06B6D4'
 const BG = '#030712'
@@ -95,246 +93,18 @@ function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => voi
 /*  Map screen (real dark tiles + projected overlays)                           */
 /* -------------------------------------------------------------------------- */
 
-function Hotspot({ airport, pt }: { airport: Airport; pt: { x: number; y: number } }) {
-  const primary = airport.primary
-  return (
-    <div className="absolute z-20 flex flex-col items-center" style={{ left: pt.x, top: pt.y, transform: 'translate(-50%, -100%)' }}>
-      <div
-        className="rounded-xl border px-3 py-2 text-center"
-        style={{
-          background: 'rgba(15,23,42,0.95)',
-          borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE,
-          boxShadow: primary ? '0 0 22px rgba(6,182,212,0.45)' : '0 8px 20px rgba(0,0,0,0.55)',
-        }}
-      >
-        <div className="text-[12px] font-bold text-white leading-none">{airport.code}</div>
-        <div className="text-[10px] text-white/50 mt-1 leading-none">{airport.jobs} Jobs</div>
-        <div className="text-[13px] font-bold leading-tight mt-0.5" style={{ color: ACCENT }}>
-          {airport.rev}
-        </div>
-      </div>
-      <div className="h-2 w-2 rotate-45 -mt-1 border-r border-b" style={{ background: 'rgba(15,23,42,0.95)', borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE }} />
-      <div className="relative mt-1 flex items-center justify-center">
-        <span className="absolute h-5 w-5 rounded-full animate-ping" style={{ background: 'rgba(6,182,212,0.35)' }} />
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: ACCENT, boxShadow: '0 0 12px rgba(6,182,212,0.9)' }} />
-      </div>
-    </div>
-  )
-}
-
 function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSnapshot | null }) {
-  const mapDivRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
-  const [pts, setPts] = useState<Record<string, { x: number; y: number }> | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const [mapError, setMapError] = useState<string | null>(null)
-  const [styleLoaded, setStyleLoaded] = useState(false)
-  const [diag, setDiag] = useState('')
-
-  // Initialise Mapbox map once.
-  useEffect(() => {
-    const el = mapDivRef.current
-    if (!el || mapRef.current) return
-    const token = (import.meta.env.VITE_MAPBOX_TOKEN as string | undefined)?.trim()
-    if (!token) return
-
-    mapboxgl.accessToken = token
-    const map = new mapboxgl.Map({
-      container: el,
-      style: 'mapbox://styles/mapbox/dark-v11',
-      center: [-3.2, 54.9],
-      zoom: 5.35,
-      minZoom: 4.4,
-      maxZoom: 12,
-      attributionControl: false,
-      logoPosition: 'bottom-left',
-    })
-    // Static overlay map — disable all user interaction.
-    map.scrollZoom.disable()
-    map.boxZoom.disable()
-    map.dragPan.disable()
-    map.dragRotate.disable()
-    map.keyboard.disable()
-    map.doubleClickZoom.disable()
-    map.touchZoomRotate.disable()
-    map.touchPitch.disable()
-    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right')
-    // Surface any Mapbox failure (invalid token, URL-restricted token, style
-    // load error) on screen instead of failing silently to a blank map.
-    map.on('error', (e) => {
-      const msg = (e as { error?: { message?: string; status?: number } }).error?.message
-      const status = (e as { error?: { status?: number } }).error?.status
-      setMapError(msg ? `${msg}${status ? ` (${status})` : ''}` : 'Mapbox failed to load tiles')
-    })
-    map.on('load', () => setStyleLoaded(true))
-    mapRef.current = map
-    return () => {
-      map.remove()
-      mapRef.current = null
-    }
-  }, [])
-
-  // Keep the latest snapshot in a ref so the projection effect can read it
-  // without re-running on every render (useNetwork returns a fresh object).
-  const netRef = useRef(network)
-  netRef.current = network
-  const airportsSig = network ? network.airports.map((a) => `${a.code}:${a.lat}:${a.lng}`).join('|') : ''
-
-  // Fit bounds and project airport pixels once the map style has loaded.
-  useEffect(() => {
-    const map = mapRef.current
-    const net = netRef.current
-    if (!map || !net) return
-    const airports = net.airports
-
-    const lats = airports.map((a) => a.lat)
-    const lngs = airports.map((a) => a.lng)
-    const sw: [number, number] = [Math.min(...lngs), Math.min(...lats)]
-    const ne: [number, number] = [Math.max(...lngs), Math.max(...lats)]
-
-    const compute = () => {
-      map.resize()
-      const c = map.getCanvas()
-      const w = c.clientWidth
-      const h = c.clientHeight
-      // Clamp padding so it can never exceed the container — otherwise Mapbox
-      // fitBounds silently bails and the camera never moves.
-      const padX = Math.min(64, Math.max(0, (w - 80) / 2))
-      const padTop = Math.min(110, h * 0.18)
-      const padBottom = Math.min(300, h * 0.42)
-      map.fitBounds([sw, ne], {
-        padding: { top: padTop, bottom: padBottom, left: padX, right: padX },
-        animate: false,
-        duration: 0,
-      })
-      const next: Record<string, { x: number; y: number }> = {}
-      airports.forEach((a) => {
-        const p = map.project([a.lng, a.lat])
-        next[a.code] = { x: p.x, y: p.y }
-      })
-      setPts(next)
-      const parentH = (mapDivRef.current?.parentElement as HTMLElement | null)?.offsetHeight ?? -1
-      setDiag(`z${map.getZoom().toFixed(1)} c${w}x${h} p${parentH} w${window.innerHeight}`)
-    }
-
-    // Fire immediately if style already loaded, otherwise wait for 'load'.
-    const run = () => requestAnimationFrame(compute)
-    if (map.isStyleLoaded()) {
-      run()
-    } else {
-      map.once('load', run)
-    }
-
-    // Re-fit + re-render whenever the container's size settles/changes. This is
-    // the canonical fix for a Mapbox map inside a flex container that may not
-    // have its final height at init time.
-    const el = mapDivRef.current
-    const ro = el ? new ResizeObserver(() => compute()) : null
-    if (el && ro) ro.observe(el)
-
-    window.addEventListener('resize', compute)
-    return () => {
-      map.off('load', run)
-      ro?.disconnect()
-      window.removeEventListener('resize', compute)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [airportsSig])
-
-  const ready = !!(pts && network)
-  const hasToken = !!(import.meta.env.VITE_MAPBOX_TOKEN as string | undefined)?.trim()
-  const dotCss =
-    ready &&
-    `.relaydot{position:absolute;width:4px;height:4px;border-radius:9999px;background:${ACCENT};box-shadow:0 0 8px ${ACCENT};transform:translate(-50%,-50%);}
-${network!.routes
-      .map(
-        (r, i) =>
-          `@keyframes relayflow${i}{0%{left:${pts![r.from].x}px;top:${pts![r.from].y}px;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:${pts![r.to].x}px;top:${pts![r.to].y}px;opacity:0}}`
-      )
-      .join('\n')}`
 
   return (
-    // Pinned to the visual viewport (not flex-sized) so the map always fills
-    // the screen regardless of how the flex column resolves its height. The
-    // TopBar and BottomNav float over this at z-40.
-    <div
-      className="fixed left-1/2 -translate-x-1/2 top-0 w-full max-w-[480px] overflow-hidden z-0"
-      style={{ height: '100dvh' }}
-    >
-      {/* real dark tiles */}
-      <div ref={mapDivRef} className="absolute inset-0 z-0" />
-      {/* Always-on diagnostic strip. BUILD_TAG confirms the running deploy is
-          fresh (defeats cache ambiguity); the rest reports live Mapbox state. */}
-      <div className="absolute left-3 right-3 z-[60] rounded-lg border px-3 py-2 text-center text-[11px] leading-snug" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: mapError ? '#FCA5A5' : '#94A3B8', top: 'calc(env(safe-area-inset-top) + 52px)' }}>
-        <span style={{ color: ACCENT }}>diag-8</span>{' · '}
-        token: {hasToken ? 'yes' : 'NO'}{' · '}
-        style: {styleLoaded ? 'loaded' : 'pending'}{' · '}
-        {diag || 'no-fit'}
-        {mapError ? <div style={{ color: '#FCA5A5' }}>err: {mapError}</div> : null}
-      </div>
-      {/* depth/vignette over tiles */}
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Isolated, self-sizing Mapbox map */}
+      <RelayMap network={network} resizeSignal={expanded} />
+
+      {/* Job sheet — fills the area below the map, tucked under its lower edge */}
       <div
-        className="absolute inset-0 z-[5] pointer-events-none"
-        style={{ background: 'radial-gradient(120% 80% at 55% 35%, rgba(6,182,212,0.05), transparent 55%), linear-gradient(to bottom, transparent 55%, rgba(3,7,18,0.85))' }}
-      />
-
-      {ready && (
-        <>
-          <style>{dotCss}</style>
-
-          {/* heatmap */}
-          {network!.airports.map((a) => (
-            <div
-              key={a.code}
-              className="absolute z-[6] rounded-full blur-2xl pointer-events-none"
-              style={{
-                left: pts![a.code].x,
-                top: pts![a.code].y,
-                width: 150 + a.jobs * 5,
-                height: 150 + a.jobs * 5,
-                transform: 'translate(-50%,-50%)',
-                background: 'radial-gradient(closest-side, rgba(6,182,212,0.25), transparent)',
-              }}
-            />
-          ))}
-
-          {/* routes */}
-          <svg className="absolute inset-0 w-full h-full z-10 pointer-events-none">
-            {network!.routes.map((r, i) => (
-              <line
-                key={i}
-                x1={pts![r.from].x}
-                y1={pts![r.from].y}
-                x2={pts![r.to].x}
-                y2={pts![r.to].y}
-                stroke={ACCENT}
-                strokeOpacity="0.3"
-                strokeWidth="1.3"
-                strokeDasharray="3 7"
-                strokeLinecap="round"
-                className="arc-flow"
-              />
-            ))}
-          </svg>
-
-          {/* live moving dots */}
-          {network!.routes.flatMap((_r, i) =>
-            [0, 1.4, 2.8].map((delay, j) => (
-              <span key={`${i}-${j}`} className="relaydot z-10" style={{ animation: `relayflow${i} 4s linear infinite`, animationDelay: `-${delay}s` }} />
-            ))
-          )}
-
-          {/* hotspots */}
-          {network!.airports.map((a) => (
-            <Hotspot key={a.code} airport={a} pt={pts![a.code]} />
-          ))}
-        </>
-      )}
-
-      {/* bottom sheet — sits just above the floating BottomNav */}
-      <div
-        className="absolute left-0 right-0 z-30 rounded-t-2xl border-t px-5 pt-2.5 pb-4"
-        style={{ background: 'rgba(15,23,42,0.97)', borderColor: LINE, backdropFilter: 'blur(10px)', bottom: 'calc(env(safe-area-inset-bottom) + 60px)' }}
+        className="flex-1 min-h-0 overflow-y-auto -mt-3 rounded-t-2xl border-t px-5 pt-2.5 pb-4"
+        style={{ background: 'rgba(15,23,42,0.97)', borderColor: LINE, backdropFilter: 'blur(10px)' }}
       >
         <button onClick={() => setExpanded((e) => !e)} className="w-full">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />

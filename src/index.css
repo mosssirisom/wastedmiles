@@ -23,6 +23,16 @@ body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
 /* Dark backdrop while map tiles load */
 .leaflet-container { background: #09090B; }
 
+/* Force the Mapbox canvas to fill its container — prevents the GL canvas from
+   collapsing to its hardcoded 300px default when the container measures 0 at
+   init time. */
+.mapboxgl-map,
+.mapboxgl-canvas-container,
+.mapboxgl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* Status journey markers — monochrome except urgent (accent orange) */
 .journey-pin {
   width: 16px;
