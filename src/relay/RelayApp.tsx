@@ -176,7 +176,8 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
       })
       setPts(next)
     }
-    setTimeout(compute, 0)
+    // Defer projection until Mapbox has loaded its style/tiles.
+    ;(map as unknown as { onLoad(cb: () => void): void }).onLoad(compute)
     window.addEventListener('resize', compute)
     return () => window.removeEventListener('resize', compute)
     // eslint-disable-next-line react-hooks/exhaustive-deps
