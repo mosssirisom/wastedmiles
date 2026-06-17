@@ -9,6 +9,7 @@ interface AccountScreenProps {
   onOpenPosted: () => void
   onOpenPayment: () => void
   onOpenVerify: () => void
+  onOpenAdmin: () => void
 }
 
 export default function AccountScreen({
@@ -17,10 +18,11 @@ export default function AccountScreen({
   onOpenPosted,
   onOpenPayment,
   onOpenVerify,
+  onOpenAdmin,
 }: AccountScreenProps) {
   const { user, signOut } = useAuth()
   const { card } = useBilling()
-  const { status } = useVerification()
+  const { status, pendingCount } = useVerification()
   if (!user) return null
   const verifLabel = status === 'verified' ? 'Verified' : status === 'pending' ? 'In review' : 'Get verified'
 
@@ -87,6 +89,22 @@ export default function AccountScreen({
           <span className="text-sm font-medium text-[#FAFAFA]">Driver verification</span>
           <span className="ml-auto flex items-center gap-1.5 text-[#52525B]">
             <span className={`text-xs ${status === 'verified' ? 'text-[#F97316]' : ''}`}>{verifLabel}</span>
+            <ChevronRight size={16} />
+          </span>
+        </button>
+
+        <button
+          onClick={onOpenAdmin}
+          className="mt-2 w-full flex items-center gap-3 rounded-2xl border border-[#27272A] bg-[#111113] px-4 py-3.5 hover:border-[#3F3F46] transition-colors"
+        >
+          <ShieldCheck size={17} className="text-[#A1A1AA]" />
+          <span className="text-sm font-medium text-[#FAFAFA]">Verifications (admin)</span>
+          <span className="ml-auto flex items-center gap-1.5 text-[#52525B]">
+            {pendingCount > 0 && (
+              <span className="h-4 min-w-4 px-1 rounded-full bg-[#F97316] text-white text-[10px] font-bold flex items-center justify-center">
+                {pendingCount}
+              </span>
+            )}
             <ChevronRight size={16} />
           </span>
         </button>

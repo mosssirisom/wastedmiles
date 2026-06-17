@@ -19,6 +19,7 @@ import MyPostedScreen from './components/MyPostedScreen'
 import FindWorkScreen from './components/FindWorkScreen'
 import PaymentMethodScreen from './components/PaymentMethodScreen'
 import DriverVerificationScreen from './components/DriverVerificationScreen'
+import AdminVerificationScreen from './components/AdminVerificationScreen'
 import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
@@ -43,6 +44,7 @@ type View =
   | { kind: 'posted' }
   | { kind: 'find-work' }
   | { kind: 'verify' }
+  | { kind: 'admin' }
   | { kind: 'payment' }
   | { kind: 'pricing' }
   | { kind: 'join' }
@@ -184,6 +186,7 @@ export default function App() {
         onOpenPosted={() => setView({ kind: 'posted' })}
         onOpenPayment={() => setView({ kind: 'payment' })}
         onOpenVerify={() => setView({ kind: 'verify' })}
+        onOpenAdmin={() => setView({ kind: 'admin' })}
       />
     )
   } else if (view.kind === 'payment') {
@@ -210,6 +213,8 @@ export default function App() {
     screen = (
       <DriverVerificationScreen onBack={goHome} onDone={() => setView({ kind: 'find-work' })} />
     )
+  } else if (view.kind === 'admin') {
+    screen = <AdminVerificationScreen onBack={goHome} />
   } else if (view.kind === 'pricing') {
     screen = <PricingScreen onBack={goHome} onJoin={() => setView({ kind: 'join' })} />
   } else if (view.kind === 'join') {

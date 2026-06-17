@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, Upload, ShieldCheck, Check, Loader } from 'lucide-react'
 import { useVerification, type VerificationDetails } from '../lib/verification'
+import { useAuth } from '../lib/auth'
 import { toast } from '../lib/toast'
 
 const labelClass = 'block text-[11px] font-medium uppercase tracking-wider text-[#A1A1AA] mb-1.5'
@@ -43,6 +44,7 @@ interface DriverVerificationScreenProps {
 
 export default function DriverVerificationScreen({ onBack, onDone }: DriverVerificationScreenProps) {
   const { status, submit } = useVerification()
+  const { user } = useAuth()
   const [f, setF] = useState<VerificationDetails>({
     phdNumber: '',
     phdExpiry: '',
@@ -62,13 +64,13 @@ export default function DriverVerificationScreen({ onBack, onDone }: DriverVerif
   const submitForm = (e: React.FormEvent) => {
     e.preventDefault()
     if (!f.phdNumber || !f.plate || !f.badgeFile || !f.plateFile) return
-    submit(f)
+    submit(f, { name: user?.name, email: user?.email })
     toast('Submitted for verification')
     onDone()
   }
 
-  // Already verified / pending — show status instead of the form.
-  if (status !== 'unverified') {
+  // Pending / verified — show a status screen instead of the form.
+  if (status === 'pending' || status === 'verified') {
     return (
       <div className="relative w-full min-h-screen bg-[#09090B] text-[#FAFAFA]" style={{ minHeight: '100dvh' }}>
         <button
@@ -122,6 +124,12 @@ export default function DriverVerificationScreen({ onBack, onDone }: DriverVerif
           Upload your Private Hire Driver badge and council vehicle plate. You can cover work once
           verified.
         </p>
+
+        {status === 'rejected' && (
+          <div className="mt-4 rounded-xl border border-[#EF4444]/40 bg-[#EF4444]/10 px-4 py-3 text-sm text-[#EF4444]">
+            Your previous submission was declined. Please check your details and resubmit.
+          </div>
+        )}
 
         <form onSubmit={submitForm} className="mt-7 space-y-4">
           <div>
