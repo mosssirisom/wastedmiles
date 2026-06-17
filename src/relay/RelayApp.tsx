@@ -129,6 +129,7 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
   const [expanded, setExpanded] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
   const [styleLoaded, setStyleLoaded] = useState(false)
+  const [diag, setDiag] = useState('')
 
   // Initialise Mapbox map once.
   useEffect(() => {
@@ -204,17 +205,21 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
         next[a.code] = { x: p.x, y: p.y }
       })
       setPts(next)
+      const c = map.getCanvas()
+      setDiag(`z${map.getZoom().toFixed(1)} ${c.clientWidth}x${c.clientHeight}`)
     }
 
     // Fire immediately if style already loaded, otherwise wait for 'load'.
+    // Defer a frame so the flex container has resolved its height first.
+    const run = () => requestAnimationFrame(compute)
     if (map.isStyleLoaded()) {
-      compute()
+      run()
     } else {
-      map.once('load', compute)
+      map.once('load', run)
     }
     window.addEventListener('resize', compute)
     return () => {
-      map.off('load', compute)
+      map.off('load', run)
       window.removeEventListener('resize', compute)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,9 +244,10 @@ ${network!.routes
       {/* Always-on diagnostic strip. BUILD_TAG confirms the running deploy is
           fresh (defeats cache ambiguity); the rest reports live Mapbox state. */}
       <div className="absolute left-3 right-3 top-3 z-[60] rounded-lg border px-3 py-2 text-center text-[11px] leading-snug" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: mapError ? '#FCA5A5' : '#94A3B8' }}>
-        <span style={{ color: ACCENT }}>diag-4</span>{' · '}
+        <span style={{ color: ACCENT }}>diag-5</span>{' · '}
         token: {hasToken ? 'yes' : 'NO'}{' · '}
-        style: {styleLoaded ? 'loaded' : 'pending'}
+        style: {styleLoaded ? 'loaded' : 'pending'}{' · '}
+        {diag || 'no-fit'}
         {mapError ? <div style={{ color: '#FCA5A5' }}>err: {mapError}</div> : null}
       </div>
       {/* depth/vignette over tiles */}
