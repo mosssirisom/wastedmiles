@@ -13,6 +13,11 @@ import {
   Camera,
   LogOut,
   Send,
+  Plus,
+  UserPlus,
+  Settings,
+  LifeBuoy,
+  MoreHorizontal,
 } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
 import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
@@ -94,6 +99,15 @@ function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => voi
 
 function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSnapshot | null }) {
   const [expanded, setExpanded] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const quickActions: { label: string; icon: typeof MapIcon; action: () => void }[] = [
+    { label: '+ Post Job', icon: Plus, action: () => go('cover') },
+    { label: 'Request Cover', icon: ClipboardList, action: () => go('cover') },
+    { label: 'Invite Operator', icon: UserPlus, action: () => go('profile') },
+    { label: 'Account Settings', icon: Settings, action: () => go('profile') },
+    { label: 'Support', icon: LifeBuoy, action: () => go('profile') },
+  ]
 
   return (
     <div className="relative flex-1 flex flex-col min-h-0">
@@ -114,9 +128,39 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
           <span className="text-white text-[16px] font-semibold tracking-tight" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
             Relay
           </span>
-          <button className="pointer-events-auto text-white/90 active:opacity-60" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
-            <Search size={20} />
-          </button>
+          <div className="pointer-events-auto relative">
+            <button
+              onClick={() => setMenuOpen((open) => !open)}
+              className="h-10 w-10 rounded-full flex items-center justify-center text-white/90 active:opacity-60"
+              style={{ background: 'rgba(15,23,42,0.42)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}
+            >
+              <MoreHorizontal size={21} />
+            </button>
+
+            {menuOpen && (
+              <div
+                className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border text-left"
+                style={{ background: 'rgba(15,23,42,0.96)', borderColor: LINE, backdropFilter: 'blur(14px)', boxShadow: '0 18px 45px rgba(0,0,0,0.45)' }}
+              >
+                {quickActions.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        setMenuOpen(false)
+                        item.action()
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/85 active:opacity-70"
+                    >
+                      <Icon size={17} style={{ color: ACCENT }} />
+                      <span>{item.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
