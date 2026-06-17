@@ -55,6 +55,7 @@ function TopBar({ back, logo, onlySearch = true }: { back?: boolean; logo?: bool
         )}
         {logo && (
           <div className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rotate-45 rounded-[2px] border border-white/70" />
             <span className="text-white text-[15px] font-semibold tracking-tight">Relay</span>
           </div>
         )}
@@ -135,11 +136,17 @@ function AirportPin({
 }) {
   return (
     <div className="absolute -translate-x-1/2 -translate-y-1/2" style={style}>
+      {glow && (
+        <span
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-16 w-16 rounded-full border border-[#7DDCE8]/40"
+          style={{ boxShadow: '0 0 24px rgba(125,220,232,0.25), inset 0 0 18px rgba(125,220,232,0.12)' }}
+        />
+      )}
       <div
-        className={`flex items-center gap-1.5 rounded-full border bg-[#0b1418]/90 backdrop-blur px-2 py-1 ${
+        className={`relative flex items-center gap-1.5 rounded-full border bg-[#0b1418]/90 backdrop-blur px-2 py-1 ${
           glow ? 'border-[#7DDCE8]/60' : 'border-white/10'
         }`}
-        style={glow ? { boxShadow: `0 0 0 3px rgba(125,220,232,0.18), 0 0 16px rgba(125,220,232,0.35)` } : undefined}
+        style={glow ? { boxShadow: `0 0 12px rgba(125,220,232,0.3)` } : undefined}
       >
         <span className="text-[10px] font-semibold text-white">{code}</span>
         <span className="text-[10px] font-medium" style={{ color: ACCENT }}>
