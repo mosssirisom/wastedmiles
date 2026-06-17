@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
@@ -12,9 +12,6 @@ import {
   User,
   ChevronUp,
   ChevronDown,
-  Signal,
-  Wifi,
-  BatteryFull,
   Camera,
 } from 'lucide-react'
 
@@ -32,32 +29,6 @@ type TabId = 'marketplace' | 'map' | 'trips' | 'messages' | 'profile'
 /* -------------------------------------------------------------------------- */
 /*  Shell                                                                       */
 /* -------------------------------------------------------------------------- */
-
-function PhoneFrame({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="relative w-[375px] h-[812px] max-w-full rounded-[46px] border overflow-hidden flex flex-col"
-      style={{ background: BG, borderColor: LINE, boxShadow: '0 40px 90px rgba(0,0,0,0.7)' }}
-    >
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-black rounded-b-2xl z-50" />
-      {children}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 rounded-full bg-white/25 z-50 pointer-events-none" />
-    </div>
-  )
-}
-
-function StatusBar() {
-  return (
-    <div className="flex items-center justify-between px-7 pt-3.5 pb-1 text-white text-[15px] font-semibold tracking-tight shrink-0 z-40">
-      <span>9:41</span>
-      <div className="flex items-center gap-1.5">
-        <Signal size={15} />
-        <Wifi size={15} />
-        <BatteryFull size={22} />
-      </div>
-    </div>
-  )
-}
 
 function TopBar({ map, onBack }: { map?: boolean; onBack?: () => void }) {
   return (
@@ -92,7 +63,10 @@ const TABS: { id: TabId; label: string; icon: typeof MapIcon }[] = [
 
 function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => void }) {
   return (
-    <div className="mt-auto shrink-0 border-t px-1 pt-2.5 pb-7 flex justify-around z-40" style={{ background: BG, borderColor: LINE }}>
+    <div
+      className="mt-auto shrink-0 border-t px-1 pt-2.5 flex justify-around z-40"
+      style={{ background: BG, borderColor: LINE, paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+    >
       {TABS.map((t) => {
         const Icon = t.icon
         const on = t.id === active
@@ -472,9 +446,15 @@ export default function RelayApp() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#020509' }}>
-      <PhoneFrame>
-        <StatusBar />
+    <div className="w-full flex justify-center" style={{ background: '#020509' }}>
+      <div
+        className="relative w-full max-w-[480px] flex flex-col overflow-hidden"
+        style={{
+          background: BG,
+          height: '100dvh',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
+      >
         {screen === 'map' ? <TopBar map /> : <TopBar onBack={() => setScreen('map')} />}
 
         {screen === 'map' && <MapView go={setScreen} />}
@@ -484,7 +464,7 @@ export default function RelayApp() {
         {screen === 'messages' && <MessagesView />}
 
         <BottomNav active={activeTab} onTab={onTab} />
-      </PhoneFrame>
+      </div>
     </div>
   )
 }
