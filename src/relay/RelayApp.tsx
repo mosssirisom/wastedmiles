@@ -213,7 +213,8 @@ function MapView({ go, network }: { go: (s: Screen) => void; network: NetworkSna
         next[a.code] = { x: p.x, y: p.y }
       })
       setPts(next)
-      setDiag(`z${map.getZoom().toFixed(1)} ${w}x${h}`)
+      const parentH = (mapDivRef.current?.parentElement as HTMLElement | null)?.offsetHeight ?? -1
+      setDiag(`z${map.getZoom().toFixed(1)} c${w}x${h} p${parentH} w${window.innerHeight}`)
     }
 
     // Fire immediately if style already loaded, otherwise wait for 'load'.
@@ -259,7 +260,7 @@ ${network!.routes
       {/* Always-on diagnostic strip. BUILD_TAG confirms the running deploy is
           fresh (defeats cache ambiguity); the rest reports live Mapbox state. */}
       <div className="absolute left-3 right-3 top-3 z-[60] rounded-lg border px-3 py-2 text-center text-[11px] leading-snug" style={{ background: 'rgba(15,23,42,0.95)', borderColor: LINE, color: mapError ? '#FCA5A5' : '#94A3B8' }}>
-        <span style={{ color: ACCENT }}>diag-6</span>{' · '}
+        <span style={{ color: ACCENT }}>diag-7</span>{' · '}
         token: {hasToken ? 'yes' : 'NO'}{' · '}
         style: {styleLoaded ? 'loaded' : 'pending'}{' · '}
         {diag || 'no-fit'}
