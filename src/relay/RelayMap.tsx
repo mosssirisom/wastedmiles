@@ -60,7 +60,7 @@ export default function RelayMap({
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
       bounds: UK_BOUNDS,
-      fitBoundsOptions: { padding: { top: 56, bottom: 44, left: 28, right: 28 } },
+      fitBoundsOptions: { padding: { top: 100, bottom: 170, left: 36, right: 36 } },
       minZoom: 4.2,
       maxZoom: 15,
       attributionControl: false,

@@ -26,9 +26,12 @@ export interface MarketJob {
   perMile: number
   operatorId: string
   operatorName: string
+  operatorRating: number
+  operatorCompleted: number
   vehicle: string
   passengers: number
   postedMins: number
+  pickupLabel: string
 }
 
 export const CATEGORY_META: Record<JobCategory, { label: string; short: string; color: string }> = {
@@ -126,9 +129,12 @@ function build(): MarketJob[] {
           perMile: Math.round((value / miles) * 100) / 100,
           operatorId: j.operatorId,
           operatorName: op?.name ?? 'Operator',
+          operatorRating: op?.rating ?? 4.6,
+          operatorCompleted: op?.completed ?? 120,
           vehicle: j.vehicle,
           passengers: j.passengers,
           postedMins: parsePostedMins(j.posted) + k * 3,
+          pickupLabel: j.pickup,
         })
       }
     })
@@ -157,6 +163,62 @@ export function categoryCounts(jobs: MarketJob[]): Record<JobCategory, number> {
   const out: Record<JobCategory, number> = { airport: 0, 'empty-return': 0, cover: 0, urgent: 0 }
   for (const j of jobs) out[j.category]++
   return out
+}
+
+// -----------------------------------------------------------------------------
+// Plain-English intelligence — badges + "Why This Job?" so a driver can assess
+// an opportunity in 2–3 seconds without reading numbers.
+// -----------------------------------------------------------------------------
+
+export type BadgeTone = 'value' | 'premium' | 'distance' | 'return' | 'urgent' | 'trust' | 'repeat' | 'demand'
+export interface Badge { label: string; tone: BadgeTone }
+
+export const BADGE_COLORS: Record<BadgeTone, string> = {
+  value: '#22C55E',
+  premium: '#C084FC',
+  distance: '#38BDF8',
+  return: '#8B5CF6',
+  urgent: '#EF4444',
+  trust: '#F5D90A',
+  repeat: '#2DD4BF',
+  demand: '#FB923C',
+}
+
+const HIGH_DEMAND = new Set(['MAN', 'LHR', 'BHX', 'LGW', 'STN', 'EDI'])
+const PREMIUM_VEHICLE = /Executive|Luxury|Mercedes|BMW|Tesla/i
+
+export function jobBadges(job: MarketJob): Badge[] {
+  const out: Badge[] = []
+  if (job.category === 'urgent' || job.category === 'cover') out.push({ label: 'Urgent Cover', tone: 'urgent' })
+  if (job.value >= 200) out.push({ label: 'High Value', tone: 'value' })
+  if (PREMIUM_VEHICLE.test(job.vehicle) && job.value >= 130) out.push({ label: 'Premium Fare', tone: 'premium' })
+  if (job.miles >= 40) out.push({ label: 'Long Distance', tone: 'distance' })
+  if (job.category === 'empty-return') out.push({ label: 'Return Journey', tone: 'return' })
+  if (job.operatorRating >= 4.85) out.push({ label: 'Trusted Operator', tone: 'trust' })
+  if (job.operatorCompleted >= 700) out.push({ label: 'Repeat Work Potential', tone: 'repeat' })
+  if (HIGH_DEMAND.has(job.fromCode)) out.push({ label: 'High Demand Area', tone: 'demand' })
+  return out.slice(0, 4)
+}
+
+export function whyThisJob(job: MarketJob): string {
+  const reasons: string[] = []
+  if (job.value >= 200) reasons.push(`it's a strong ${formatGBP(job.value)} fare`)
+  else if (PREMIUM_VEHICLE.test(job.vehicle)) reasons.push(`it's premium ${job.vehicle.toLowerCase()} work`)
+  else reasons.push(`it's a clean ${formatGBP(job.value)} run`)
+
+  if (job.miles >= 40) reasons.push(`a longer ${job.miles}-mile journey that keeps you earning`)
+  else if (job.category === 'empty-return') reasons.push(`it fills a return leg you'd otherwise drive empty`)
+
+  if (job.operatorRating >= 4.85) reasons.push(`posted by ${job.operatorName}, a top-rated operator (${job.operatorRating.toFixed(1)}★)`)
+  else reasons.push(`posted by ${job.operatorName}`)
+
+  if (HIGH_DEMAND.has(job.fromCode)) reasons.push(`${job.fromName} is one of the busiest pickup areas on the network, so repeat work is likely`)
+
+  const lead = job.category === 'urgent' || job.category === 'cover'
+    ? 'Cover is needed now and '
+    : ''
+  const body = reasons.join(', ') + '.'
+  return (lead + body.charAt(0).toUpperCase() + body.slice(1)).replace('Cover is needed now and It', 'Cover is needed now and it')
 }
 
 export { formatGBP }
