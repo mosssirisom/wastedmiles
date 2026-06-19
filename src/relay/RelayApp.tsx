@@ -117,11 +117,12 @@ function TermStat({ label, value, accent, danger }: { label: string; value: stri
   )
 }
 
-function JobTapeRow({ job, selected, onSelect }: { job: MarketJob; selected: boolean; onSelect: () => void }) {
+function JobTapeRow({ job, selected, zebra, onSelect }: { job: MarketJob; selected: boolean; zebra: boolean; onSelect: () => void }) {
   const m = CATEGORY_META[job.category]
   const fresh = job.postedMins <= 5
+  const bg = selected ? 'rgba(6,182,212,0.12)' : zebra ? 'rgba(255,255,255,0.015)' : undefined
   return (
-    <button onClick={onSelect} className="w-full grid items-center gap-2 px-3 py-2 text-left border-b active:opacity-80" style={{ gridTemplateColumns: GRID, borderColor: 'rgba(30,41,59,0.55)', background: selected ? 'rgba(6,182,212,0.12)' : undefined }}>
+    <button onClick={onSelect} className="w-full grid items-center gap-2 px-3 py-2 text-left border-b active:opacity-80" style={{ gridTemplateColumns: GRID, borderColor: 'rgba(30,41,59,0.55)', background: bg }}>
       <div className="min-w-0 flex items-center gap-2">
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: m.color, boxShadow: job.category === 'urgent' ? `0 0 6px ${m.color}` : undefined }} />
         <div className="min-w-0">
@@ -263,7 +264,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
           <span className="text-right">Value</span>
           <span className="text-right">£/mi</span>
         </div>
-        {rows.map((j) => <JobTapeRow key={j.id} job={j} selected={j.id === selectedId} onSelect={() => setSelectedId(j.id)} />)}
+        {rows.map((j, i) => <JobTapeRow key={j.id} job={j} selected={j.id === selectedId} zebra={i % 2 === 1} onSelect={() => setSelectedId(j.id)} />)}
         {rows.length === 0 && <div className="px-3 py-8 text-center text-[12px] text-white/35">No opportunities in this filter.</div>}
       </div>
 

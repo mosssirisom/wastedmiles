@@ -93,25 +93,25 @@ export default function RelayMap({
         source: 'jobs',
         filter: ['has', 'point_count'],
         paint: {
-          'circle-color': '#06B6D4',
-          'circle-opacity': 0.10,
+          'circle-color': ['interpolate', ['linear'], ['get', 'sum'], 1500, '#0EA5E9', 14000, '#22C55E'],
+          'circle-opacity': 0.1,
           'circle-blur': 1,
-          'circle-radius': ['step', ['get', 'point_count'], 34, 8, 60, 25, 90],
+          'circle-radius': ['step', ['get', 'point_count'], 26, 8, 46, 25, 70],
         } as never,
       })
 
-      // Cluster body.
+      // Cluster body — dark disc with a revenue-graded ring (cyan -> green).
       map.addLayer({
         id: 'clusters',
         type: 'circle',
         source: 'jobs',
         filter: ['has', 'point_count'],
         paint: {
-          'circle-color': 'rgba(8,18,33,0.92)',
-          'circle-radius': ['step', ['get', 'point_count'], 22, 8, 30, 25, 40],
+          'circle-color': 'rgba(8,18,33,0.9)',
+          'circle-radius': ['step', ['get', 'point_count'], 18, 8, 26, 25, 34],
           'circle-stroke-width': 2,
-          'circle-stroke-color': '#06B6D4',
-          'circle-stroke-opacity': 0.85,
+          'circle-stroke-color': ['interpolate', ['linear'], ['get', 'sum'], 1500, '#0EA5E9', 6000, '#06B6D4', 14000, '#22C55E'],
+          'circle-stroke-opacity': 0.9,
         } as never,
       })
 
