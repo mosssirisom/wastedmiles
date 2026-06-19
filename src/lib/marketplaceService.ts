@@ -228,12 +228,28 @@ export async function postJourney(input: PostJourneyInput) {
 export async function claimJourney(journeyId: string, claimingOperatorId: string, message?: string) {
   if (!supabase) throw new Error('Supabase is not configured')
 
-  const { data, error } = await supabase
-    .from('journey_claims')
-    .insert({ journey_id: journeyId, claiming_operator_id: claimingOperatorId, message })
-    .select('*')
-    .single()
+  const { data, error } = await supabase.rpc('claim_journey_atomic', {
+    p_journey_id: journeyId,
+    p_claiming_operator_id: claimingOperatorId,
+    p_message: message ?? null,
+  })
 
+  if (error) throw error
+  return data
+}
+
+export async function acceptJourneyClaim(claimId: string) {
+  if (!supabase) throw new Error('Supabase is not configured')
+
+  const { data, error } = await supabase.rpc('accept_journey_claim', { p_claim_id: claimId })
+  if (error) throw error
+  return data
+}
+
+export async function completeJourney(journeyId: string) {
+  if (!supabase) throw new Error('Supabase is not configured')
+
+  const { data, error } = await supabase.rpc('complete_journey', { p_journey_id: journeyId })
   if (error) throw error
   return data
 }
