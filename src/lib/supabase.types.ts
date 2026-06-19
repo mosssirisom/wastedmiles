@@ -168,7 +168,24 @@ export interface Database {
         }
       }
     }
-    Functions: Record<string, never>
+    Functions: {
+      is_verified_operator_member: {
+        Args: { p_operator_id: string }
+        Returns: boolean
+      }
+      claim_journey_atomic: {
+        Args: { p_journey_id: string; p_claiming_operator_id: string; p_message?: string | null }
+        Returns: Database['public']['Tables']['journey_claims']['Row']
+      }
+      accept_journey_claim: {
+        Args: { p_claim_id: string }
+        Returns: string
+      }
+      complete_journey: {
+        Args: { p_journey_id: string }
+        Returns: Database['public']['Tables']['journeys']['Row']
+      }
+    }
     Enums: {
       operator_role: OperatorRole
       operator_status: OperatorStatus
