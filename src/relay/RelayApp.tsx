@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, MoreHorizontal, Star, Clock, Navigation, Users, Car, Sparkles } from 'lucide-react'
+import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, MoreHorizontal, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
 import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
 import { formatGBP } from '../data/marketplace'
 import { useBid, useThreads, fetchProfile, requestCover, useResource } from './data'
 import RelayMap from './RelayMap'
-import { useMarketJobs, categoryCounts, CATEGORY_META, jobBadges, whyThisJob, BADGE_COLORS, type Badge, type JobCategory, type MarketJob } from './marketplaceJobs'
+import { useMarketJobs, categoryCounts, CATEGORY_META, jobBadges, whyThisJob, BADGE_COLORS, JOB_REGIONS, parsePickupMinutes, distanceToAirport, type Badge, type JobCategory, type MarketJob } from './marketplaceJobs'
 
 const ACCENT = '#06B6D4'
 const BG = '#030712'
 const PANEL = '#0F172A'
 const LINE = '#1E293B'
 
-type Screen = 'map' | 'bid' | 'cover' | 'profile' | 'messages' | 'thread' | 'trips'
+type Screen = 'map' | 'bid' | 'cover' | 'profile' | 'messages' | 'thread' | 'trips' | 'jobs'
 type TabId = 'map' | 'marketplace' | 'trips' | 'profile'
 
 const TABS: { id: TabId; label: string; icon: typeof MapIcon }[] = [
@@ -181,6 +181,125 @@ function AnalyticsPanel({ jobs }: { jobs: MarketJob[] }) {
       <div className="space-y-1.5">
         {areas.map((a) => <div key={a.code} className="flex items-center justify-between text-[13px]"><span className="text-white/80 truncate">{a.name}</span><span className="text-white/45 shrink-0">{a.count} jobs · {formatGBP(a.value)}</span></div>)}
       </div>
+    </div>
+  )
+}
+
+// Large, touch-friendly job card for the Jobs browser.
+function JobsCard({ job, onView }: { job: MarketJob; onView: () => void }) {
+  const meta = CATEGORY_META[job.category]
+  const trusted = job.operatorRating >= 4.85
+  return (
+    <div className="rounded-2xl border p-4" style={{ background: PANEL, borderColor: LINE }}>
+      <div className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: meta.color }}>
+        <span className="h-2 w-2 rounded-full" style={{ background: meta.color }} />{meta.label}
+      </div>
+      <div className="mt-2.5 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[15px] font-semibold text-white truncate">{job.fromName}</div>
+          <div className="text-white/30 text-[13px] leading-tight">↓</div>
+          <div className="text-[15px] font-semibold text-white truncate">{job.toName}</div>
+        </div>
+        <div className="text-[30px] font-bold text-white leading-none shrink-0">{formatGBP(job.value)}</div>
+      </div>
+      <div className="mt-3 flex items-center gap-2 text-[13px] text-white/60"><Clock size={14} />{job.pickupLabel}</div>
+      <div className="mt-1.5 flex items-center gap-4 text-[13px] text-white/60">
+        <span className="flex items-center gap-1.5"><Users size={14} />{job.passengers} Passengers</span>
+        <span className="flex items-center gap-1.5"><Briefcase size={14} />{job.cases} Cases</span>
+      </div>
+      {trusted && <div className="mt-2.5 flex items-center gap-1.5 text-[12px] font-medium" style={{ color: '#F5D90A' }}><Star size={13} style={{ fill: '#F5D90A' }} />Trusted Operator</div>}
+      <button onClick={onView} className="mt-3.5 w-full rounded-xl py-3 text-[15px] font-semibold active:opacity-90" style={{ background: ACCENT, color: BG }}>View Job</button>
+    </div>
+  )
+}
+
+type JobSort = 'soon' | 'value' | 'near' | 'recent'
+const SORT_LABELS: Record<JobSort, string> = { soon: 'Soonest First', value: 'Highest Value', near: 'Nearest Pickup', recent: 'Recently Added' }
+
+function JobsView({ go }: { go: (s: Screen) => void }) {
+  const jobs = useMarketJobs()
+  const [regionId, setRegionId] = useState('north-west')
+  const [airport, setAirport] = useState<string>('all') // 'all' | airport code
+  const [sort, setSort] = useState<JobSort>('soon')
+  const [sortOpen, setSortOpen] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const region = JOB_REGIONS.find((r) => r.id === regionId) ?? JOB_REGIONS[0]
+  const codes = region.airports.map((a) => a.code)
+
+  const list = useMemo(() => {
+    let r = jobs.filter((j) => codes.includes(j.fromCode))
+    if (airport !== 'all') r = r.filter((j) => j.fromCode === airport)
+    const ref = airport !== 'all' ? airport : codes[0]
+    const arr = [...r]
+    if (sort === 'soon') arr.sort((a, b) => parsePickupMinutes(a.pickupLabel) - parsePickupMinutes(b.pickupLabel))
+    else if (sort === 'value') arr.sort((a, b) => b.value - a.value)
+    else if (sort === 'near') arr.sort((a, b) => distanceToAirport(a, ref) - distanceToAirport(b, ref))
+    else arr.sort((a, b) => a.postedMins - b.postedMins)
+    return arr.slice(0, 60)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, regionId, airport, sort])
+
+  const selected = selectedId ? jobs.find((j) => j.id === selectedId) ?? null : null
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0" style={{ background: BG }}>
+      {/* header */}
+      <div className="shrink-0 px-5 pt-1 pb-3 flex items-end justify-between">
+        <div>
+          <h1 className="text-[20px] font-bold text-white tracking-tight">Jobs Available</h1>
+          <div className="text-[12px] text-white/45 mt-0.5">{list.length.toLocaleString()} live in {region.name}</div>
+        </div>
+        <button onClick={() => go('cover')} className="flex items-center gap-1 text-[13px] font-medium px-3 py-1.5 rounded-lg border active:opacity-80" style={{ borderColor: LINE, color: '#fff' }}><Plus size={15} />Post</button>
+      </div>
+
+      {/* region selector */}
+      <div className="shrink-0 no-scrollbar flex gap-2 overflow-x-auto px-5 pb-2.5">
+        {JOB_REGIONS.map((r) => {
+          const on = r.id === regionId
+          return (
+            <button key={r.id} onClick={() => { setRegionId(r.id); setAirport('all') }} className="shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium active:opacity-80" style={{ background: on ? ACCENT : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? BG : 'rgba(255,255,255,0.7)' }}>{r.name}</button>
+          )
+        })}
+      </div>
+
+      {/* airport filter */}
+      {region.airports.length > 0 && (
+        <div className="shrink-0 no-scrollbar flex gap-2 overflow-x-auto px-5 pb-2.5">
+          {[{ code: 'all', name: `All ${region.name}` }, ...region.airports].map((a) => {
+            const on = airport === a.code
+            return (
+              <button key={a.code} onClick={() => setAirport(a.code)} className="shrink-0 rounded-full border px-3 py-1 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(6,182,212,0.16)' : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>{a.name}</button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* sort */}
+      <div className="shrink-0 relative px-5 pb-2 flex items-center justify-between">
+        <span className="text-[12px] text-white/40">{list.length} jobs</span>
+        <button onClick={() => setSortOpen((v) => !v)} className="flex items-center gap-1.5 text-[13px] font-medium text-white/80 active:opacity-70">{SORT_LABELS[sort]}<ChevronDown size={15} /></button>
+        {sortOpen && (
+          <div className="absolute right-5 top-8 z-20 w-48 overflow-hidden rounded-xl border" style={{ background: 'rgba(15,23,42,0.98)', borderColor: LINE, boxShadow: '0 14px 40px rgba(0,0,0,0.5)' }}>
+            {(Object.keys(SORT_LABELS) as JobSort[]).map((s) => (
+              <button key={s} onClick={() => { setSort(s); setSortOpen(false) }} className="w-full text-left px-3.5 py-2.5 text-[13px] active:opacity-70" style={{ color: sort === s ? ACCENT : '#fff', background: sort === s ? 'rgba(6,182,212,0.1)' : undefined }}>{SORT_LABELS[s]}</button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* cards */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-5 space-y-3" onClick={() => sortOpen && setSortOpen(false)}>
+        {list.map((j) => <JobsCard key={j.id} job={j} onView={() => setSelectedId(j.id)} />)}
+        {list.length === 0 && (
+          <div className="mt-12 text-center">
+            <div className="text-[14px] text-white/55">No jobs in {region.name} right now.</div>
+            <div className="text-[12px] text-white/35 mt-1">Try another region.</div>
+          </div>
+        )}
+      </div>
+
+      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => go('bid')} onMessage={() => go('messages')} />}
     </div>
   )
 }
@@ -366,7 +485,7 @@ function TripsView({ go }: { go: (s: Screen) => void }) {
 export default function RelayApp() {
   const [screen, setScreen] = useState<Screen>('map'); const [activeOp, setActiveOp] = useState<{ id: string; name: string } | null>(null)
   const openThread = (id: string, name: string) => { setActiveOp({ id, name }); setScreen('thread') }
-  const activeTab: TabId = screen === 'map' ? 'map' : screen === 'cover' ? 'marketplace' : screen === 'trips' ? 'trips' : 'profile'
-  const onTab = (id: TabId) => { if (id === 'map') setScreen('map'); else if (id === 'marketplace') setScreen('cover'); else if (id === 'trips') setScreen('trips'); else setScreen('profile') }
-  return <AuthProvider><div className="w-full flex justify-center" style={{ background: '#020509' }}><div className="relative w-full max-w-[480px] flex flex-col overflow-hidden" style={{ background: BG, height: '100dvh', paddingTop: screen === 'map' ? 0 : 'env(safe-area-inset-top)' }}>{screen === 'thread' ? <TopBar onBack={() => setScreen('messages')} /> : screen !== 'map' ? <TopBar onBack={() => setScreen('map')} /> : null}{screen === 'map' && <MapView go={setScreen} />}{screen === 'bid' && <BidView go={setScreen} />}{screen === 'cover' && <CoverView go={setScreen} />}{screen === 'trips' && <TripsView go={setScreen} />}{screen === 'profile' && <ProfileView onOpenMessages={() => setScreen('messages')} />}{screen === 'messages' && <MessagesView onOpen={openThread} />}{screen === 'thread' && activeOp && <ThreadView operatorId={activeOp.id} name={activeOp.name} />}<BottomNav active={activeTab} onTab={onTab} /></div></div></AuthProvider>
+  const activeTab: TabId = screen === 'map' ? 'map' : screen === 'jobs' || screen === 'cover' ? 'marketplace' : screen === 'trips' ? 'trips' : 'profile'
+  const onTab = (id: TabId) => { if (id === 'map') setScreen('map'); else if (id === 'marketplace') setScreen('jobs'); else if (id === 'trips') setScreen('trips'); else setScreen('profile') }
+  return <AuthProvider><div className="w-full flex justify-center" style={{ background: '#020509' }}><div className="relative w-full max-w-[480px] flex flex-col overflow-hidden" style={{ background: BG, height: '100dvh', paddingTop: screen === 'map' ? 0 : 'env(safe-area-inset-top)' }}>{screen === 'thread' ? <TopBar onBack={() => setScreen('messages')} /> : screen !== 'map' && screen !== 'jobs' ? <TopBar onBack={() => setScreen('map')} /> : null}{screen === 'map' && <MapView go={setScreen} />}{screen === 'jobs' && <JobsView go={setScreen} />}{screen === 'bid' && <BidView go={setScreen} />}{screen === 'cover' && <CoverView go={setScreen} />}{screen === 'trips' && <TripsView go={setScreen} />}{screen === 'profile' && <ProfileView onOpenMessages={() => setScreen('messages')} />}{screen === 'messages' && <MessagesView onOpen={openThread} />}{screen === 'thread' && activeOp && <ThreadView operatorId={activeOp.id} name={activeOp.name} />}<BottomNav active={activeTab} onTab={onTab} /></div></div></AuthProvider>
 }

@@ -30,6 +30,7 @@ export interface MarketJob {
   operatorCompleted: number
   vehicle: string
   passengers: number
+  cases: number
   postedMins: number
   pickupLabel: string
 }
@@ -133,6 +134,7 @@ function build(): MarketJob[] {
           operatorCompleted: op?.completed ?? 120,
           vehicle: j.vehicle,
           passengers: j.passengers,
+          cases: j.luggage,
           postedMins: parsePostedMins(j.posted) + k * 3,
           pickupLabel: j.pickup,
         })
@@ -219,6 +221,37 @@ export function whyThisJob(job: MarketJob): string {
     : ''
   const body = reasons.join(', ') + '.'
   return (lead + body.charAt(0).toUpperCase() + body.slice(1)).replace('Cover is needed now and It', 'Cover is needed now and it')
+}
+
+// -----------------------------------------------------------------------------
+// Regions / airports / sorting for the Jobs browser.
+// -----------------------------------------------------------------------------
+
+export interface JobRegion { id: string; name: string; airports: { code: string; name: string }[] }
+
+export const JOB_REGIONS: JobRegion[] = [
+  { id: 'north-west', name: 'North West', airports: [{ code: 'MAN', name: 'Manchester Airport' }, { code: 'LPL', name: 'Liverpool Airport' }] },
+  { id: 'midlands', name: 'Midlands', airports: [{ code: 'BHX', name: 'Birmingham Airport' }] },
+  { id: 'south-east', name: 'South East', airports: [{ code: 'LHR', name: 'Heathrow' }, { code: 'LGW', name: 'Gatwick' }, { code: 'LTN', name: 'Luton' }, { code: 'STN', name: 'Stansted' }] },
+  { id: 'north-east', name: 'North East', airports: [{ code: 'LBA', name: 'Leeds Bradford' }] },
+  { id: 'south-west', name: 'South West', airports: [] },
+  { id: 'scotland', name: 'Scotland', airports: [{ code: 'GLA', name: 'Glasgow' }, { code: 'EDI', name: 'Edinburgh' }] },
+  { id: 'wales', name: 'Wales', airports: [] },
+]
+
+// Airport pickup centres as [lng, lat] for "nearest pickup" sorting.
+export const AIRPORT_CENTER: Record<string, [number, number]> = Object.fromEntries(
+  REGIONS.map((r) => [r.code, [r.center[1], r.center[0]] as [number, number]])
+)
+
+export function parsePickupMinutes(label: string): number {
+  const m = label.match(/(\d{1,2}):(\d{2})/)
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 9999
+}
+
+export function distanceToAirport(job: MarketJob, code: string): number {
+  const c = AIRPORT_CENTER[code]
+  return c ? haversineMiles(job.pickup, c) : job.miles
 }
 
 export { formatGBP }
