@@ -60,7 +60,7 @@ export default function RelayMap({
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
       bounds: UK_BOUNDS,
-      fitBoundsOptions: { padding: { top: 130, bottom: 300, left: 40, right: 40 } },
+      fitBoundsOptions: { padding: { top: 56, bottom: 44, left: 28, right: 28 } },
       minZoom: 4.2,
       maxZoom: 15,
       attributionControl: false,
@@ -289,7 +289,7 @@ export default function RelayMap({
         properties: {},
       } as never)
       const b = new mapboxgl.LngLatBounds(job.pickup, job.pickup).extend(job.dropoff)
-      map.fitBounds(b, { padding: { top: 150, bottom: 340, left: 60, right: 60 }, maxZoom: 11, duration: 700 })
+      map.fitBounds(b, { padding: { top: 56, bottom: 50, left: 50, right: 50 }, maxZoom: 10, duration: 700 })
     } else if (route) {
       route.setData({ type: 'FeatureCollection', features: [] } as never)
     }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, MoreHorizontal, ChevronUp, ChevronDown, X } from 'lucide-react'
+import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, MoreHorizontal, X } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
 import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
@@ -77,18 +77,65 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
   return <div className="rounded-xl border px-2.5 py-2" style={{ background: PANEL, borderColor: LINE }}><div className="text-[10px] uppercase tracking-wide text-white/38">{label}</div><div className="mt-0.5 text-[15px] font-bold" style={{ color: accent ? ACCENT : '#fff' }}>{value}</div></div>
 }
 
-function JobRow({ job, onSelect }: { job: MarketJob; onSelect: () => void }) {
-  const meta = CATEGORY_META[job.category]
+const GRID = '1fr 64px 52px'
+
+// Colour a yield (£/mile) like a trading screen — green = strong, dim = weak.
+function yieldColor(perMile: number): string {
+  if (perMile >= 6) return '#22C55E'
+  if (perMile >= 3) return '#06B6D4'
+  return '#94A3B8'
+}
+
+function Ticker({ jobs, onPick }: { jobs: MarketJob[]; onPick: (id: string) => void }) {
+  if (!jobs.length) return null
+  const items = [...jobs, ...jobs] // duplicate for a seamless marquee loop
   return (
-    <button onClick={onSelect} className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left active:opacity-80">
-      <span className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center" style={{ background: meta.color + '22' }}><span className="h-2.5 w-2.5 rounded-full" style={{ background: meta.color }} /></span>
-      <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-medium text-white truncate">{job.fromCode} <span className="text-white/40">→</span> {job.toName}</div>
-        <div className="text-[11px] text-white/40 truncate">{meta.short} · {job.miles} mi · {job.postedMins}m ago</div>
+    <div className="h-7 overflow-hidden flex items-center">
+      <div className="animate-marquee whitespace-nowrap flex items-center gap-5 px-3">
+        {items.map((j, i) => {
+          const m = CATEGORY_META[j.category]
+          return (
+            <button key={`${j.id}-${i}`} onClick={() => onPick(j.id)} className="inline-flex items-center gap-1.5 text-[11px] active:opacity-70">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: m.color }} />
+              <span className="text-white/75">{j.fromCode}→{j.toName}</span>
+              <span className="font-mono tabular-nums font-semibold text-white">{formatGBP(j.value)}</span>
+              <span className="font-mono tabular-nums" style={{ color: yieldColor(j.perMile) }}>{j.perMile.toFixed(1)}/mi</span>
+            </button>
+          )
+        })}
       </div>
-      <div className="text-right shrink-0">
-        <div className="text-[15px] font-bold text-white">{formatGBP(job.value)}</div>
-        <div className="text-[10px]" style={{ color: ACCENT }}>£{job.perMile.toFixed(2)}/mi</div>
+    </div>
+  )
+}
+
+function TermStat({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
+  return (
+    <div className="px-3 py-2 border-r last:border-r-0" style={{ borderColor: LINE }}>
+      <div className="text-[9px] uppercase tracking-wide text-white/35">{label}</div>
+      <div className="font-mono tabular-nums text-[14px] font-bold" style={{ color: danger ? '#EF4444' : accent ? ACCENT : '#fff' }}>{value}</div>
+    </div>
+  )
+}
+
+function JobTapeRow({ job, selected, onSelect }: { job: MarketJob; selected: boolean; onSelect: () => void }) {
+  const m = CATEGORY_META[job.category]
+  const fresh = job.postedMins <= 5
+  return (
+    <button onClick={onSelect} className="w-full grid items-center gap-2 px-3 py-2 text-left border-b active:opacity-80" style={{ gridTemplateColumns: GRID, borderColor: 'rgba(30,41,59,0.55)', background: selected ? 'rgba(6,182,212,0.12)' : undefined }}>
+      <div className="min-w-0 flex items-center gap-2">
+        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: m.color, boxShadow: job.category === 'urgent' ? `0 0 6px ${m.color}` : undefined }} />
+        <div className="min-w-0">
+          <div className="text-[13px] text-white truncate">{job.fromCode} <span className="text-white/35">→</span> {job.toName}</div>
+          <div className="text-[10px] text-white/35 truncate">{m.short} · {job.miles}mi · {job.operatorName}{fresh && <span style={{ color: '#22C55E' }}> · new</span>}</div>
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="font-mono tabular-nums text-[14px] font-semibold text-white">{formatGBP(job.value)}</div>
+        <div className="font-mono tabular-nums text-[10px] text-white/35">{job.postedMins}m</div>
+      </div>
+      <div className="text-right">
+        <div className="font-mono tabular-nums text-[13px] font-semibold" style={{ color: yieldColor(job.perMile) }}>{job.perMile.toFixed(1)}</div>
+        <div className="text-[9px] uppercase tracking-wide text-white/30">£/mi</div>
       </div>
     </button>
   )
@@ -130,87 +177,97 @@ function JobDetailCard({ job, onClose, onClaim, onMessage }: { job: MarketJob; o
 function MapView({ go }: { go: (s: Screen) => void }) {
   const jobs = useMarketJobs()
   const [filter, setFilter] = useState<JobCategory | 'all'>('all')
+  const [sort, setSort] = useState<'yield' | 'value' | 'recent'>('yield')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(false)
 
   const counts = useMemo(() => categoryCounts(jobs), [jobs])
   const visible = useMemo(() => (filter === 'all' ? jobs : jobs.filter((j) => j.category === filter)), [jobs, filter])
-  const totalValue = useMemo(() => visible.reduce((s, j) => s + j.value, 0), [visible])
-  const ranked = useMemo(() => [...visible].sort((a, b) => b.value - a.value).slice(0, 40), [visible])
+  const liquidity = useMemo(() => visible.reduce((s, j) => s + j.value, 0), [visible])
+  const avgYield = useMemo(() => (visible.length ? visible.reduce((s, j) => s + j.perMile, 0) / visible.length : 0), [visible])
+  const urgentCount = useMemo(() => visible.filter((j) => j.category === 'urgent').length, [visible])
+  const rows = useMemo(() => {
+    const r = [...visible]
+    if (sort === 'yield') r.sort((a, b) => b.perMile - a.perMile)
+    else if (sort === 'value') r.sort((a, b) => b.value - a.value)
+    else r.sort((a, b) => a.postedMins - b.postedMins)
+    return r.slice(0, 80)
+  }, [visible, sort])
+  const tape = useMemo(() => [...visible].sort((a, b) => b.perMile - a.perMile).slice(0, 14), [visible])
   const selected = selectedId ? jobs.find((j) => j.id === selectedId) ?? null : null
 
   const chips: { id: JobCategory | 'all'; label: string; count: number; color?: string }[] = [
     { id: 'all', label: 'All', count: jobs.length },
     { id: 'airport', label: 'Airport', count: counts.airport, color: CATEGORY_META.airport.color },
-    { id: 'empty-return', label: 'Empty Return', count: counts['empty-return'], color: CATEGORY_META['empty-return'].color },
+    { id: 'empty-return', label: 'Empty', count: counts['empty-return'], color: CATEGORY_META['empty-return'].color },
     { id: 'cover', label: 'Cover', count: counts.cover, color: CATEGORY_META.cover.color },
     { id: 'urgent', label: 'Urgent', count: counts.urgent, color: CATEGORY_META.urgent.color },
   ]
+  const sorts: { id: 'yield' | 'value' | 'recent'; label: string }[] = [
+    { id: 'yield', label: 'Yield' },
+    { id: 'value', label: 'Value' },
+    { id: 'recent', label: 'New' },
+  ]
 
   return (
-    <div className="relative flex-1 min-h-0" style={{ background: BG }}>
-      <RelayMap
-        jobs={jobs}
-        filter={filter}
-        selectedId={selectedId}
-        onSelectJob={(id) => { setSelectedId(id); if (id) setExpanded(false) }}
-        onClusterTap={() => setSelectedId(null)}
-        resizeSignal={expanded}
-      />
-
-      {/* TOP: controls, live totals, category filters */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-40">
-        <div className="absolute inset-x-0 top-0 h-40" style={{ background: 'linear-gradient(to bottom, rgba(3,7,18,0.88), transparent)' }} />
-        <div className="relative flex items-center justify-between px-5 h-12" style={{ marginTop: 'env(safe-area-inset-top)' }}>
-          <button className="pointer-events-auto text-white/85 active:opacity-70"><Menu size={22} /></button>
-          <div className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
-            <span className="text-white text-[17px] font-semibold tracking-tight">Relay</span>
+    <div className="relative flex-1 flex flex-col min-h-0" style={{ background: BG }}>
+      {/* RADAR — the map is now one panel of the terminal */}
+      <div className="relative shrink-0" style={{ height: '36vh', minHeight: 248 }}>
+        <RelayMap jobs={jobs} filter={filter} selectedId={selectedId} onSelectJob={setSelectedId} onClusterTap={() => setSelectedId(null)} resizeSignal={filter} />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-40">
+          <div className="absolute inset-x-0 top-0 h-24" style={{ background: 'linear-gradient(to bottom, rgba(3,7,18,0.9), transparent)' }} />
+          <div className="relative flex items-center justify-between px-4 h-12" style={{ marginTop: 'env(safe-area-inset-top)' }}>
+            <button className="pointer-events-auto text-white/85 active:opacity-70"><Menu size={22} /></button>
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
+              <span className="text-white text-[16px] font-semibold tracking-tight">Relay</span>
+            </div>
+            <div className="pointer-events-auto"><QuickActionsMenu go={go} /></div>
           </div>
-          <div className="pointer-events-auto"><QuickActionsMenu go={go} /></div>
         </div>
-        <div className="relative px-5 mt-1">
-          <span className="text-[12px] text-white/70">{visible.length.toLocaleString()} live jobs · <span style={{ color: ACCENT }}>{formatGBP(totalValue)}</span> available</span>
-        </div>
-        <div className="pointer-events-auto relative mt-2 no-scrollbar flex gap-2 overflow-x-auto px-5 pb-1">
-          {chips.map((c) => {
-            const on = filter === c.id
-            return (
-              <button key={c.id} onClick={() => { setFilter(c.id); setSelectedId(null) }} className="shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(6,182,212,0.16)' : 'rgba(15,23,42,0.85)', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)' }}>
-                {c.color && <span className="inline-block h-2 w-2 rounded-full mr-1.5 align-middle" style={{ background: c.color }} />}
-                {c.label} <span className="text-white/45">{c.count}</span>
-              </button>
-            )
-          })}
+        {/* live ticker tape pinned to the radar's bottom edge */}
+        <div className="absolute inset-x-0 bottom-0 z-30 border-t" style={{ background: 'rgba(3,7,18,0.85)', borderColor: LINE, backdropFilter: 'blur(6px)' }}>
+          <Ticker jobs={tape} onPick={setSelectedId} />
         </div>
       </div>
 
-      {/* SELECTED JOB or MARKETPLACE DRAWER */}
-      {selected ? (
-        <JobDetailCard job={selected} onClose={() => setSelectedId(null)} onClaim={() => go('bid')} onMessage={() => go('messages')} />
-      ) : (
-        <div className="absolute inset-x-0 bottom-0 z-30">
-          <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ height: 220, background: 'linear-gradient(to top, rgba(3,7,18,0.92), transparent)' }} />
-          <div className="relative mx-2 mb-2 rounded-2xl border overflow-hidden" style={{ background: 'rgba(10,16,28,0.92)', borderColor: LINE, backdropFilter: 'blur(14px)', boxShadow: '0 -10px 40px rgba(0,0,0,0.5)' }}>
-            <button onClick={() => setExpanded((e) => !e)} className="w-full px-4 pt-2.5 pb-3">
-              <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-white/20" />
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <div className="text-[11px] uppercase tracking-wider text-white/45">Best opportunities</div>
-                  <div className="text-[20px] font-bold text-white leading-tight mt-0.5">{visible.length.toLocaleString()} jobs · <span style={{ color: ACCENT }}>{formatGBP(totalValue)}</span></div>
-                </div>
-                <div className="text-white/55">{expanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}</div>
-              </div>
+      {/* MARKET STATS */}
+      <div className="shrink-0 grid grid-cols-4 border-b" style={{ borderColor: LINE }}>
+        <TermStat label="Liquidity" value={formatGBP(liquidity)} accent />
+        <TermStat label="Jobs" value={visible.length.toLocaleString()} />
+        <TermStat label="Avg yield" value={`£${avgYield.toFixed(1)}/mi`} />
+        <TermStat label="Urgent" value={String(urgentCount)} danger={urgentCount > 0} />
+      </div>
+
+      {/* FILTERS + SORT */}
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b overflow-x-auto no-scrollbar" style={{ borderColor: LINE }}>
+        {chips.map((c) => {
+          const on = filter === c.id
+          return (
+            <button key={c.id} onClick={() => { setFilter(c.id); setSelectedId(null) }} className="shrink-0 rounded-full border px-2.5 py-1 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(6,182,212,0.16)' : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.65)' }}>
+              {c.color && <span className="inline-block h-2 w-2 rounded-full mr-1.5 align-middle" style={{ background: c.color }} />}
+              {c.label} <span className="text-white/40">{c.count}</span>
             </button>
-            {expanded && (
-              <div className="max-h-[44vh] overflow-y-auto px-2 pb-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}>
-                {ranked.map((j) => <JobRow key={j.id} job={j} onSelect={() => setSelectedId(j.id)} />)}
-                <div className="px-2 pt-2 text-center text-[11px] text-white/35">Showing top {ranked.length} by value</div>
-              </div>
-            )}
-          </div>
+          )
+        })}
+        <div className="ml-auto flex items-center gap-1 shrink-0">
+          {sorts.map((s) => (
+            <button key={s.id} onClick={() => setSort(s.id)} className="rounded-md px-2 py-1 text-[11px] font-medium active:opacity-80" style={{ background: sort === s.id ? 'rgba(6,182,212,0.16)' : 'transparent', color: sort === s.id ? '#fff' : 'rgba(255,255,255,0.5)' }}>{s.label}</button>
+          ))}
         </div>
-      )}
+      </div>
+
+      {/* ORDER BOOK */}
+      <div className="flex-1 min-h-0 overflow-y-auto" style={{ paddingBottom: selected ? 240 : 0 }}>
+        <div className="sticky top-0 z-10 grid items-center gap-2 px-3 py-1.5 text-[9px] uppercase tracking-wide text-white/35 border-b" style={{ gridTemplateColumns: GRID, background: BG, borderColor: LINE }}>
+          <span>Route</span>
+          <span className="text-right">Value</span>
+          <span className="text-right">£/mi</span>
+        </div>
+        {rows.map((j) => <JobTapeRow key={j.id} job={j} selected={j.id === selectedId} onSelect={() => setSelectedId(j.id)} />)}
+        {rows.length === 0 && <div className="px-3 py-8 text-center text-[12px] text-white/35">No opportunities in this filter.</div>}
+      </div>
+
+      {selected && <JobDetailCard job={selected} onClose={() => setSelectedId(null)} onClaim={() => go('bid')} onMessage={() => go('messages')} />}
     </div>
   )
 }
