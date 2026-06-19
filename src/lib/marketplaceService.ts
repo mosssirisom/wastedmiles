@@ -20,6 +20,14 @@ export interface CreateOperatorInput {
   fleetSummary?: string
 }
 
+export interface CreateOperatorLeadInput {
+  companyName: string
+  email: string
+  fleetSize?: string
+  phone?: string
+  source?: string
+}
+
 export interface PostJourneyInput {
   postingOperatorId: string
   airportId?: string
@@ -169,6 +177,25 @@ export async function createOperator(input: CreateOperatorInput) {
 
   if (memberError) throw memberError
   return operator
+}
+
+export async function createOperatorLead(input: CreateOperatorLeadInput) {
+  if (!supabase) return null
+
+  const { data, error } = await supabase
+    .from('operator_leads')
+    .insert({
+      company_name: input.companyName,
+      email: input.email,
+      fleet_size: input.fleetSize,
+      phone: input.phone,
+      source: input.source ?? 'wasted-miles-web',
+    })
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
 }
 
 export async function listMarketplaceRegions(): Promise<Region[]> {
