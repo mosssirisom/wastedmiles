@@ -1,218 +1,325 @@
 import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
-import { type Airport, type NetworkSnapshot } from './data'
+import { CATEGORY_META, jobsGeoJSON, type JobCategory, type MarketJob } from './marketplaceJobs'
 
 // -----------------------------------------------------------------------------
-// RelayMap — isolated, self-contained Mapbox map for the Relay home screen.
+// RelayMap — the product. An interactive, clustered marketplace map.
 //
-// Owns the map section (explicit available height), the Mapbox container, the
-// projected overlays (heatmap / routes / hotspots) and a stylised fallback
-// background when no token is configured or tiles fail to load.
-//
-// Sizing approach (the thing that kept biting us): the section has a definite
-// height, the Mapbox container is absolutely filled to 100% x 100%, global CSS
-// forces the canvas to 100% (see index.css), and we call map.resize() on
-// create, after a tick, on window resize / orientationchange, and whenever the
-// bottom sheet toggles (resizeSignal). Mapbox can therefore never read a 0px
-// height and fall back to its hardcoded 300px canvas.
+// * Mapbox native clustering (handles thousands of points at 60fps).
+// * Clusters show count + total £ value; declustered on zoom.
+// * Individual jobs coloured by category, urgent jobs pulse.
+// * Selecting a job draws its pickup -> dropoff route and frames it.
+// * Pan/zoom always enabled; the map is never secondary.
 // -----------------------------------------------------------------------------
 
-const ACCENT = '#06B6D4'
-const LINE = '#1E293B'
-
-type Pt = { x: number; y: number }
-
-function Hotspot({ airport, pt }: { airport: Airport; pt: Pt }) {
-  const primary = airport.primary
-  return (
-    <div className="absolute z-20 flex flex-col items-center" style={{ left: pt.x, top: pt.y, transform: 'translate(-50%, -100%)' }}>
-      <div
-        className="rounded-xl border px-3 py-2 text-center"
-        style={{
-          background: 'rgba(15,23,42,0.95)',
-          borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE,
-          boxShadow: primary ? '0 0 22px rgba(6,182,212,0.45)' : '0 8px 20px rgba(0,0,0,0.55)',
-        }}
-      >
-        <div className="text-[12px] font-bold text-white leading-none">{airport.code}</div>
-        <div className="text-[10px] text-white/50 mt-1 leading-none">{airport.jobs} Jobs</div>
-        <div className="text-[13px] font-bold leading-tight mt-0.5" style={{ color: ACCENT }}>
-          {airport.rev}
-        </div>
-      </div>
-      <div className="h-2 w-2 rotate-45 -mt-1 border-r border-b" style={{ background: 'rgba(15,23,42,0.95)', borderColor: primary ? 'rgba(6,182,212,0.6)' : LINE }} />
-      <div className="relative mt-1 flex items-center justify-center">
-        <span className="absolute h-5 w-5 rounded-full animate-ping" style={{ background: 'rgba(6,182,212,0.35)' }} />
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: ACCENT, boxShadow: '0 0 12px rgba(6,182,212,0.9)' }} />
-      </div>
-    </div>
-  )
-}
-
-// Linear (equirectangular) projection over the padded container box — used both
-// before tiles load and as the fallback when no Mapbox token is present.
-function fallbackProject(airports: Airport[], w: number, h: number): Record<string, Pt> {
-  const out: Record<string, Pt> = {}
-  if (!airports.length || w <= 0 || h <= 0) return out
-  const lats = airports.map((a) => a.lat)
-  const lngs = airports.map((a) => a.lng)
-  const minLat = Math.min(...lats)
-  const maxLat = Math.max(...lats)
-  const minLng = Math.min(...lngs)
-  const maxLng = Math.max(...lngs)
-  const padX = Math.min(70, w * 0.18)
-  const padTop = Math.min(120, h * 0.22)
-  const padBottom = Math.min(170, h * 0.3)
-  const innerW = Math.max(1, w - padX * 2)
-  const innerH = Math.max(1, h - padTop - padBottom)
-  airports.forEach((a) => {
-    const fx = (a.lng - minLng) / (maxLng - minLng || 1)
-    const fy = (maxLat - a.lat) / (maxLat - minLat || 1) // north -> top
-    out[a.code] = { x: padX + fx * innerW, y: padTop + fy * innerH }
-  })
-  return out
-}
+const UK_BOUNDS: [[number, number], [number, number]] = [
+  [-6.4, 50.0],
+  [1.9, 57.2],
+]
 
 export default function RelayMap({
-  network,
+  jobs,
+  filter,
+  selectedId,
+  onSelectJob,
+  onClusterTap,
   resizeSignal,
 }: {
-  network: NetworkSnapshot | null
+  jobs: MarketJob[]
+  filter: JobCategory | 'all'
+  selectedId: string | null
+  onSelectJob: (id: string | null) => void
+  onClusterTap?: () => void
   resizeSignal?: unknown
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
-  const [pts, setPts] = useState<Record<string, Pt> | null>(null)
-  const [usingTiles, setUsingTiles] = useState(false)
+  const [ready, setReady] = useState(false)
+  const [tiles, setTiles] = useState(false)
+
+  // Keep latest callbacks/data in refs so the one-time init effect stays stable.
+  const jobsRef = useRef(jobs)
+  jobsRef.current = jobs
+  const filterRef = useRef(filter)
+  filterRef.current = filter
+  const selectRef = useRef(onSelectJob)
+  selectRef.current = onSelectJob
+  const clusterTapRef = useRef(onClusterTap)
+  clusterTapRef.current = onClusterTap
 
   const token = (import.meta.env.VITE_MAPBOX_TOKEN as string | undefined)?.trim()
 
-  // Keep the latest network in a ref so the projection effect can read it
-  // without re-subscribing on every render.
-  const netRef = useRef(network)
-  netRef.current = network
-  const sig = network ? network.airports.map((a) => `${a.code}:${a.lat}:${a.lng}`).join('|') : ''
+  const filtered = (list: MarketJob[]) =>
+    filterRef.current === 'all' ? list : list.filter((j) => j.category === filterRef.current)
 
-  // --- Create the map once -----------------------------------------------------
+  // --- create map once --------------------------------------------------------
   useEffect(() => {
     if (!token || !containerRef.current || mapRef.current) return
     mapboxgl.accessToken = token
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
-      center: [-3.2, 54.9],
-      zoom: 5.35,
-      minZoom: 4.4,
-      maxZoom: 12,
+      bounds: UK_BOUNDS,
+      fitBoundsOptions: { padding: { top: 130, bottom: 300, left: 40, right: 40 } },
+      minZoom: 4.2,
+      maxZoom: 15,
       attributionControl: false,
-      interactive: false, // static overlay map
+      dragRotate: false,
+      pitchWithRotate: false,
     })
-    map.on('error', () => setUsingTiles(false))
+    map.touchZoomRotate.disableRotation()
+    map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left')
+
+    map.on('error', () => setTiles(false))
+
     map.on('load', () => {
       map.resize()
-      setUsingTiles(true)
+      setTiles(true)
+
+      map.addSource('jobs', {
+        type: 'geojson',
+        data: jobsGeoJSON(filtered(jobsRef.current)) as never,
+        cluster: true,
+        clusterRadius: 52,
+        clusterMaxZoom: 12,
+        clusterProperties: { sum: ['+', ['get', 'value']] },
+      })
+      map.addSource('route', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } as never })
+
+      // Revenue heatmap glow under dense clusters.
+      map.addLayer({
+        id: 'job-heat',
+        type: 'circle',
+        source: 'jobs',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#06B6D4',
+          'circle-opacity': 0.10,
+          'circle-blur': 1,
+          'circle-radius': ['step', ['get', 'point_count'], 34, 8, 60, 25, 90],
+        } as never,
+      })
+
+      // Cluster body.
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'jobs',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': 'rgba(8,18,33,0.92)',
+          'circle-radius': ['step', ['get', 'point_count'], 22, 8, 30, 25, 40],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#06B6D4',
+          'circle-stroke-opacity': 0.85,
+        } as never,
+      })
+
+      // Cluster label: count + total £ value.
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'jobs',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': [
+            'format',
+            ['to-string', ['get', 'point_count']],
+            { 'font-scale': 1.15 },
+            '\n',
+            {},
+            [
+              'case',
+              ['>=', ['get', 'sum'], 1000],
+              ['concat', '£', ['to-string', ['round', ['/', ['get', 'sum'], 1000]]], 'k'],
+              ['concat', '£', ['to-string', ['get', 'sum']]],
+            ],
+            { 'font-scale': 0.82 },
+          ],
+          'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+          'text-size': 13,
+          'text-line-height': 1.1,
+          'text-allow-overlap': true,
+        } as never,
+        paint: { 'text-color': '#FFFFFF', 'text-halo-color': 'rgba(6,182,212,0.45)', 'text-halo-width': 0.6 } as never,
+      })
+
+      // Urgent pulse halo (animated via transition toggling below).
+      map.addLayer({
+        id: 'job-pulse',
+        type: 'circle',
+        source: 'jobs',
+        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'category'], 'urgent']],
+        paint: {
+          'circle-color': '#EF4444',
+          'circle-opacity': 0.32,
+          'circle-radius': 9,
+          'circle-radius-transition': { duration: 900 },
+          'circle-opacity-transition': { duration: 900 },
+        } as never,
+      })
+
+      // Individual jobs, coloured by category.
+      map.addLayer({
+        id: 'job-points',
+        type: 'circle',
+        source: 'jobs',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': [
+            'match',
+            ['get', 'category'],
+            'airport', CATEGORY_META.airport.color,
+            'empty-return', CATEGORY_META['empty-return'].color,
+            'cover', CATEGORY_META.cover.color,
+            'urgent', CATEGORY_META.urgent.color,
+            '#94A3B8',
+          ],
+          'circle-radius': 6,
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': 'rgba(3,7,18,0.9)',
+        } as never,
+      })
+
+      // Selected job highlight ring.
+      map.addLayer({
+        id: 'job-selected',
+        type: 'circle',
+        source: 'jobs',
+        filter: ['==', ['get', 'id'], '__none__'],
+        paint: {
+          'circle-color': 'rgba(0,0,0,0)',
+          'circle-radius': 12,
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#FFFFFF',
+        } as never,
+      })
+
+      // Route line (glow + core) for the selected job.
+      map.addLayer({
+        id: 'route-glow',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#06B6D4', 'line-width': 9, 'line-opacity': 0.18, 'line-blur': 4 } as never,
+      })
+      map.addLayer({
+        id: 'route-core',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#67E8F9', 'line-width': 2.5, 'line-dasharray': [1.5, 1.5] } as never,
+      })
+
+      // Interactions ---------------------------------------------------------
+      map.on('click', 'clusters', (e) => {
+        const f = map.queryRenderedFeatures(e.point, { layers: ['clusters'] })[0]
+        const clusterId = f?.properties?.cluster_id
+        const src = map.getSource('jobs') as mapboxgl.GeoJSONSource
+        if (clusterId == null || !src) return
+        src.getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return
+          const geom = f.geometry as GeoJSON.Point
+          map.easeTo({ center: geom.coordinates as [number, number], zoom: (zoom ?? map.getZoom()) + 0.3, duration: 600 })
+        })
+        clusterTapRef.current?.()
+      })
+
+      map.on('click', 'job-points', (e) => {
+        const id = e.features?.[0]?.properties?.id as string | undefined
+        if (id) selectRef.current(id)
+      })
+
+      // Tap empty map → deselect.
+      map.on('click', (e) => {
+        const hits = map.queryRenderedFeatures(e.point, { layers: ['clusters', 'job-points'] })
+        if (!hits.length) selectRef.current(null)
+      })
+
+      for (const id of ['clusters', 'job-points']) {
+        map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer' })
+        map.on('mouseleave', id, () => { map.getCanvas().style.cursor = '' })
+      }
+
+      // Urgent pulse loop using paint transitions (cheap, GPU-driven).
+      let big = false
+      const pulse = () => {
+        if (!mapRef.current) return
+        big = !big
+        try {
+          map.setPaintProperty('job-pulse', 'circle-radius', big ? 20 : 9)
+          map.setPaintProperty('job-pulse', 'circle-opacity', big ? 0 : 0.32)
+        } catch {
+          /* layer gone */
+        }
+      }
+      const pulseTimer = window.setInterval(pulse, 950)
+      map.once('remove', () => window.clearInterval(pulseTimer))
+
+      setReady(true)
     })
+
     mapRef.current = map
-    // Force an initial resize right after creation (requirement: never 0px).
-    map.resize()
     return () => {
       map.remove()
       mapRef.current = null
     }
   }, [token])
 
-  // --- Resize + project --------------------------------------------------------
+  // --- update source when jobs / filter change --------------------------------
   useEffect(() => {
-    const compute = () => {
-      const el = containerRef.current
-      const net = netRef.current
-      if (!el || !net || !net.airports.length) return
-      const w = el.clientWidth
-      const h = el.clientHeight
-      const map = mapRef.current
+    const map = mapRef.current
+    if (!map || !ready) return
+    const src = map.getSource('jobs') as mapboxgl.GeoJSONSource | undefined
+    src?.setData(jobsGeoJSON(filtered(jobs)) as never)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs, filter, ready])
 
-      if (map && usingTiles) {
-        map.resize()
-        const lats = net.airports.map((a) => a.lat)
-        const lngs = net.airports.map((a) => a.lng)
-        try {
-          map.fitBounds(
-            [
-              [Math.min(...lngs), Math.min(...lats)],
-              [Math.max(...lngs), Math.max(...lats)],
-            ],
-            {
-              padding: {
-                top: Math.min(110, h * 0.2),
-                bottom: Math.min(170, h * 0.3),
-                left: Math.min(64, w * 0.15),
-                right: Math.min(64, w * 0.15),
-              },
-              animate: false,
-              duration: 0,
-            }
-          )
-        } catch {
-          /* bounds degenerate — ignore */
-        }
-        const out: Record<string, Pt> = {}
-        net.airports.forEach((a) => {
-          const p = map.project([a.lng, a.lat])
-          out[a.code] = { x: p.x, y: p.y }
-        })
-        setPts(out)
-      } else {
-        // No tiles yet (or no token) — keep the container sized and project
-        // linearly so the overlays still render over the fallback background.
-        map?.resize()
-        setPts(fallbackProject(net.airports, w, h))
-      }
+  // --- selected job: draw route + frame it ------------------------------------
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+    map.setFilter('job-selected', ['==', ['get', 'id'], selectedId ?? '__none__'])
+    const route = map.getSource('route') as mapboxgl.GeoJSONSource | undefined
+    const job = selectedId ? jobs.find((j) => j.id === selectedId) : null
+    if (job && route) {
+      route.setData({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: [job.pickup, job.dropoff] },
+        properties: {},
+      } as never)
+      const b = new mapboxgl.LngLatBounds(job.pickup, job.pickup).extend(job.dropoff)
+      map.fitBounds(b, { padding: { top: 150, bottom: 340, left: 60, right: 60 }, maxZoom: 11, duration: 700 })
+    } else if (route) {
+      route.setData({ type: 'FeatureCollection', features: [] } as never)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, ready])
 
-    compute()
-    const t1 = window.setTimeout(compute, 100)
-    const t2 = window.setTimeout(compute, 400)
-    const onResize = () => compute()
-    window.addEventListener('resize', onResize)
-    window.addEventListener('orientationchange', onResize)
-    const ro = containerRef.current ? new ResizeObserver(() => compute()) : null
+  // --- resize on demand -------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const run = () => map.resize()
+    run()
+    const t = window.setTimeout(run, 120)
+    window.addEventListener('resize', run)
+    window.addEventListener('orientationchange', run)
+    const ro = containerRef.current ? new ResizeObserver(run) : null
     if (ro && containerRef.current) ro.observe(containerRef.current)
-
     return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-      window.removeEventListener('resize', onResize)
-      window.removeEventListener('orientationchange', onResize)
+      window.clearTimeout(t)
+      window.removeEventListener('resize', run)
+      window.removeEventListener('orientationchange', run)
       ro?.disconnect()
     }
-  }, [sig, resizeSignal, token, usingTiles])
-
-  const ready = !!(pts && network)
-  const dotCss =
-    ready &&
-    `.relaydot{position:absolute;width:4px;height:4px;border-radius:9999px;background:${ACCENT};box-shadow:0 0 8px ${ACCENT};transform:translate(-50%,-50%);}
-${network!.routes
-      .filter((r) => pts![r.from] && pts![r.to])
-      .map(
-        (r, i) =>
-          `@keyframes relayflow${i}{0%{left:${pts![r.from].x}px;top:${pts![r.from].y}px;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:${pts![r.to].x}px;top:${pts![r.to].y}px;opacity:0}}`
-      )
-      .join('\n')}`
+  }, [resizeSignal])
 
   return (
-    <section
-      className="relative w-full overflow-hidden"
-      style={{ height: '100%', minHeight: '480px' }}
-    >
-      {/* Mapbox container — absolutely filled, forced to 100% (see index.css) */}
-      <div ref={containerRef} className="absolute inset-0 z-0" style={{ width: '100%', height: '100%', background: '#030712' }} />
-
-      {/* Stylised fallback backdrop when tiles aren't available */}
-      {!usingTiles && (
-        <div
-          className="absolute inset-0 z-[1] pointer-events-none"
-          style={{ background: 'radial-gradient(120% 90% at 50% 32%, rgba(6,182,212,0.12), transparent 60%), #030712' }}
-        >
+    <div className="absolute inset-0">
+      <div ref={containerRef} className="absolute inset-0" style={{ width: '100%', height: '100%', background: '#030712' }} />
+      {!tiles && (
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 90% at 50% 30%, rgba(6,182,212,0.12), transparent 60%), #030712' }}>
           <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none" style={{ opacity: 0.1 }}>
             {Array.from({ length: 9 }).map((_, i) => (
               <line key={`v${i}`} x1={`${(i + 1) * 10}%`} y1="0" x2={`${(i + 1) * 10}%`} y2="100%" stroke="#06B6D4" strokeWidth="0.5" />
@@ -223,69 +330,6 @@ ${network!.routes
           </svg>
         </div>
       )}
-
-      {/* depth / vignette */}
-      <div
-        className="absolute inset-0 z-[5] pointer-events-none"
-        style={{ background: 'linear-gradient(to bottom, transparent 60%, rgba(3,7,18,0.85))' }}
-      />
-
-      {ready && pts && (
-        <>
-          <style>{dotCss}</style>
-
-          {/* heatmap */}
-          {network!.airports.map((a) =>
-            pts[a.code] ? (
-              <div
-                key={a.code}
-                className="absolute z-[6] rounded-full blur-2xl pointer-events-none"
-                style={{
-                  left: pts[a.code].x,
-                  top: pts[a.code].y,
-                  width: 150 + a.jobs * 5,
-                  height: 150 + a.jobs * 5,
-                  transform: 'translate(-50%,-50%)',
-                  background: 'radial-gradient(closest-side, rgba(6,182,212,0.25), transparent)',
-                }}
-              />
-            ) : null
-          )}
-
-          {/* routes */}
-          <svg className="absolute inset-0 h-full w-full z-10 pointer-events-none">
-            {network!.routes.map((r, i) =>
-              pts[r.from] && pts[r.to] ? (
-                <line
-                  key={i}
-                  x1={pts[r.from].x}
-                  y1={pts[r.from].y}
-                  x2={pts[r.to].x}
-                  y2={pts[r.to].y}
-                  stroke={ACCENT}
-                  strokeOpacity="0.3"
-                  strokeWidth="1.3"
-                  strokeDasharray="3 7"
-                  strokeLinecap="round"
-                  className="arc-flow"
-                />
-              ) : null
-            )}
-          </svg>
-
-          {/* live moving dots */}
-          {network!.routes.flatMap((r, i) =>
-            pts[r.from] && pts[r.to]
-              ? [0, 1.4, 2.8].map((delay, j) => (
-                  <span key={`${i}-${j}`} className="relaydot z-10" style={{ animation: `relayflow${i} 4s linear infinite`, animationDelay: `-${delay}s` }} />
-                ))
-              : []
-          )}
-
-          {/* hotspots */}
-          {network!.airports.map((a) => (pts[a.code] ? <Hotspot key={a.code} airport={a} pt={pts[a.code]} /> : null))}
-        </>
-      )}
-    </section>
+    </div>
   )
 }
