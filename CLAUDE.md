@@ -297,3 +297,58 @@ Always think:
 
 “Does this help Wasted Miles become the industry standard?”
 If not, challenge it.
+
+---
+
+## Codebase Map (current state)
+
+Stack as built: **React 18 + TypeScript + Vite 5 + Tailwind 3 + lucide-react + Mapbox GL 3**. Deployed on **Vercel**.
+
+Entry / shell:
+
+* `src/main.tsx` — app entry. Renders `<RelayApp />`. Imports `mapbox-gl/dist/mapbox-gl.css` and `src/index.css` once here.
+* `src/index.css` — global styles, Tailwind layers, animation keyframes, and the `.mapboxgl-*` 100% sizing rules.
+
+Relay app (`src/relay/`):
+
+* `RelayApp.tsx` — the whole operator app: shell, bottom nav, and every screen (Home/map, Marketplace, Trips, Messages/Thread, Profile, Bid, Cover). Wrapped in `<AuthProvider>`.
+* `RelayMap.tsx` — isolated Mapbox map component (map section, projection, airport overlays, stylised fallback when no token). Owns its own height + resize handling.
+* `data.ts` — Relay view-model layer. Maps the shared backend stores into the shapes screens render (`useNetwork`, `useBid`, `useThreads`, `requestCover`, `fetchProfile`).
+
+Shared stores / backend (`src/lib/`) — `useSyncExternalStore`-style global stores, all routed through the env-gated `api` client:
+
+* `api.ts` — central HTTP client. `hasBackend()` is true only when `VITE_API_URL` is set; otherwise the app runs fully on local mock/persisted data.
+* `jobsStore.ts` — blind reverse-auction job engine (`postJob`, `buyNow`, `placeBid`, `completeJob`).
+* `auth.tsx` — `AuthProvider` / `useAuth` (env-gated; falls back to a demo identity).
+* `messages.ts`, `claims.ts`, `billing.ts`, `verification.ts`, `notifications.ts`, `actions.ts` — domain stores.
+* `persist.ts` — localStorage JSON helpers. `toast.ts` — toasts.
+* `map.ts`, `mapboxLeafletShim.ts` — map helpers / legacy Leaflet→Mapbox compat shim (the shim is no longer used by `RelayMap`).
+* `src/data/marketplace.ts` — static catalogue: `REGIONS`, `OPERATORS`, `regionMetrics`, `marketplaceTotals`, `formatGBP`, `buildRecentClaims`.
+
+Environment variables (see `.env.example`):
+
+* `VITE_MAPBOX_TOKEN` — public Mapbox token (`pk.`). Required for real map tiles; without it `RelayMap` shows the stylised fallback. Vite bakes env vars at **build time** — a redeploy is required after changing it.
+* `VITE_API_URL` (+ `VITE_AUTH_API_URL`, `VITE_MARKETPLACE_*`, `VITE_ACTIONS_*`, `VITE_SIGNUP_*`) — when set, stores switch from local mocks to the real HTTP backend.
+
+Build / deploy:
+
+* `npm run build` = `tsc && vite build`. `noUnusedLocals` is on — keep imports clean.
+* Vercel project `wastedmiles-fpn5` deploys this branch (`wastedmiles-fpn5.vercel.app`). The separate `wastedmiles` project serves a different (Lithos landing) entry — don't confuse the two.
+
+### Mapbox sizing gotchas (hard-won — don't regress)
+
+* Mapbox sizes its canvas from the container's `clientHeight` and **falls back to a hardcoded 300px** when it reads 0. Always give the map container a definite height and force `.mapboxgl-map / -canvas-container / -canvas` to `100%` (already in `index.css`).
+* Call `map.resize()` after create, on a short timeout, on `window resize` / `orientationchange`, via `ResizeObserver`, and when surrounding layout changes (e.g. the jobs sheet toggling).
+* `fitBounds` padding must not exceed the canvas size or it silently no-ops — clamp it.
+
+---
+
+## Known gaps vs. standards
+
+These are deliberate prototype shortcuts that violate the standards above. Close them before calling anything production-ready:
+
+* **Mock data in production.** The app currently runs on local mock/persisted stores; `VITE_API_URL` and Supabase are not wired up. Standard says "no mock data in production" and names Supabase + PostgreSQL — that backend does not exist yet.
+* **No real verification.** Operator/insurance/company/driver/compliance verification is the stated moat but is currently UI-only (`verification.ts` is a local store, not enforced). Trust features are not real yet.
+* **No real payments.** `billing.ts` / transaction fees are stubbed — no payment provider integrated, so the primary revenue model isn't live.
+* **Auth is demo-grade.** `auth.tsx` falls back to a demo identity when no auth API is configured; there is no real account system or session security yet.
+* **Single-file screens.** `RelayApp.tsx` holds every screen. Fine for now, but split into per-screen modules as it grows (reusable components / maintainability standard).
