@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, MoreHorizontal, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown } from 'lucide-react'
+import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, MoreHorizontal, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, Locate, LocateFixed } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
 import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
 import { formatGBP } from '../data/marketplace'
 import { useBid, useThreads, fetchProfile, requestCover, useResource } from './data'
-import RelayMap from './RelayMap'
-import { useMarketJobs, categoryCounts, CATEGORY_META, jobBadges, whyThisJob, BADGE_COLORS, JOB_REGIONS, parsePickupMinutes, distanceToAirport, type Badge, type JobCategory, type MarketJob } from './marketplaceJobs'
+import RelayMap, { DRIVER_STATUS_COLOR, type DriverStatus } from './RelayMap'
+import { useMarketJobs, categoryCounts, CATEGORY_META, jobBadges, whyThisJob, BADGE_COLORS, JOB_REGIONS, parsePickupMinutes, distanceToAirport, jobDistanceFrom, type Badge, type JobCategory, type MarketJob } from './marketplaceJobs'
 
 const ACCENT = '#06B6D4'
 const BG = '#030712'
@@ -304,6 +304,9 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
   )
 }
 
+const DRIVER_STATUS_LABEL: Record<DriverStatus, string> = { available: 'Available', busy: 'Busy', unavailable: 'Unavailable', offline: 'Offline' }
+const DRIVER_STATUS_CYCLE: DriverStatus[] = ['available', 'busy', 'unavailable', 'offline']
+
 function MapView({ go }: { go: (s: Screen) => void }) {
   const jobs = useMarketJobs()
   const [filter, setFilter] = useState<JobCategory | 'all'>('all')
@@ -313,6 +316,20 @@ function MapView({ go }: { go: (s: Screen) => void }) {
   const [vh, setVh] = useState(() => (typeof window !== 'undefined' ? window.innerHeight : 800))
   const [dragH, setDragH] = useState<number | null>(null)
   const drag = useRef<{ startY: number; startH: number; moved: boolean } | null>(null)
+
+  // Driver location / follow mode / status.
+  const [status, setStatus] = useState<DriverStatus>('available')
+  const [follow, setFollow] = useState(false)
+  const [recenterKey, setRecenterKey] = useState(0)
+  const [driverLoc, setDriverLoc] = useState<[number, number] | null>(null)
+  const lastTap = useRef(0)
+
+  const onLocate = () => {
+    const now = Date.now()
+    if (now - lastTap.current < 280) setFollow(true) // double tap → Follow Mode
+    else setRecenterKey((k) => k + 1) // single tap → recenter
+    lastTap.current = now
+  }
 
   useEffect(() => {
     const f = () => setVh(window.innerHeight)
@@ -327,7 +344,13 @@ function MapView({ go }: { go: (s: Screen) => void }) {
     [jobs, filter, query]
   )
   const liquidity = useMemo(() => visible.reduce((s, j) => s + j.value, 0), [visible])
-  const cards = useMemo(() => [...visible].sort((a, b) => b.value - a.value).slice(0, 60), [visible])
+  // Nearest opportunities first when we know the driver's location.
+  const cards = useMemo(() => {
+    const arr = [...visible]
+    if (driverLoc) arr.sort((a, b) => jobDistanceFrom(a, driverLoc) - jobDistanceFrom(b, driverLoc))
+    else arr.sort((a, b) => b.value - a.value)
+    return arr.slice(0, 60)
+  }, [visible, driverLoc])
   const selected = selectedId ? jobs.find((j) => j.id === selectedId) ?? null : null
 
   const PEEK = 132
@@ -371,7 +394,19 @@ function MapView({ go }: { go: (s: Screen) => void }) {
   return (
     <div className="relative flex-1 min-h-0" style={{ background: BG }}>
       {/* MAP — primary interface, full bleed */}
-      <RelayMap jobs={jobs} filter={filter} selectedId={selectedId} onSelectJob={setSelectedId} onClusterTap={() => setSelectedId(null)} resizeSignal={snap} />
+      <RelayMap
+        jobs={jobs}
+        filter={filter}
+        selectedId={selectedId}
+        onSelectJob={setSelectedId}
+        onClusterTap={() => setSelectedId(null)}
+        resizeSignal={snap}
+        driverStatus={status}
+        follow={follow}
+        recenterKey={recenterKey}
+        onFollowChange={setFollow}
+        onLocation={setDriverLoc}
+      />
 
       {/* floating controls */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-40">
@@ -384,7 +419,32 @@ function MapView({ go }: { go: (s: Screen) => void }) {
           </div>
           <div className="pointer-events-auto"><QuickActionsMenu go={go} /></div>
         </div>
+        {/* driver status pill (future-ready: tap to cycle) */}
+        <div className="relative px-4 mt-1.5">
+          <button onClick={() => setStatus((s) => DRIVER_STATUS_CYCLE[(DRIVER_STATUS_CYCLE.indexOf(s) + 1) % DRIVER_STATUS_CYCLE.length])} className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium active:opacity-80" style={{ background: 'rgba(8,13,23,0.8)', borderColor: LINE, color: '#fff', backdropFilter: 'blur(8px)' }}>
+            <span className="h-2 w-2 rounded-full" style={{ background: DRIVER_STATUS_COLOR[status], boxShadow: `0 0 6px ${DRIVER_STATUS_COLOR[status]}` }} />
+            {DRIVER_STATUS_LABEL[status]}
+          </button>
+        </div>
       </div>
+
+      {/* MY LOCATION FAB — single tap recenter, double tap Follow Mode */}
+      <button
+        onClick={onLocate}
+        aria-label="My location"
+        className="absolute right-4 z-20 h-12 w-12 rounded-full flex items-center justify-center active:scale-95"
+        style={{
+          bottom: 'calc(148px + env(safe-area-inset-bottom))',
+          background: follow ? ACCENT : 'rgba(8,13,23,0.92)',
+          border: `1px solid ${follow ? ACCENT : LINE}`,
+          color: follow ? BG : '#fff',
+          boxShadow: follow ? '0 0 18px rgba(6,182,212,0.55)' : '0 6px 18px rgba(0,0,0,0.45)',
+          backdropFilter: 'blur(8px)',
+          transition: 'background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s',
+        }}
+      >
+        {follow ? <LocateFixed size={21} /> : <Locate size={21} />}
+      </button>
 
       {/* DRAGGABLE OPPORTUNITY SHEET */}
       <div className="absolute inset-x-0 bottom-0 z-30" style={{ height, transition: dragH == null ? 'height 0.28s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>

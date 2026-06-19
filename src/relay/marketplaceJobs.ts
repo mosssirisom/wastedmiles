@@ -254,4 +254,8 @@ export function distanceToAirport(job: MarketJob, code: string): number {
   return c ? haversineMiles(job.pickup, c) : job.miles
 }
 
+export function jobDistanceFrom(job: MarketJob, from: [number, number]): number {
+  return haversineMiles(job.pickup, from)
+}
+
 export { formatGBP }

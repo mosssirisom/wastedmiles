@@ -12,10 +12,17 @@ import { CATEGORY_META, jobsGeoJSON, type JobCategory, type MarketJob } from './
 // * Pan/zoom always enabled; the map is never secondary.
 // -----------------------------------------------------------------------------
 
-const UK_BOUNDS: [[number, number], [number, number]] = [
-  [-6.4, 50.0],
-  [1.9, 57.2],
-]
+// Default pickup focus when geolocation isn't available — a busy hub, never
+// the whole UK (we always open "near work").
+const DEFAULT_DRIVER: [number, number] = [-2.272, 53.365] // Manchester area
+
+export type DriverStatus = 'available' | 'busy' | 'unavailable' | 'offline'
+export const DRIVER_STATUS_COLOR: Record<DriverStatus, string> = {
+  available: '#22C55E',
+  busy: '#F59E0B',
+  unavailable: '#EF4444',
+  offline: '#94A3B8',
+}
 
 export default function RelayMap({
   jobs,
@@ -24,6 +31,11 @@ export default function RelayMap({
   onSelectJob,
   onClusterTap,
   resizeSignal,
+  driverStatus = 'available',
+  follow = false,
+  recenterKey = 0,
+  onFollowChange,
+  onLocation,
 }: {
   jobs: MarketJob[]
   filter: JobCategory | 'all'
@@ -31,11 +43,29 @@ export default function RelayMap({
   onSelectJob: (id: string | null) => void
   onClusterTap?: () => void
   resizeSignal?: unknown
+  driverStatus?: DriverStatus
+  follow?: boolean
+  recenterKey?: number
+  onFollowChange?: (v: boolean) => void
+  onLocation?: (loc: [number, number]) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const [ready, setReady] = useState(false)
   const [tiles, setTiles] = useState(false)
+
+  // Driver marker + geolocation refs.
+  const markerRef = useRef<mapboxgl.Marker | null>(null)
+  const coreRef = useRef<HTMLDivElement | null>(null)
+  const ringRef = useRef<HTMLDivElement | null>(null)
+  const locRef = useRef<[number, number] | null>(null)
+  const firstFix = useRef(false)
+  const followRef = useRef(follow)
+  followRef.current = follow
+  const onFollowChangeRef = useRef(onFollowChange)
+  onFollowChangeRef.current = onFollowChange
+  const onLocationRef = useRef(onLocation)
+  onLocationRef.current = onLocation
 
   // Keep latest callbacks/data in refs so the one-time init effect stays stable.
   const jobsRef = useRef(jobs)
@@ -59,10 +89,10 @@ export default function RelayMap({
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
-      bounds: UK_BOUNDS,
-      fitBoundsOptions: { padding: { top: 100, bottom: 170, left: 36, right: 36 } },
+      center: DEFAULT_DRIVER,
+      zoom: 8.6,
       minZoom: 4.2,
-      maxZoom: 15,
+      maxZoom: 16,
       attributionControl: false,
       dragRotate: false,
       pitchWithRotate: false,
@@ -314,6 +344,90 @@ export default function RelayMap({
       ro?.disconnect()
     }
   }, [resizeSignal])
+
+  // --- driver location marker + geolocation -----------------------------------
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready) return
+
+    const el = document.createElement('div')
+    el.style.cssText = 'position:relative;width:16px;height:16px'
+    const ring = document.createElement('div')
+    ring.className = 'driver-pulse-ring'
+    ring.style.cssText = 'position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:9999px;background:rgba(34,197,94,0.4)'
+    const core = document.createElement('div')
+    core.style.cssText = 'position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:9999px;background:#22C55E;border:2px solid #fff;box-shadow:0 0 8px rgba(34,197,94,0.8)'
+    el.appendChild(ring)
+    el.appendChild(core)
+    ringRef.current = ring
+    coreRef.current = core
+
+    const marker = new mapboxgl.Marker({ element: el }).setLngLat(locRef.current ?? DEFAULT_DRIVER).addTo(map)
+    markerRef.current = marker
+
+    const onPos = (pos: GeolocationPosition) => {
+      const ll: [number, number] = [pos.coords.longitude, pos.coords.latitude]
+      locRef.current = ll
+      marker.setLngLat(ll)
+      onLocationRef.current?.(ll)
+      if (!firstFix.current) {
+        firstFix.current = true
+        map.easeTo({ center: ll, zoom: 10, duration: 800 })
+      } else if (followRef.current) {
+        map.easeTo({ center: ll, duration: 600 })
+      }
+    }
+    const onErr = () => {
+      if (!firstFix.current) {
+        firstFix.current = true
+        locRef.current = DEFAULT_DRIVER
+        onLocationRef.current?.(DEFAULT_DRIVER)
+      }
+    }
+
+    let watchId: number | undefined
+    if ('geolocation' in navigator) {
+      watchId = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 })
+    } else {
+      onErr()
+    }
+
+    // Panning the map exits Follow Mode (Uber behaviour).
+    const onDrag = () => { if (followRef.current) onFollowChangeRef.current?.(false) }
+    map.on('dragstart', onDrag)
+
+    return () => {
+      if (watchId != null) navigator.geolocation.clearWatch(watchId)
+      map.off('dragstart', onDrag)
+      marker.remove()
+      markerRef.current = null
+    }
+  }, [ready])
+
+  // --- driver status colour ---------------------------------------------------
+  useEffect(() => {
+    const c = DRIVER_STATUS_COLOR[driverStatus]
+    if (coreRef.current) { coreRef.current.style.background = c; coreRef.current.style.boxShadow = `0 0 8px ${c}` }
+    if (ringRef.current) ringRef.current.style.background = c + '66'
+  }, [driverStatus, ready])
+
+  // --- single-tap recenter ----------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready || recenterKey === 0) return
+    const ll = locRef.current ?? DEFAULT_DRIVER
+    map.easeTo({ center: ll, zoom: Math.max(map.getZoom(), 10), duration: 600 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recenterKey])
+
+  // --- follow mode toggled on -> snap to driver -------------------------------
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready || !follow) return
+    const ll = locRef.current
+    if (ll) map.easeTo({ center: ll, duration: 500 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [follow])
 
   return (
     <div className="absolute inset-0">
