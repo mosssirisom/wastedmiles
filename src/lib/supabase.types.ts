@@ -54,6 +54,31 @@ export interface Database {
         Insert: { operator_id: string; user_id: string; role?: OperatorRole; created_at?: string }
         Update: Partial<Database['public']['Tables']['operator_members']['Row']>
       }
+      operator_leads: {
+        Row: {
+          id: string
+          company_name: string
+          email: string
+          fleet_size: string | null
+          phone: string | null
+          source: string
+          status: string
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_name: string
+          email: string
+          fleet_size?: string | null
+          phone?: string | null
+          source?: string
+          status?: string
+          notes?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['operator_leads']['Row']>
+      }
       airports: {
         Row: {
           id: string
