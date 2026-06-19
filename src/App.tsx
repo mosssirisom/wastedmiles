@@ -24,7 +24,7 @@ import BottomNav, { type NavTab } from './components/BottomNav'
 import JourneyDetail from './components/JourneyDetail'
 import Toaster from './components/Toaster'
 import { startNotificationFeed } from './lib/notifications'
-import { fetchRegions, OPERATORS, type Region, type Journey } from './data/marketplace'
+import { fetchRegions, OPERATORS, type Region, type Journey } from './data/marketplaceLive'
 
 type View =
   | { kind: 'home' }
@@ -281,4 +281,3 @@ export default function App() {
     </div>
   )
 }
-
