@@ -15,6 +15,7 @@ This branch adds the first real backend foundation for Wasted Miles using Supaba
 - Messages
 - Operator verification documents
 - Row Level Security policies
+- Atomic claim / accept / complete journey workflows
 
 ## 1. Create / open your Supabase project
 
@@ -30,15 +31,22 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-## 2. Apply the database migration
+## 2. Apply the database migrations
 
-Run the SQL in:
+Run the SQL files in:
 
 ```bash
-supabase/migrations/20260619100000_backend_foundation.sql
+supabase/migrations/
 ```
 
-You can apply it through the Supabase SQL editor or through the Supabase CLI.
+Current migrations:
+
+```bash
+20260619100000_backend_foundation.sql
+20260619105000_marketplace_workflow_functions.sql
+```
+
+You can apply them through the Supabase SQL editor or through the Supabase CLI.
 
 ## 3. Authentication
 
@@ -69,6 +77,8 @@ Current helper functions:
 - `createOperator()`
 - `postJourney()`
 - `claimJourney()`
+- `acceptJourneyClaim()`
+- `completeJourney()`
 
 ## 5. Recommended next implementation step
 
@@ -79,7 +89,8 @@ Wire the existing screens to the new service layer in this order:
 3. Marketplace read from `listMarketplaceRegions()`
 4. Post journey form to `postJourney()`
 5. Claim button to `claimJourney()`
-6. Messaging screens to `conversations` and `messages`
+6. Dispatcher claims inbox to `acceptJourneyClaim()`
+7. Messaging screens to `conversations` and `messages`
 
 ## Important note
 
