@@ -56,8 +56,10 @@ export default function RelayMap({
 
   // Driver marker + geolocation refs.
   const markerRef = useRef<mapboxgl.Marker | null>(null)
-  const coreRef = useRef<HTMLDivElement | null>(null)
+  const arrowPathRef = useRef<SVGPathElement | null>(null)
+  const arrowWrapRef = useRef<HTMLDivElement | null>(null)
   const ringRef = useRef<HTMLDivElement | null>(null)
+  const headingRef = useRef(0)
   const locRef = useRef<[number, number] | null>(null)
   const firstFix = useRef(false)
   const followRef = useRef(follow)
@@ -351,16 +353,18 @@ export default function RelayMap({
     if (!map || !ready) return
 
     const el = document.createElement('div')
-    el.style.cssText = 'position:relative;width:16px;height:16px'
+    el.style.cssText = 'position:relative;width:30px;height:30px'
     const ring = document.createElement('div')
     ring.className = 'driver-pulse-ring'
-    ring.style.cssText = 'position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:9999px;background:rgba(34,197,94,0.4)'
-    const core = document.createElement('div')
-    core.style.cssText = 'position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:9999px;background:#22C55E;border:2px solid #fff;box-shadow:0 0 8px rgba(34,197,94,0.8)'
+    ring.style.cssText = 'position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:9999px;background:rgba(34,197,94,0.35)'
+    const arrowWrap = document.createElement('div')
+    arrowWrap.style.cssText = 'position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;transition:transform 0.3s ease;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.6))'
+    arrowWrap.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2.5 L19.5 20.5 L12 16.2 L4.5 20.5 Z" fill="#22C55E" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/></svg>'
     el.appendChild(ring)
-    el.appendChild(core)
+    el.appendChild(arrowWrap)
     ringRef.current = ring
-    coreRef.current = core
+    arrowWrapRef.current = arrowWrap
+    arrowPathRef.current = arrowWrap.querySelector('path')
 
     const marker = new mapboxgl.Marker({ element: el }).setLngLat(locRef.current ?? DEFAULT_DRIVER).addTo(map)
     markerRef.current = marker
@@ -369,6 +373,12 @@ export default function RelayMap({
       const ll: [number, number] = [pos.coords.longitude, pos.coords.latitude]
       locRef.current = ll
       marker.setLngLat(ll)
+      // Point the arrow in the direction of travel when we have a heading.
+      const h = pos.coords.heading
+      if (h != null && !Number.isNaN(h)) {
+        headingRef.current = h
+        if (arrowWrapRef.current) arrowWrapRef.current.style.transform = `rotate(${h}deg)`
+      }
       onLocationRef.current?.(ll)
       if (!firstFix.current) {
         firstFix.current = true
@@ -407,8 +417,8 @@ export default function RelayMap({
   // --- driver status colour ---------------------------------------------------
   useEffect(() => {
     const c = DRIVER_STATUS_COLOR[driverStatus]
-    if (coreRef.current) { coreRef.current.style.background = c; coreRef.current.style.boxShadow = `0 0 8px ${c}` }
-    if (ringRef.current) ringRef.current.style.background = c + '66'
+    if (arrowPathRef.current) arrowPathRef.current.setAttribute('fill', c)
+    if (ringRef.current) ringRef.current.style.background = c + '59'
   }, [driverStatus, ready])
 
   // --- single-tap recenter ----------------------------------------------------
