@@ -403,7 +403,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
   }, [visible, driverLoc])
   const selected = selectedId ? jobs.find((j) => j.id === selectedId) ?? null : null
 
-  const PEEK = 132
+  const PEEK = 104
   const sheetMax = Math.round(vh * 0.9)
   const snaps = [PEEK, Math.round(vh * 0.56), sheetMax]
   const height = dragH ?? snaps[snap]
@@ -484,7 +484,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
         aria-label="My location"
         className="absolute right-4 z-20 h-12 w-12 rounded-full flex items-center justify-center active:scale-95"
         style={{
-          bottom: 'calc(148px + env(safe-area-inset-bottom))',
+          bottom: 'calc(120px + env(safe-area-inset-bottom))',
           background: follow ? ACCENT : 'rgba(8,13,23,0.92)',
           border: `1px solid ${follow ? ACCENT : LINE}`,
           color: follow ? BG : '#fff',
@@ -500,11 +500,11 @@ function MapView({ go }: { go: (s: Screen) => void }) {
       <div className="absolute inset-x-0 bottom-0 z-30" style={{ height, transition: dragH == null ? 'height 0.28s cubic-bezier(0.16,1,0.3,1)' : 'none' }}>
         <div className="h-full rounded-t-2xl border-t flex flex-col overflow-hidden" style={{ background: 'rgba(8,13,23,0.97)', borderColor: LINE, backdropFilter: 'blur(16px)', boxShadow: '0 -12px 40px rgba(0,0,0,0.5)' }}>
           {/* peek / drag handle */}
-          <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} className="shrink-0 px-5 pt-2.5 pb-3 select-none" style={{ touchAction: 'none', cursor: 'grab' }}>
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+          <div onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} className="shrink-0 px-5 pt-2 pb-2.5 select-none" style={{ touchAction: 'none', cursor: 'grab' }}>
+            <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-white/20" />
             <div className="flex items-center justify-between">
-              <div><div className="text-[11px] uppercase tracking-wider text-white/45">Live jobs</div><div className="text-[22px] font-bold text-white leading-none mt-0.5">{visible.length.toLocaleString()}</div></div>
-              <div className="text-right"><div className="text-[11px] uppercase tracking-wider text-white/45">Available</div><div className="text-[22px] font-bold leading-none mt-0.5" style={{ color: ACCENT }}>{formatGBP(liquidity)}</div></div>
+              <div><div className="text-[10px] uppercase tracking-wider text-white/45">Live jobs</div><div className="text-[18px] font-bold text-white leading-none mt-0.5">{visible.length.toLocaleString()}</div></div>
+              <div className="text-right"><div className="text-[10px] uppercase tracking-wider text-white/45">Available</div><div className="text-[18px] font-bold leading-none mt-0.5" style={{ color: ACCENT }}>{formatGBP(liquidity)}</div></div>
             </div>
           </div>
 
