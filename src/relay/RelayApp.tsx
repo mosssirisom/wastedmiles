@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, MoreHorizontal, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, Locate, LocateFixed } from 'lucide-react'
+import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, Bell, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, Locate, LocateFixed } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
 import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
+import { useNotifications, startNotificationFeed, type NotifKind } from '../lib/notifications'
 import { formatGBP } from '../data/marketplace'
 import { useBid, useThreads, fetchProfile, requestCover, useResource } from './data'
 import RelayMap, { DRIVER_STATUS_COLOR, type DriverStatus } from './RelayMap'
@@ -49,6 +50,7 @@ function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => voi
   )
 }
 
+// Top-left hamburger menu (holds the actions that used to live top-right).
 function QuickActionsMenu({ go }: { go: (s: Screen) => void }) {
   const [open, setOpen] = useState(false)
   const items: { label: string; icon: typeof MapIcon; action: () => void }[] = [
@@ -60,14 +62,61 @@ function QuickActionsMenu({ go }: { go: (s: Screen) => void }) {
   ]
   return (
     <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="h-10 w-10 rounded-xl border flex items-center justify-center text-white/85 active:opacity-70" style={{ background: 'rgba(15,23,42,0.88)', borderColor: LINE }}><MoreHorizontal size={20} /></button>
+      <button onClick={() => setOpen((v) => !v)} className="text-white/85 active:opacity-70"><Menu size={22} /></button>
       {open && (
-        <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border text-left z-50" style={{ background: 'rgba(15,23,42,0.98)', borderColor: LINE, boxShadow: '0 18px 45px rgba(0,0,0,0.45)' }}>
-          {items.map((item) => {
-            const Icon = item.icon
-            return <button key={item.label} onClick={() => { setOpen(false); item.action() }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/85 active:opacity-70"><Icon size={17} style={{ color: ACCENT }} /><span>{item.label}</span></button>
-          })}
-        </div>
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 mt-2 w-56 overflow-hidden rounded-2xl border text-left z-50" style={{ background: 'rgba(15,23,42,0.98)', borderColor: LINE, boxShadow: '0 18px 45px rgba(0,0,0,0.45)' }}>
+            {items.map((item) => {
+              const Icon = item.icon
+              return <button key={item.label} onClick={() => { setOpen(false); item.action() }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/85 active:opacity-70"><Icon size={17} style={{ color: ACCENT }} /><span>{item.label}</span></button>
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+const NOTIF_COLOR: Record<NotifKind, string> = { urgent: '#EF4444', message: '#06B6D4', claim: '#22C55E', system: '#94A3B8' }
+
+function notifAgo(at: number): string {
+  const s = Math.max(0, Math.round((Date.now() - at) / 1000))
+  if (s < 60) return 'just now'
+  const m = Math.round(s / 60)
+  if (m < 60) return `${m}m ago`
+  return `${Math.round(m / 60)}h ago`
+}
+
+// Top-right notification bell.
+function NotificationsBell() {
+  const { list, unread, markAllRead } = useNotifications()
+  const [open, setOpen] = useState(false)
+  const toggle = () => { const n = !open; setOpen(n); if (n) markAllRead() }
+  return (
+    <div className="relative">
+      <button onClick={toggle} aria-label="Notifications" className="relative text-white/85 active:opacity-70">
+        <Bell size={21} />
+        {unread > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center" style={{ background: '#EF4444', color: '#fff' }}>{unread > 9 ? '9+' : unread}</span>}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-2 w-72 max-h-[60vh] overflow-y-auto rounded-2xl border z-50" style={{ background: 'rgba(15,23,42,0.98)', borderColor: LINE, boxShadow: '0 18px 45px rgba(0,0,0,0.45)' }}>
+            <div className="px-4 py-2.5 border-b text-[13px] font-semibold text-white" style={{ borderColor: LINE }}>Notifications</div>
+            {list.length === 0 && <div className="px-4 py-6 text-center text-[12px] text-white/40">No notifications yet</div>}
+            {list.map((n) => (
+              <div key={n.id} className="px-4 py-2.5 border-b last:border-b-0 flex gap-2.5" style={{ borderColor: LINE }}>
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: NOTIF_COLOR[n.kind] }} />
+                <div className="min-w-0">
+                  <div className="text-[13px] font-medium text-white">{n.title}</div>
+                  <div className="text-[12px] text-white/55">{n.body}</div>
+                  <div className="text-[10px] text-white/30 mt-0.5">{notifAgo(n.at)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
@@ -332,6 +381,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
   }
 
   useEffect(() => {
+    startNotificationFeed()
     const f = () => setVh(window.innerHeight)
     window.addEventListener('resize', f)
     window.addEventListener('orientationchange', f)
@@ -412,12 +462,12 @@ function MapView({ go }: { go: (s: Screen) => void }) {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-40">
         <div className="absolute inset-x-0 top-0 h-28" style={{ background: 'linear-gradient(to bottom, rgba(3,7,18,0.85), transparent)' }} />
         <div className="relative flex items-center justify-between px-4 h-12" style={{ marginTop: 'env(safe-area-inset-top)' }}>
-          <button className="pointer-events-auto text-white/85 active:opacity-70"><Menu size={22} /></button>
+          <div className="pointer-events-auto"><QuickActionsMenu go={go} /></div>
           <div className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
             <span className="text-white text-[16px] font-semibold tracking-tight">Relay</span>
           </div>
-          <div className="pointer-events-auto"><QuickActionsMenu go={go} /></div>
+          <div className="pointer-events-auto"><NotificationsBell /></div>
         </div>
         {/* driver status pill (future-ready: tap to cycle) */}
         <div className="relative px-4 mt-1.5">
