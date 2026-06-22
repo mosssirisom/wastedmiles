@@ -9,7 +9,7 @@ import { useBid, useThreads, fetchProfile, requestCover, useResource } from './d
 import RelayMap, { DRIVER_STATUS_COLOR, type DriverStatus } from './RelayMap'
 import { useMarketJobs, categoryCounts, CATEGORY_META, jobBadges, whyThisJob, BADGE_COLORS, JOB_REGIONS, parsePickupMinutes, distanceToAirport, jobDistanceFrom, type Badge, type JobCategory, type MarketJob } from './marketplaceJobs'
 
-const ACCENT = '#06B6D4'
+const ACCENT = '#FFFFFF'
 const BG = '#030712'
 const PANEL = '#0F172A'
 const LINE = '#1E293B'
@@ -41,7 +41,7 @@ function BottomNav({ active, onTab }: { active: TabId; onTab: (id: TabId) => voi
         const on = t.id === active
         return (
           <button key={t.id} onClick={() => onTab(t.id)} className="flex flex-col items-center gap-1 w-[64px] active:opacity-60">
-            <Icon size={20} className={on ? '' : 'text-white/40'} style={on ? { color: ACCENT, filter: 'drop-shadow(0 0 4px rgba(6,182,212,0.45))' } : undefined} />
+            <Icon size={20} className={on ? '' : 'text-white/40'} style={on ? { color: ACCENT, filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.45))' } : undefined} />
             <span className="text-[10px] tracking-tight" style={{ color: on ? ACCENT : 'rgba(255,255,255,0.4)' }}>{t.label}</span>
           </button>
         )
@@ -186,7 +186,7 @@ function JobDetail({ job, onClose, onClaim, onMessage }: { job: MarketJob; onClo
           <Fact icon={<Users size={15} />} label="Passengers" value={String(job.passengers)} />
           <Fact icon={<Car size={15} />} label="Vehicle" value={job.vehicle} />
         </div>
-        <div className="mt-5 rounded-2xl border p-4" style={{ background: 'rgba(6,182,212,0.07)', borderColor: 'rgba(6,182,212,0.25)' }}>
+        <div className="mt-5 rounded-2xl border p-4" style={{ background: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.25)' }}>
           <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: ACCENT }}><Sparkles size={15} />Why this job?</div>
           <p className="mt-2 text-[14px] leading-relaxed text-white/80">{whyThisJob(job)}</p>
         </div>
@@ -318,7 +318,7 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
           {[{ code: 'all', name: `All ${region.name}` }, ...region.airports].map((a) => {
             const on = airport === a.code
             return (
-              <button key={a.code} onClick={() => setAirport(a.code)} className="shrink-0 rounded-full border px-3 py-1 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(6,182,212,0.16)' : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>{a.name}</button>
+              <button key={a.code} onClick={() => setAirport(a.code)} className="shrink-0 rounded-full border px-3 py-1 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(255,255,255,0.16)' : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.6)' }}>{a.name}</button>
             )
           })}
         </div>
@@ -331,7 +331,7 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
         {sortOpen && (
           <div className="absolute right-5 top-8 z-20 w-48 overflow-hidden rounded-xl border" style={{ background: 'rgba(15,23,42,0.98)', borderColor: LINE, boxShadow: '0 14px 40px rgba(0,0,0,0.5)' }}>
             {(Object.keys(SORT_LABELS) as JobSort[]).map((s) => (
-              <button key={s} onClick={() => { setSort(s); setSortOpen(false) }} className="w-full text-left px-3.5 py-2.5 text-[13px] active:opacity-70" style={{ color: sort === s ? ACCENT : '#fff', background: sort === s ? 'rgba(6,182,212,0.1)' : undefined }}>{SORT_LABELS[s]}</button>
+              <button key={s} onClick={() => { setSort(s); setSortOpen(false) }} className="w-full text-left px-3.5 py-2.5 text-[13px] active:opacity-70" style={{ color: sort === s ? ACCENT : '#fff', background: sort === s ? 'rgba(255,255,255,0.1)' : undefined }}>{SORT_LABELS[s]}</button>
             ))}
           </div>
         )}
@@ -488,7 +488,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
           background: follow ? ACCENT : 'rgba(8,13,23,0.92)',
           border: `1px solid ${follow ? ACCENT : LINE}`,
           color: follow ? BG : '#fff',
-          boxShadow: follow ? '0 0 18px rgba(6,182,212,0.55)' : '0 6px 18px rgba(0,0,0,0.45)',
+          boxShadow: follow ? '0 0 18px rgba(255,255,255,0.55)' : '0 6px 18px rgba(0,0,0,0.45)',
           backdropFilter: 'blur(8px)',
           transition: 'background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s',
         }}
@@ -519,7 +519,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
                 {chips.map((c) => {
                   const on = filter === c.id
                   return (
-                    <button key={c.id} onClick={() => setFilter(c.id)} className="shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(6,182,212,0.16)' : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.7)' }}>
+                    <button key={c.id} onClick={() => setFilter(c.id)} className="shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(255,255,255,0.16)' : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.7)' }}>
                       {c.color && <span className="inline-block h-2 w-2 rounded-full mr-1.5 align-middle" style={{ background: c.color }} />}
                       {c.label} <span className="text-white/40">{c.count}</span>
                     </button>
