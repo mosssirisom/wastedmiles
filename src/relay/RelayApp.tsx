@@ -463,9 +463,8 @@ function MapView({ go }: { go: (s: Screen) => void }) {
         <div className="absolute inset-x-0 top-0 h-28" style={{ background: 'linear-gradient(to bottom, rgba(3,7,18,0.85), transparent)' }} />
         <div className="relative flex items-center justify-between px-4 h-12" style={{ marginTop: 'env(safe-area-inset-top)' }}>
           <div className="pointer-events-auto"><QuickActionsMenu go={go} /></div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#22C55E', boxShadow: '0 0 8px #22C55E' }} />
-            <span className="text-white text-[16px] font-semibold tracking-tight">Relay</span>
+          <div className="flex items-center">
+            <span className="text-white text-[20px] font-semibold tracking-tight">Relay</span>
           </div>
           <div className="pointer-events-auto"><NotificationsBell /></div>
         </div>
