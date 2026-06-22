@@ -6,7 +6,7 @@ import { useMessages } from '../lib/messages'
 import { useNotifications, startNotificationFeed, type NotifKind } from '../lib/notifications'
 import { formatGBP } from '../data/marketplace'
 import { useBid, useThreads, fetchProfile, requestCover, useResource } from './data'
-import RelayMap, { DRIVER_STATUS_COLOR, type DriverStatus } from './RelayMap'
+import RelayMap, { type DriverStatus } from './RelayMap'
 import { useMarketJobs, categoryCounts, CATEGORY_META, jobBadges, whyThisJob, BADGE_COLORS, JOB_REGIONS, parsePickupMinutes, distanceToAirport, jobDistanceFrom, type Badge, type JobCategory, type MarketJob } from './marketplaceJobs'
 
 const ACCENT = '#FFFFFF'
@@ -353,9 +353,6 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
   )
 }
 
-const DRIVER_STATUS_LABEL: Record<DriverStatus, string> = { available: 'Available', busy: 'Busy', unavailable: 'Unavailable', offline: 'Offline' }
-const DRIVER_STATUS_CYCLE: DriverStatus[] = ['available', 'busy', 'unavailable', 'offline']
-
 function MapView({ go }: { go: (s: Screen) => void }) {
   const jobs = useMarketJobs()
   const [filter, setFilter] = useState<JobCategory | 'all'>('all')
@@ -367,7 +364,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
   const drag = useRef<{ startY: number; startH: number; moved: boolean } | null>(null)
 
   // Driver location / follow mode / status.
-  const [status, setStatus] = useState<DriverStatus>('available')
+  const status: DriverStatus = 'available'
   const [follow, setFollow] = useState(false)
   const [recenterKey, setRecenterKey] = useState(0)
   const [driverLoc, setDriverLoc] = useState<[number, number] | null>(null)
@@ -467,13 +464,6 @@ function MapView({ go }: { go: (s: Screen) => void }) {
             <span className="text-white text-[20px] font-semibold tracking-tight">Relay</span>
           </div>
           <div className="pointer-events-auto"><NotificationsBell /></div>
-        </div>
-        {/* driver status pill (future-ready: tap to cycle) */}
-        <div className="relative px-4 mt-1.5">
-          <button onClick={() => setStatus((s) => DRIVER_STATUS_CYCLE[(DRIVER_STATUS_CYCLE.indexOf(s) + 1) % DRIVER_STATUS_CYCLE.length])} className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium active:opacity-80" style={{ background: 'rgba(8,13,23,0.8)', borderColor: LINE, color: '#fff', backdropFilter: 'blur(8px)' }}>
-            <span className="h-2 w-2 rounded-full" style={{ background: DRIVER_STATUS_COLOR[status], boxShadow: `0 0 6px ${DRIVER_STATUS_COLOR[status]}` }} />
-            {DRIVER_STATUS_LABEL[status]}
-          </button>
         </div>
       </div>
 
