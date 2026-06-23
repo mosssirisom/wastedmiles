@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, Bell, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, Locate, LocateFixed } from 'lucide-react'
+import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, Bell, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, ChevronRight, Locate, LocateFixed } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
 import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
@@ -235,30 +235,63 @@ function AnalyticsPanel({ jobs }: { jobs: MarketJob[] }) {
 }
 
 // Large, touch-friendly job card for the Jobs browser.
+// Solid, high-contrast category pill (luminance-aware text colour).
+function CategoryBadge({ category }: { category: JobCategory }) {
+  const meta = CATEGORY_META[category]
+  const darkText = category === 'airport' || category === 'cover' // cyan / amber → dark text
+  return (
+    <span className="inline-flex items-center rounded-md px-2 py-1 text-[11px] font-semibold leading-none" style={{ background: meta.color, color: darkText ? '#0A0F1A' : '#FFFFFF' }}>
+      {meta.label}
+    </span>
+  )
+}
+
 function JobsCard({ job, onView }: { job: MarketJob; onView: () => void }) {
   const meta = CATEGORY_META[job.category]
   const trusted = job.operatorRating >= 4.85
   return (
-    <div className="rounded-2xl border p-4" style={{ background: PANEL, borderColor: LINE }}>
-      <div className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: meta.color }}>
-        <span className="h-2 w-2 rounded-full" style={{ background: meta.color }} />{meta.label}
+    <button onClick={onView} className="w-full text-left rounded-2xl border p-4 active:opacity-90" style={{ background: PANEL, borderColor: LINE }}>
+      {/* badge + pickup time */}
+      <div className="flex items-center justify-between gap-2">
+        <CategoryBadge category={job.category} />
+        <span className="inline-flex items-center gap-1 text-[12px] font-medium text-white/70"><Clock size={13} />{job.pickupLabel}</span>
       </div>
-      <div className="mt-2.5 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[15px] font-semibold text-white truncate">{job.fromName}</div>
-          <div className="text-white/30 text-[13px] leading-tight">↓</div>
-          <div className="text-[15px] font-semibold text-white truncate">{job.toName}</div>
+
+      {/* route timeline */}
+      <div className="mt-3 flex gap-3">
+        <div className="flex flex-col items-center py-1.5">
+          <span className="h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: 'rgba(255,255,255,0.75)' }} />
+          <span className="w-px flex-1 my-1" style={{ background: 'rgba(255,255,255,0.18)' }} />
+          <span className="h-2.5 w-2.5 rounded-full" style={{ background: meta.color }} />
         </div>
-        <div className="text-[30px] font-bold text-white leading-none shrink-0">{formatGBP(job.value)}</div>
+        <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+          <div>
+            <div className="text-[15px] font-semibold text-white leading-tight truncate">{job.fromName}</div>
+            <div className="text-[11px] text-white/45">Pickup</div>
+          </div>
+          <div>
+            <div className="text-[15px] font-semibold text-white leading-tight truncate">{job.toName}</div>
+            <div className="text-[11px] text-white/45">Drop-off</div>
+          </div>
+        </div>
       </div>
-      <div className="mt-3 flex items-center gap-2 text-[13px] text-white/60"><Clock size={14} />{job.pickupLabel}</div>
-      <div className="mt-1.5 flex items-center gap-4 text-[13px] text-white/60">
-        <span className="flex items-center gap-1.5"><Users size={14} />{job.passengers} Passengers</span>
-        <span className="flex items-center gap-1.5"><Briefcase size={14} />{job.cases} Cases</span>
+
+      {/* meta */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-white/65">
+        <span className="flex items-center gap-1.5"><Users size={14} />{job.passengers}</span>
+        <span className="flex items-center gap-1.5"><Briefcase size={14} />{job.cases}</span>
+        {trusted && <span className="flex items-center gap-1.5 font-medium" style={{ color: '#F5D90A' }}><Star size={13} style={{ fill: '#F5D90A' }} />Trusted Operator</span>}
       </div>
-      {trusted && <div className="mt-2.5 flex items-center gap-1.5 text-[12px] font-medium" style={{ color: '#F5D90A' }}><Star size={13} style={{ fill: '#F5D90A' }} />Trusted Operator</div>}
-      <button onClick={onView} className="mt-3.5 w-full rounded-xl py-3 text-[15px] font-semibold active:opacity-90" style={{ background: ACCENT, color: BG }}>View Job</button>
-    </div>
+
+      {/* price + chevron */}
+      <div className="mt-3 pt-3 border-t flex items-center justify-between" style={{ borderColor: LINE }}>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[22px] font-bold text-white leading-none">{formatGBP(job.value)}</span>
+          <span className="text-[12px] text-white/45">fare</span>
+        </div>
+        <span className="flex items-center gap-0.5 text-[13px] font-medium text-white/85">View<ChevronRight size={16} /></span>
+      </div>
+    </button>
   )
 }
 
@@ -294,12 +327,9 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
   return (
     <div className="flex-1 flex flex-col min-h-0" style={{ background: BG }}>
       {/* header */}
-      <div className="shrink-0 px-5 pt-1 pb-3 flex items-end justify-between">
-        <div>
-          <h1 className="text-[20px] font-bold text-white tracking-tight">Jobs Available</h1>
-          <div className="text-[12px] text-white/45 mt-0.5">{list.length.toLocaleString()} live in {region.name}</div>
-        </div>
-        <button onClick={() => go('cover')} className="flex items-center gap-1 text-[13px] font-medium px-3 py-1.5 rounded-lg border active:opacity-80" style={{ borderColor: LINE, color: '#fff' }}><Plus size={15} />Post</button>
+      <div className="shrink-0 px-5 pt-1 pb-3 flex items-center justify-between">
+        <h1 className="text-[22px] font-bold text-white tracking-tight">Jobs</h1>
+        <button onClick={() => go('cover')} className="flex items-center gap-1 text-[13px] font-medium text-white/70 active:opacity-70"><Plus size={16} />Post a job</button>
       </div>
 
       {/* region selector */}
@@ -326,7 +356,7 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
 
       {/* sort */}
       <div className="shrink-0 relative px-5 pb-2 flex items-center justify-between">
-        <span className="text-[12px] text-white/40">{list.length} jobs</span>
+        <span className="text-[13px] font-medium text-white/70">{list.length} jobs in {region.name}</span>
         <button onClick={() => setSortOpen((v) => !v)} className="flex items-center gap-1.5 text-[13px] font-medium text-white/80 active:opacity-70">{SORT_LABELS[sort]}<ChevronDown size={15} /></button>
         {sortOpen && (
           <div className="absolute right-5 top-8 z-20 w-48 overflow-hidden rounded-xl border" style={{ background: 'rgba(15,23,42,0.98)', borderColor: LINE, boxShadow: '0 14px 40px rgba(0,0,0,0.5)' }}>
