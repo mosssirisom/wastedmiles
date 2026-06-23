@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, Bell, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, ChevronRight, Locate, LocateFixed } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
-import { buyNow, placeBid, useJobs } from '../lib/jobsStore'
+import { buyNow, placeBid, acceptJob, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
-import { useNotifications, startNotificationFeed, type NotifKind } from '../lib/notifications'
+import { useNotifications, startNotificationFeed, notify, type NotifKind } from '../lib/notifications'
 import { formatGBP } from '../data/marketplace'
 import { useBid, useThreads, fetchProfile, requestCover, useResource } from './data'
 import RelayMap, { type DriverStatus } from './RelayMap'
@@ -120,6 +120,24 @@ function NotificationsBell() {
       )}
     </div>
   )
+}
+
+// One-tap accept of a specific marketplace job → lands in Trips, fires a
+// confirmation notification. No bidding in the driver path.
+function acceptMarketJob(job: MarketJob, userName: string) {
+  acceptJob({
+    marketId: job.id,
+    fromCode: job.fromCode,
+    fromName: job.fromName,
+    to: job.toName,
+    vehicle: job.passengers > 4 ? 'large' : 'standard',
+    passengers: job.passengers,
+    luggage: job.cases,
+    pickupAt: new Date().toISOString(),
+    cap: job.value,
+    driverName: userName,
+  })
+  notify('claim', 'Job confirmed', `${job.fromCode} → ${job.toName} · ${formatGBP(job.value)}`)
 }
 
 function BadgePill({ badge }: { badge: Badge }) {
@@ -300,6 +318,7 @@ const SORT_LABELS: Record<JobSort, string> = { soon: 'Soonest First', value: 'Hi
 
 function JobsView({ go }: { go: (s: Screen) => void }) {
   const jobs = useMarketJobs()
+  const { user } = useAuth()
   const [regionId, setRegionId] = useState('north-west')
   const [airport, setAirport] = useState<string>('all') // 'all' | airport code
   const [sort, setSort] = useState<JobSort>('soon')
@@ -378,13 +397,14 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
         )}
       </div>
 
-      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => go('bid')} onMessage={() => go('messages')} />}
+      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => { acceptMarketJob(selected, user?.name ?? 'You'); setSelectedId(null); go('trips') }} onMessage={() => go('messages')} />}
     </div>
   )
 }
 
 function MapView({ go }: { go: (s: Screen) => void }) {
   const jobs = useMarketJobs()
+  const { user } = useAuth()
   const [filter, setFilter] = useState<JobCategory | 'all'>('all')
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -555,7 +575,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
         </div>
       </div>
 
-      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => go('bid')} onMessage={() => go('messages')} />}
+      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => { acceptMarketJob(selected, user?.name ?? 'You'); setSelectedId(null); go('trips') }} onMessage={() => go('messages')} />}
     </div>
   )
 }
@@ -604,11 +624,11 @@ function ThreadView({ operatorId, name }: { operatorId: string; name: string }) 
   return <div className="flex-1 flex flex-col min-h-0"><h1 className="text-[17px] font-semibold text-white tracking-tight px-5 pt-1 pb-3 shrink-0">{name}</h1><div className="flex-1 overflow-y-auto px-5 space-y-2">{messages.length === 0 && <div className="text-[13px] text-white/40 mt-2">No messages yet. Say hello.</div>}{messages.map((m) => <div key={m.id} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}><div className="max-w-[78%] rounded-2xl px-3.5 py-2 text-sm" style={m.from === 'me' ? { background: ACCENT, color: BG } : { background: PANEL, color: '#fff', border: `1px solid ${LINE}` }}>{m.text}</div></div>)}<div ref={endRef} /></div><div className="shrink-0 flex items-center gap-2 px-5 pt-2 pb-3 border-t" style={{ borderColor: LINE }}><input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder="Message…" className="flex-1 border rounded-xl px-3.5 py-3 text-sm text-white outline-none placeholder:text-white/30" style={{ background: PANEL, borderColor: LINE }} /><button onClick={send} disabled={!text.trim()} className="shrink-0 rounded-xl p-3 active:opacity-90 disabled:opacity-50" style={{ background: ACCENT, color: BG }}><Send size={18} /></button></div></div>
 }
 
-const TRIP_STATUS: Record<string, { label: string; color: string }> = { pending: { label: 'Awaiting driver', color: '#F59E0B' }, covered: { label: 'Covered', color: ACCENT }, completed: { label: 'Completed', color: '#22C55E' }, open: { label: 'Open', color: '#94A3B8' }, bidding: { label: 'Bidding', color: ACCENT }, won: { label: 'Won', color: '#22C55E' }, lost: { label: 'Lost', color: '#64748B' }, expired: { label: 'Expired', color: '#64748B' } }
+const TRIP_STATUS: Record<string, { label: string; color: string }> = { pending: { label: 'Awaiting driver', color: '#F59E0B' }, covered: { label: 'Covered', color: ACCENT }, completed: { label: 'Completed', color: '#22C55E' }, open: { label: 'Open', color: '#94A3B8' }, bidding: { label: 'Bidding', color: ACCENT }, won: { label: 'Won', color: '#22C55E' }, lost: { label: 'Lost', color: '#64748B' }, expired: { label: 'Expired', color: '#64748B' }, accepted: { label: 'Accepted', color: '#22C55E' } }
 
 function TripsView({ go }: { go: (s: Screen) => void }) {
   const { posted, market, completeJob } = useJobs(); const mine = [...posted, ...market.filter((j) => j.status !== 'open')].sort((a, b) => b.createdAt - a.createdAt)
-  return <div className="flex-1 overflow-y-auto px-5 pb-4"><h1 className="text-[17px] font-semibold text-white tracking-tight mt-1 mb-4">Trips</h1>{mine.length === 0 ? <div className="mt-10 text-center"><div className="text-sm text-white/60">No trips yet.</div><button onClick={() => go('cover')} className="mt-4 rounded-xl px-5 py-3 text-[15px] font-semibold active:opacity-90" style={{ background: ACCENT, color: BG }}>Post a Job</button></div> : <div className="space-y-2">{mine.map((j) => { const meta = TRIP_STATUS[j.status] ?? { label: j.status, color: '#94A3B8' }; return <div key={j.id} className="rounded-xl border p-3.5" style={{ background: PANEL, borderColor: LINE }}><div className="flex items-center justify-between"><div className="text-sm font-medium text-white">{j.fromCode} <span className="text-white/40">→</span> {j.to}</div><div className="text-sm font-semibold" style={{ color: ACCENT }}>{formatGBP(j.myBid ?? j.cap)}</div></div><div className="flex items-center justify-between mt-1.5"><span className="text-[11px] font-medium px-2 py-0.5 rounded-md" style={{ color: meta.color, background: meta.color + '22' }}>{meta.label}</span><span className="text-[11px] text-white/40">{j.source === 'me' ? 'Posted' : 'Bid'}{j.driverName ? ` · ${j.driverName}` : ''}</span></div>{j.source === 'me' && j.status === 'covered' && <button onClick={() => completeJob(j.id)} className="mt-3 w-full rounded-lg py-2.5 text-sm font-semibold active:opacity-90" style={{ background: ACCENT, color: BG }}>Mark complete</button>}</div> })}</div>}</div>
+  return <div className="flex-1 overflow-y-auto px-5 pb-4"><h1 className="text-[17px] font-semibold text-white tracking-tight mt-1 mb-4">Trips</h1>{mine.length === 0 ? <div className="mt-10 text-center"><div className="text-sm text-white/60">No trips yet.</div><button onClick={() => go('cover')} className="mt-4 rounded-xl px-5 py-3 text-[15px] font-semibold active:opacity-90" style={{ background: ACCENT, color: BG }}>Post a Job</button></div> : <div className="space-y-2">{mine.map((j) => { const meta = TRIP_STATUS[j.status] ?? { label: j.status, color: '#94A3B8' }; return <div key={j.id} className="rounded-xl border p-3.5" style={{ background: PANEL, borderColor: LINE }}><div className="flex items-center justify-between"><div className="text-sm font-medium text-white">{j.fromCode} <span className="text-white/40">→</span> {j.to}</div><div className="text-sm font-semibold" style={{ color: ACCENT }}>{formatGBP(j.myBid ?? j.cap)}</div></div><div className="flex items-center justify-between mt-1.5"><span className="text-[11px] font-medium px-2 py-0.5 rounded-md" style={{ color: meta.color, background: meta.color + '22' }}>{meta.label}</span><span className="text-[11px] text-white/40">{j.status === 'accepted' ? 'Accepted' : j.source === 'me' ? 'Posted' : 'Bid'}{j.driverName ? ` · ${j.driverName}` : ''}</span></div>{((j.source === 'me' && j.status === 'covered') || j.status === 'accepted') && <button onClick={() => completeJob(j.id)} className="mt-3 w-full rounded-lg py-2.5 text-sm font-semibold active:opacity-90" style={{ background: ACCENT, color: BG }}>Mark complete</button>}</div> })}</div>}</div>
 }
 
 export default function RelayApp() {

@@ -51,6 +51,11 @@ export function startNotificationFeed() {
   }, 30000)
 }
 
+// Push a real notification (e.g. when a job is accepted/completed).
+export function notify(kind: NotifKind, title: string, body: string) {
+  add(kind, title, body)
+}
+
 export function markAllRead() {
   let changed = false
   items.forEach((i) => {

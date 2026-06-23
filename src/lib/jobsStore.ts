@@ -20,6 +20,7 @@ export type JobStatus =
   | 'won'
   | 'lost'
   | 'expired'
+  | 'accepted'
 
 export interface PostedJob {
   id: string
@@ -106,10 +107,49 @@ export function postJob(
 // Release escrow on completion (driver paid winning bid, platform keeps spread).
 export function completeJob(id: string) {
   const job = items.find((j) => j.id === id)
-  if (!job || job.status !== 'covered') return
+  if (!job || (job.status !== 'covered' && job.status !== 'accepted')) return
   job.status = 'completed'
   emit()
   if (hasBackend()) api.post(`/jobs/${id}/complete`, {}).catch(() => {})
+}
+
+// One-tap accept of a specific marketplace job at its posted fare (no bidding).
+// Idempotent per market job id.
+export function acceptJob(input: {
+  marketId: string
+  fromCode: string
+  fromName: string
+  to: string
+  vehicle: 'standard' | 'large'
+  passengers: number
+  luggage: number
+  pickupAt: string
+  cap: number
+  driverName: string
+}): PostedJob {
+  const id = `acc_${input.marketId}`
+  const existing = items.find((j) => j.id === id)
+  if (existing) return existing
+  const job: PostedJob = {
+    id,
+    source: 'market',
+    fromCode: input.fromCode,
+    fromName: input.fromName,
+    to: input.to,
+    vehicle: input.vehicle,
+    passengers: input.passengers,
+    luggage: input.luggage,
+    pickupAt: input.pickupAt,
+    cap: input.cap,
+    status: 'accepted',
+    driverName: input.driverName,
+    myBid: input.cap,
+    createdAt: Date.now(),
+  }
+  items.unshift(job)
+  emit()
+  if (hasBackend()) api.post(`/jobs/${input.marketId}/accept`, {}).catch(() => {})
+  return job
 }
 
 // --- driver side -------------------------------------------------------------
@@ -177,6 +217,7 @@ export function useJobs() {
     postJob,
     buyNow,
     placeBid,
+    acceptJob,
     completeJob,
   }
 }
