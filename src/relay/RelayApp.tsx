@@ -319,6 +319,8 @@ const SORT_LABELS: Record<JobSort, string> = { soon: 'Soonest First', value: 'Hi
 function JobsView({ go }: { go: (s: Screen) => void }) {
   const jobs = useMarketJobs()
   const { user } = useAuth()
+  const { jobs: storeJobs } = useJobs()
+  const acceptedKey = storeJobs.filter((j) => j.status === 'accepted').map((j) => j.id).join(',')
   const [regionId, setRegionId] = useState('north-west')
   const [airport, setAirport] = useState<string>('all') // 'all' | airport code
   const [sort, setSort] = useState<JobSort>('soon')
@@ -329,7 +331,8 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
   const codes = region.airports.map((a) => a.code)
 
   const list = useMemo(() => {
-    let r = jobs.filter((j) => codes.includes(j.fromCode))
+    const taken = new Set(storeJobs.filter((j) => j.status === 'accepted').map((j) => j.id.replace(/^acc_/, '')))
+    let r = jobs.filter((j) => codes.includes(j.fromCode) && !taken.has(j.id))
     if (airport !== 'all') r = r.filter((j) => j.fromCode === airport)
     const ref = airport !== 'all' ? airport : codes[0]
     const arr = [...r]
@@ -339,7 +342,7 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
     else arr.sort((a, b) => a.postedMins - b.postedMins)
     return arr.slice(0, 60)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobs, regionId, airport, sort])
+  }, [jobs, regionId, airport, sort, acceptedKey])
 
   const selected = selectedId ? jobs.find((j) => j.id === selectedId) ?? null : null
 
@@ -397,14 +400,22 @@ function JobsView({ go }: { go: (s: Screen) => void }) {
         )}
       </div>
 
-      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => { acceptMarketJob(selected, user?.name ?? 'You'); setSelectedId(null); go('trips') }} onMessage={() => go('messages')} />}
+      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => { if (!user) { setSelectedId(null); go('profile'); return } acceptMarketJob(selected, user.name); setSelectedId(null); go('trips') }} onMessage={() => go('messages')} />}
     </div>
   )
 }
 
 function MapView({ go }: { go: (s: Screen) => void }) {
-  const jobs = useMarketJobs()
+  const allJobs = useMarketJobs()
   const { user } = useAuth()
+  const { jobs: storeJobs } = useJobs()
+  // Hide jobs the driver has already accepted so they can't be taken twice.
+  const acceptedKey = storeJobs.filter((j) => j.status === 'accepted').map((j) => j.id).join(',')
+  const jobs = useMemo(() => {
+    const taken = new Set(storeJobs.filter((j) => j.status === 'accepted').map((j) => j.id.replace(/^acc_/, '')))
+    return taken.size ? allJobs.filter((j) => !taken.has(j.id)) : allJobs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allJobs, acceptedKey])
   const [filter, setFilter] = useState<JobCategory | 'all'>('all')
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -575,7 +586,7 @@ function MapView({ go }: { go: (s: Screen) => void }) {
         </div>
       </div>
 
-      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => { acceptMarketJob(selected, user?.name ?? 'You'); setSelectedId(null); go('trips') }} onMessage={() => go('messages')} />}
+      {selected && <JobDetail job={selected} onClose={() => setSelectedId(null)} onClaim={() => { if (!user) { setSelectedId(null); go('profile'); return } acceptMarketJob(selected, user.name); setSelectedId(null); go('trips') }} onMessage={() => go('messages')} />}
     </div>
   )
 }

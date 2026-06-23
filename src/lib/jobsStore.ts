@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { loadJSON, saveJSON } from './persist'
 import { hasBackend, api } from './api'
+import { notify } from './notifications'
 import { OPERATORS, REGIONS } from '../data/marketplace'
 
 // Two-sided jobs store.
@@ -84,6 +85,7 @@ function resolveOperatorJob(id: string) {
   if (!job || job.status !== 'pending') return
   job.status = 'covered'
   job.driverName = DRIVERS[Math.floor(Math.random() * DRIVERS.length)]
+  notify('claim', 'Your job was covered', `${job.fromCode} → ${job.to} · covered by ${job.driverName}`)
   emit()
 }
 
@@ -109,6 +111,7 @@ export function completeJob(id: string) {
   const job = items.find((j) => j.id === id)
   if (!job || (job.status !== 'covered' && job.status !== 'accepted')) return
   job.status = 'completed'
+  notify('system', 'Trip completed', `${job.fromCode} → ${job.to} · £${job.myBid ?? job.cap}`)
   emit()
   if (hasBackend()) api.post(`/jobs/${id}/complete`, {}).catch(() => {})
 }
