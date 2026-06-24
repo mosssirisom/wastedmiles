@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { ArrowLeft, Check } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import { isSupabaseConfigured } from '../lib/supabase'
+import { createOperatorLead } from '../lib/marketplaceService'
 
 const inputClass =
   'w-full bg-[#18181B] border border-[#27272A] rounded-lg px-3 py-2.5 text-sm text-[#FAFAFA] placeholder:text-[#52525B] focus:outline-none focus:border-[#F97316]/60'
@@ -19,24 +21,33 @@ export default function JoinScreen({ onBack }: JoinScreenProps) {
 
   const set = (key: keyof typeof form, value: string) => setForm((f) => ({ ...f, [key]: value }))
 
-  // Submit the signup to a configurable endpoint (VITE_SIGNUP_API_URL).
-  // With no endpoint set it succeeds locally so the flow still works.
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    // Defaults to the Vercel serverless function at /api/signup.
-    const url = import.meta.env.VITE_SIGNUP_API_URL || '/api/signup'
     setSubmitting(true)
+
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const key = import.meta.env.VITE_SIGNUP_API_KEY
-      if (key) headers.Authorization = `Bearer ${key}`
-      const res = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ ...form, source: 'wasted-miles-web' }),
-      })
-      if (!res.ok) throw new Error(`Signup failed (${res.status})`)
+      if (isSupabaseConfigured) {
+        await createOperatorLead({
+          companyName: form.name,
+          email: form.email,
+          fleetSize: form.fleet,
+          source: 'wasted-miles-web',
+        })
+      } else {
+        // Defaults to the Vercel serverless function at /api/signup.
+        const url = import.meta.env.VITE_SIGNUP_API_URL || '/api/signup'
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        const key = import.meta.env.VITE_SIGNUP_API_KEY
+        if (key) headers.Authorization = `Bearer ${key}`
+        const res = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ ...form, source: 'wasted-miles-web' }),
+        })
+        if (!res.ok) throw new Error(`Signup failed (${res.status})`)
+      }
+
       await signIn(form.email, form.name)
       setSubmitted(true)
     } catch (err) {
