@@ -116,6 +116,18 @@ export function completeJob(id: string) {
   if (hasBackend()) api.post(`/jobs/${id}/complete`, {}).catch(() => {})
 }
 
+// Release an accepted job back onto the market (undo an accept).
+export function cancelJob(id: string) {
+  const idx = items.findIndex((j) => j.id === id)
+  if (idx === -1) return
+  const job = items[idx]
+  if (job.status !== 'accepted') return
+  items.splice(idx, 1)
+  notify('system', 'Job released', `${job.fromCode} → ${job.to} is back on the market`)
+  emit()
+  if (hasBackend()) api.post(`/jobs/${id.replace(/^acc_/, '')}/cancel`, {}).catch(() => {})
+}
+
 // One-tap accept of a specific marketplace job at its posted fare (no bidding).
 // Idempotent per market job id.
 export function acceptJob(input: {
@@ -221,6 +233,7 @@ export function useJobs() {
     buyNow,
     placeBid,
     acceptJob,
+    cancelJob,
     completeJob,
   }
 }
