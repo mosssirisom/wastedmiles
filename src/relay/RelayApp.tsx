@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, Bell, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, ChevronRight, Locate, LocateFixed, Circle, MapPin, Plane, Shield, Zap, type LucideIcon } from 'lucide-react'
+import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, Bell, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, ChevronRight, Locate, LocateFixed, Circle, MapPin, Plane, Shield, Zap, AlertTriangle, CheckCircle2, Info, type LucideIcon } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
 import { buyNow, placeBid, acceptJob, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
@@ -79,6 +79,7 @@ function QuickActionsMenu({ go }: { go: (s: Screen) => void }) {
 }
 
 const NOTIF_COLOR: Record<NotifKind, string> = { urgent: '#EF4444', message: '#06B6D4', claim: '#22C55E', system: '#94A3B8' }
+const NOTIF_ICON: Record<NotifKind, LucideIcon> = { urgent: AlertTriangle, message: MessageSquare, claim: CheckCircle2, system: Info }
 
 function notifAgo(at: number): string {
   const s = Math.max(0, Math.round((Date.now() - at) / 1000))
@@ -107,7 +108,7 @@ function NotificationsBell() {
             {list.length === 0 && <div className="px-4 py-6 text-center text-[12px] text-white/40">No notifications yet</div>}
             {list.map((n) => (
               <div key={n.id} className="px-4 py-2.5 border-b last:border-b-0 flex gap-2.5" style={{ borderColor: LINE }}>
-                <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: NOTIF_COLOR[n.kind] }} />
+                {(() => { const Icon = NOTIF_ICON[n.kind]; return <Icon size={14} className="mt-0.5 shrink-0" style={{ color: NOTIF_COLOR[n.kind] }} /> })()}
                 <div className="min-w-0">
                   <div className="text-[13px] font-medium text-white">{n.title}</div>
                   <div className="text-[12px] text-white/55">{n.body}</div>
