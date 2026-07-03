@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, Bell, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, ChevronRight, Locate, LocateFixed } from 'lucide-react'
+import { Menu, ArrowLeft, Search, ClipboardList, Map as MapIcon, Route, MessageSquare, User, LogOut, Send, Plus, UserPlus, Settings, LifeBuoy, Bell, Star, Clock, Navigation, Users, Car, Sparkles, Briefcase, ChevronDown, ChevronRight, Locate, LocateFixed, Circle, MapPin, Plane, Shield, Zap, type LucideIcon } from 'lucide-react'
 import { AuthProvider, useAuth } from '../lib/auth'
 import { buyNow, placeBid, acceptJob, useJobs } from '../lib/jobsStore'
 import { useMessages } from '../lib/messages'
@@ -277,10 +277,10 @@ function JobsCard({ job, onView }: { job: MarketJob; onView: () => void }) {
 
       {/* route timeline */}
       <div className="mt-3 flex gap-3">
-        <div className="flex flex-col items-center py-1.5">
-          <span className="h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: 'rgba(255,255,255,0.75)' }} />
+        <div className="flex flex-col items-center py-0.5">
+          <Circle size={10} strokeWidth={2.5} style={{ color: 'rgba(255,255,255,0.75)', flexShrink: 0 }} />
           <span className="w-px flex-1 my-1" style={{ background: 'rgba(255,255,255,0.18)' }} />
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: meta.color }} />
+          <MapPin size={13} strokeWidth={2} style={{ color: meta.color, flexShrink: 0 }} />
         </div>
         <div className="flex-1 min-w-0 flex flex-col gap-2.5">
           <div>
@@ -491,12 +491,12 @@ function MapView({ go }: { go: (s: Screen) => void }) {
     setDragH(null)
   }
 
-  const chips: { id: JobCategory | 'all'; label: string; count: number; color?: string }[] = [
+  const chips: { id: JobCategory | 'all'; label: string; count: number; color?: string; Icon?: LucideIcon }[] = [
     { id: 'all', label: 'All', count: jobs.length },
-    { id: 'airport', label: 'Airport', count: counts.airport, color: CATEGORY_META.airport.color },
-    { id: 'empty-return', label: 'Empty Return', count: counts['empty-return'], color: CATEGORY_META['empty-return'].color },
-    { id: 'cover', label: 'Cover', count: counts.cover, color: CATEGORY_META.cover.color },
-    { id: 'urgent', label: 'Urgent', count: counts.urgent, color: CATEGORY_META.urgent.color },
+    { id: 'airport', label: 'Airport', count: counts.airport, color: CATEGORY_META.airport.color, Icon: Plane },
+    { id: 'empty-return', label: 'Empty Return', count: counts['empty-return'], color: CATEGORY_META['empty-return'].color, Icon: Route },
+    { id: 'cover', label: 'Cover', count: counts.cover, color: CATEGORY_META.cover.color, Icon: Shield },
+    { id: 'urgent', label: 'Urgent', count: counts.urgent, color: CATEGORY_META.urgent.color, Icon: Zap },
   ]
 
   return (
@@ -569,8 +569,8 @@ function MapView({ go }: { go: (s: Screen) => void }) {
                 {chips.map((c) => {
                   const on = filter === c.id
                   return (
-                    <button key={c.id} onClick={() => setFilter(c.id)} className="shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(255,255,255,0.16)' : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.7)' }}>
-                      {c.color && <span className="inline-block h-2 w-2 rounded-full mr-1.5 align-middle" style={{ background: c.color }} />}
+                    <button key={c.id} onClick={() => setFilter(c.id)} className="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium active:opacity-80" style={{ background: on ? 'rgba(255,255,255,0.16)' : 'transparent', borderColor: on ? ACCENT : LINE, color: on ? '#fff' : 'rgba(255,255,255,0.7)' }}>
+                      {c.Icon && <c.Icon size={12} style={{ color: on ? '#fff' : c.color, flexShrink: 0 }} />}
                       {c.label} <span className="text-white/40">{c.count}</span>
                     </button>
                   )
