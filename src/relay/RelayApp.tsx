@@ -7,7 +7,7 @@ import { useNotifications, startNotificationFeed, notify, type NotifKind } from 
 import { formatGBP } from '../data/marketplace'
 import { useBid, useThreads, fetchProfile, requestCover, useResource } from './data'
 import RelayMap, { type DriverStatus } from './RelayMap'
-import { useMarketJobs, categoryCounts, CATEGORY_META, jobBadges, whyThisJob, BADGE_COLORS, JOB_REGIONS, parsePickupMinutes, distanceToAirport, jobDistanceFrom, type Badge, type JobCategory, type MarketJob } from './marketplaceJobs'
+import { useMarketJobs, categoryCounts, CATEGORY_META, jobBadges, whyThisJob, JOB_REGIONS, parsePickupMinutes, distanceToAirport, jobDistanceFrom, type Badge, type JobCategory, type MarketJob } from './marketplaceJobs'
 
 const ACCENT = '#FFFFFF'
 const BG = '#030712'
@@ -142,8 +142,7 @@ function acceptMarketJob(job: MarketJob, userName: string) {
 }
 
 function BadgePill({ badge }: { badge: Badge }) {
-  const c = BADGE_COLORS[badge.tone]
-  return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: c + '1f', color: c, border: `1px solid ${c}40` }}>{badge.label}</span>
+  return <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white/70" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}>{badge.label}</span>
 }
 
 function TrustRow({ job, compact }: { job: MarketJob; compact?: boolean }) {
@@ -152,8 +151,8 @@ function TrustRow({ job, compact }: { job: MarketJob; compact?: boolean }) {
     <div className="flex items-center gap-2 min-w-0">
       <div className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-[13px] font-semibold text-white" style={{ background: '#1E293B' }}>{job.operatorName.slice(0, 1)}</div>
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-[13px] font-medium text-white truncate">{job.operatorName}{trusted && <Star size={12} style={{ color: '#F5D90A', fill: '#F5D90A' }} />}</div>
-        {!compact && <div className="text-[11px] text-white/45">{job.operatorRating.toFixed(1)}★ · {job.operatorCompleted.toLocaleString()} jobs</div>}
+        <div className="flex items-center gap-1.5 text-[13px] font-medium text-white truncate">{job.operatorName}{trusted && <Star size={12} style={{ color: 'rgba(255,255,255,0.75)', fill: 'rgba(255,255,255,0.75)' }} />}</div>
+        {!compact && <div className="flex items-center gap-1 text-[11px] text-white/45">{job.operatorRating.toFixed(1)}<Star size={10} style={{ color: 'rgba(255,255,255,0.45)', fill: 'rgba(255,255,255,0.45)', flexShrink: 0 }} /> · {job.operatorCompleted.toLocaleString()} jobs</div>}
       </div>
     </div>
   )
@@ -254,13 +253,11 @@ function AnalyticsPanel({ jobs }: { jobs: MarketJob[] }) {
 }
 
 // Large, touch-friendly job card for the Jobs browser.
-// Solid, high-contrast category pill (luminance-aware text colour).
 function CategoryBadge({ category }: { category: JobCategory }) {
   const meta = CATEGORY_META[category]
-  const darkText = category === 'airport' || category === 'cover' // cyan / amber → dark text
   return (
-    <span className="inline-flex items-center rounded-md px-2 py-1 text-[11px] font-semibold leading-none" style={{ background: meta.color, color: darkText ? '#0A0F1A' : '#FFFFFF' }}>
-      {meta.label}
+    <span className="inline-flex items-center rounded-md px-2 py-1 text-[11px] font-semibold leading-none text-white/70" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}>
+      {meta.short}
     </span>
   )
 }
@@ -299,7 +296,7 @@ function JobsCard({ job, onView }: { job: MarketJob; onView: () => void }) {
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-white/65">
         <span className="flex items-center gap-1.5"><Users size={14} />{job.passengers}</span>
         <span className="flex items-center gap-1.5"><Briefcase size={14} />{job.cases}</span>
-        {trusted && <span className="flex items-center gap-1.5 font-medium" style={{ color: '#F5D90A' }}><Star size={13} style={{ fill: '#F5D90A' }} />Trusted Operator</span>}
+        {trusted && <span className="flex items-center gap-1.5 text-white/70 font-medium"><Star size={13} style={{ fill: 'rgba(255,255,255,0.7)', color: 'rgba(255,255,255,0.7)' }} />Trusted Operator</span>}
       </div>
 
       {/* price + chevron */}
