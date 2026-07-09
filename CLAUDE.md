@@ -318,7 +318,7 @@ Relay app (`src/relay/`):
 Shared stores / backend (`src/lib/`) — `useSyncExternalStore`-style global stores, all routed through the env-gated `api` client:
 
 * `api.ts` — central HTTP client. `hasBackend()` is true only when `VITE_API_URL` is set; otherwise the app runs fully on local mock/persisted data.
-* `jobsStore.ts` — blind reverse-auction job engine (`postJob`, `buyNow`, `placeBid`, `completeJob`).
+* `jobsStore.ts` — blind reverse-auction job engine (`postJob`, `buyNow`, `placeBid`, `acceptJob`, `cancelJob`, `completeJob`).
 * `auth.tsx` — `AuthProvider` / `useAuth` (env-gated; falls back to a demo identity).
 * `messages.ts`, `claims.ts`, `billing.ts`, `verification.ts`, `notifications.ts`, `actions.ts` — domain stores.
 * `persist.ts` — localStorage JSON helpers. `toast.ts` — toasts.
@@ -352,3 +352,65 @@ These are deliberate prototype shortcuts that violate the standards above. Close
 * **No real payments.** `billing.ts` / transaction fees are stubbed — no payment provider integrated, so the primary revenue model isn't live.
 * **Auth is demo-grade.** `auth.tsx` falls back to a demo identity when no auth API is configured; there is no real account system or session security yet.
 * **Single-file screens.** `RelayApp.tsx` holds every screen. Fine for now, but split into per-screen modules as it grows (reusable components / maintainability standard).
+
+---
+
+## Backend API Contract
+
+When `VITE_API_URL` is set, the stores switch from local mocks to real HTTP. All requests carry `Authorization: Bearer <token>` from `auth.tsx`. All bodies are JSON; all responses are JSON or 204.
+
+### Auth  (`VITE_AUTH_API_URL` or `/api/auth`)
+
+| Method | Path | Body | Response |
+|--------|------|------|----------|
+| POST | `/api/auth` | `{ email, name? }` | `{ token: string, user: { id, name, email, operatorId } }` |
+
+### Jobs (`/jobs`)
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| POST | `/jobs` | `{ fromCode, fromName, to, vehicle, passengers, luggage, pickupAt, cap }` | Operator posts a job. Returns `PostedJob`. Kicks off server-side settlement (mirrors `resolveOperatorJob`). |
+| POST | `/jobs/:id/complete` | `{}` | Marks job completed; releases escrow. |
+| POST | `/jobs/:id/cancel` | `{}` | Releases an accepted job back to open. `:id` is the raw market job id (strip `acc_` prefix). |
+| POST | `/jobs/:id/accept` | `{}` | Driver one-tap accepts at posted fare. |
+| POST | `/jobs/:id/buy-now` | `{}` | Driver buys at cap price instantly. |
+| POST | `/jobs/:id/bids` | `{ amount: number }` | Driver places a blind lower bid. Server settles after `BID_WINDOW_MS` (5 s demo, configurable). |
+
+Settlement rules the server must mirror:
+- `settle_job` RPC: lowest hidden bid wins; if no bids placed, random operator from the network covers it.
+- `placeBid` guard: `amount` must be `> 0` and `< cap`; subsequent bids must be lower than the driver's current bid.
+
+### Messages (`/threads`)
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| POST | `/threads/:operatorId/messages` | `{ text: string }` | Send a message in an operator thread. |
+
+### Claims (`/claims`)
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| POST | `/claims` | `{ journeyId: string }` | Claim a marketplace journey (legacy flow, pre-`acceptJob`). |
+
+### Verification (`/verification`)
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| POST | `/verification` | `{ licenceNumber, insuranceExpiry, companyName, ... }` | Submit operator verification details. |
+| POST | `/verification/:id/review` | `{ decision: 'approved' \| 'rejected' }` | Admin reviews a submission. |
+
+### Profile (`/relay/profile`)
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| POST | `/relay/profile` | `{ name, phone, vehicleType, licenceNumber, operatorId }` | Save/update driver profile. |
+
+### Implementation order (recommended)
+
+1. **Auth** — gates everything; even a stateless JWT issuer unblocks all stores.
+2. **Jobs CRUD** — core revenue loop: `postJob` → settle → `completeJob`.
+3. **`placeBid` + `buyNow`** — driver-side marketplace actions.
+4. **`accept` + `cancel`** — one-tap driver flow.
+5. **Messages** — operator comms.
+6. **Verification** — trust moat; required before real operator onboarding.
+7. **Profile** — driver identity persistence.
