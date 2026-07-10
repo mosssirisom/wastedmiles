@@ -211,7 +211,7 @@ export function whyThisJob(job: MarketJob): string {
   if (job.miles >= 40) reasons.push(`a longer ${job.miles}-mile journey that keeps you earning`)
   else if (job.category === 'empty-return') reasons.push(`it fills a return leg you'd otherwise drive empty`)
 
-  if (job.operatorRating >= 4.85) reasons.push(`posted by ${job.operatorName}, a top-rated operator (${job.operatorRating.toFixed(1)}★)`)
+  if (job.operatorRating >= 4.85) reasons.push(`posted by ${job.operatorName}, a top-rated operator (${job.operatorRating.toFixed(1)} rated)`)
   else reasons.push(`posted by ${job.operatorName}`)
 
   if (HIGH_DEMAND.has(job.fromCode)) reasons.push(`${job.fromName} is one of the busiest pickup areas on the network, so repeat work is likely`)
